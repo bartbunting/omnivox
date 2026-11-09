@@ -118,12 +118,15 @@ duplicate decoded keys and null outside character overrides remain invalid.
 This does not introduce a fourth built-in `most` level.
 
 Startup schema 7 freezes all resolved profiles with the built-in fallback and
-complete character table. Reload/recovery does not reread profile definitions.
+complete character table. Retained-startup recovery does not reread definitions.
+A worker advertising `host_preferences_v1` can independently reload punctuation
+through the [control contract](../protocols/control.md#independent-local-punctuation-reload).
 Workers advertise `punctuation_profiles_v1` and answer
 `get_punctuation_profiles_v1` with `type: "punctuation_profiles_v1"` and a
 `profiles` array of `{id, fallback, sha256}`. The digest is SHA-256 of the compact
 JSON serialization of the resolved `{fallback, table}` (sorted character keys).
-Clients compare the whole descriptor from each worker, not IDs alone.
+Clients using the older cross-worker contract compare the whole descriptor, not
+IDs alone. Independent-reload workers may use their own current descriptor.
 
 `set_punctuation_profile_v1` accepts a `profile` string and returns
 `punctuation_profile_selected_v1` with that ID. Unknown IDs return
@@ -141,11 +144,12 @@ resolved tables. Save optionally accepts `profiles_json` alongside
 Omitting `profiles_json` preserves saved profiles, including when an older
 editor saves built-in tables. Save never activates either worker.
 
-Emacsvox offers named selections only from agreeing current worker catalogues.
-Saved mode/buffer values retain `(profile ID FALLBACK)`. Missing, unsupported,
-dead or disagreeing workers use the saved built-in fallback and describe that
-state; no custom ID is sent through the old three-value punctuation grammar.
-After an explicit restart or Apply, catalogues are rediscovered per connection.
+Emacsvox offers the foreground catalogue for independent-reload workers; older
+workers require agreeing catalogues. Saved mode/buffer values retain
+`(profile ID FALLBACK)`. A missing local profile uses the saved built-in fallback;
+differing supporting-worker hashes do not disable foreground profiles. No custom
+ID enters the old three-value punctuation grammar. Restart, Apply and successful
+reload refresh catalogues per connection.
 
 ## Configuration version 3
 
@@ -187,9 +191,11 @@ The selected level remains `speech.defaults.punctuation` plus the existing clien
 command override. Tables are host policy: both workers capture identical resolved
 tables before engine construction; admitted requests share them immutably. Reset
 restores the saved level and retains the tables. Recovery and rollback keep their
-captured tables. Deliberate restart or Apply captures file edits. Exact `--dump-wav`
+captured tables. Independent punctuation reload can replace a worker's tables
+without modifying its startup record; requests retain their admitted snapshot.
+Deliberate restart or Apply captures file edits. Exact `--dump-wav`
 diagnostics and isolated-character speech retain their existing direct paths.
-No engine, helper or speech-protocol changes are required.
+No engine or helper replacement is required for punctuation reload.
 
 All ASCII defaults are unchanged. New captures also cover the common Unicode
 forms below, even when an older configuration schema or no file is used. Unknown

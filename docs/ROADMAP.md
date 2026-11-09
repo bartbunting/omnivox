@@ -258,16 +258,20 @@ choices retain priority and reset restores each worker's startup channel.
 
 The remaining configuration work is:
 
-- **Session configuration and reload:** [proposed ADR 0011](adr/0011-session-configuration-and-reload.md)
-  records the selected direction for Omnivox to coordinate configuration while
-  clients request changes and present results. Define controller lifetime,
-  negotiated operations, revision persistence, the shared admission boundary and
-  failure recovery before implementation. Start with speech-preference reload
-  across existing independent workers, then extend configuration Apply to helper
-  changes. Verify partial activation, client/worker/controller loss, stale retries,
-  retained reset defaults and recovery, and older-client compatibility. Process
-  consolidation, shared engine instances and remote management remain separate
-  choices. The proposal does not replace current accepted contracts.
+- **Lightweight preference reload:** [ADR 0017](adr/0017-independent-host-preference-reload.md)
+  accepts independent per-worker installation while retaining coherent requests
+  and native ownership. The [resident punctuation delivery](benchmarks/2026-11-10-resident-reload.md)
+  adds local stdio reload/status and paired client integration. The
+  [plan](plans/lightweight-preference-reload.md) tracks remaining qualification,
+  later host preferences and recovery hardening.
+- **Retained session work:** preserve the accepted session experiment at
+  `7879419`, including native cleanup guards and managed activation. Its global
+  preference commit is no longer required for ordinary reload. Reuse proven
+  lifetime protections where they improve recovery; measure any new lifecycle
+  manager separately from the speech path. The earlier branch copy of
+  [0011](adr/0011-session-configuration-and-reload.md) is historical proposal text;
+  [0017](adr/0017-independent-host-preference-reload.md) links the accepted session
+  decisions and defines the superseded preference requirements.
 - **Per-helper environment:** extend the existing registration backlog when a
   helper needs separate runtime settings; preserve private values and immutable
   recovery rather than adding another discovery path.

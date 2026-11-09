@@ -79,6 +79,37 @@ impl Drop for Fixture {
 }
 
 #[test]
+fn captured_canonical_root_can_prepare_new_preferences_without_native_startup() {
+    let fixture = Fixture::new();
+    fixture.config(&[]);
+    let executable = std::env::current_exe().unwrap().canonicalize().unwrap();
+    let startup = EngineStartup::capture(
+        "espeak",
+        None,
+        None,
+        fixture.0.to_str(),
+        LaunchEnvironment::from_variables([]),
+        &executable,
+    )
+    .unwrap();
+    let captured = startup.snapshot.resolved().root.as_ref().unwrap();
+    let root = EngineStartup::preferences_root(&startup.snapshot).unwrap();
+    assert_eq!(root.path.canonicalize().unwrap(), *captured);
+    let path = fixture.0.join("config.json");
+    let mut document: serde_json::Value =
+        serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+    document["schema"] = json!(4);
+    document["speech"] = json!({"punctuation":{"all":{"!":"updated"}}});
+    std::fs::write(path, serde_json::to_vec(&document).unwrap()).unwrap();
+    let candidate = EngineStartup::preferences_candidate(&startup.snapshot, &executable).unwrap();
+    assert_eq!(candidate.snapshot.resolved().root.as_ref(), Some(captured));
+    assert_eq!(
+        candidate.snapshot.resolved().speech.punctuation.all[&'!'].as_deref(),
+        Some("updated")
+    );
+}
+
+#[test]
 fn disabled_native_engines_are_rejected_before_construction_and_exact_diagnostics_do_not_fallback()
 {
     let fixture = Fixture::new();

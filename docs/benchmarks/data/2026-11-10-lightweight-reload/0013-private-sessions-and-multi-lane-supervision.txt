@@ -1,0 +1,162 @@
+# ADR 0013: Private sessions and multi-lane supervision
+
+- Status: Accepted for implementation. The
+  [delivery plan](../plans/session-configuration-reload.md#supervisor-migration)
+  tracks implementation and qualification separately.
+- Date: 2026-10-23.
+- Accepted: 2026-10-23.
+- Partially superseded: [ADR 0014](0014-unix-session-cleanup-guard.md) places
+  Unix native tree ownership in one cleanup guard per session;
+  [ADR 0015](0015-windows-session-cleanup-guard.md) does the same for Windows.
+  Configuration decisions remain centralized; the other constraints below remain
+  in force.
+- Refines: [Session coordination](0011-session-configuration-and-reload.md#coordinate-the-session-in-omnivox)
+  and [local native ownership](0007-managed-voice-lifecycle.md#verify-before-native-use-and-retain-cleanup-ownership).
+- Managed activation: [ADR 0016](0016-session-managed-voice-activation.md)
+  extends the session to managed-library Apply with bounded probe ownership
+  and one durable publication/recovery decision.
+- Related: [Workstation service](0004-workstation-service-and-worker-ownership.md) and
+  [engine isolation](0001-engine-isolation-and-distribution.md).
+
+## Context
+
+ADR 0011 assigns local configuration coordination to Omnivox while retaining
+independent speech workers and existing native ownership boundaries. The inactive
+reload prototype consequently has a controller plus two participants per lane:
+a native owner and a speech worker. Its records and transport fix two lanes.
+Adding a third lane should not require another architectural special case.
+
+The coordinator and native owners currently negotiate preparation and selection
+of recovery records. Placing those responsibilities in one supervisor can remove
+that coordination while retaining worker isolation. It changes the failure
+boundary: independent owners can preserve idle speech after controller loss;
+a combined supervisor becomes critical to its entire session.
+
+Private client launches also let a working Omnivox version coexist with a version
+under test. Coordinated reload does not require replacing that arrangement with
+a shared daemon. Instance selection, session scope and lane identity should be
+explicit before considering shared hosting.
+
+## Decision
+
+### Keep private instances as the default
+
+Start a private Omnivox instance for each client by default. Initially an instance
+contains one client session, managed by one supervisor process. Distinguish
+instance identity, session identity, stable lane identity and worker incarnation
+without creating a process for each identity. Foreground and notification are
+default roles, not an exhaustive set of lanes.
+
+Pin the instance to its selected executable and matching helper/data bundle.
+Clients select the intended instance explicitly and verify build/protocol
+compatibility before session enrollment. Stable and development instances can
+coexist; use separate writable configuration/state where experimental changes
+could affect the working instance. Retain existing asset pins and host/profile
+management exclusion wherever instances use shared managed resources.
+
+Sharing one instance between multiple clients remains a later extension. It
+would need separate sessions, explicit attachment and lifetime rules, and bounded
+resource allocation. A shared host would not itself share engine instances or
+model residency. No shared daemon or endpoint discovery service is required for
+the initial implementation.
+
+### One supervisor owns a bounded collection of isolated lanes
+
+The session supervisor owns native worker trees, retained recovery choices and
+configuration transactions. Each lane retains its own speech worker process,
+engine/helper instances, transient settings, output and cancellation. Native tree
+ownership is established before worker initialization. Preserve helper process
+boundaries and distribution constraints.
+
+Bound lane membership, queues, retained records and native resources. Blocking
+one lane's input/output or client replies must not prevent management progress,
+cleanup or service to other lanes. Stop remains lane-scoped; reload covers the
+participating lanes of its session. A worker replacement has a fresh incarnation
+even when it retains the same stable lane identity.
+
+Freeze membership for each reload. A joining lane waits for its resolution, then
+starts gated on the retained committed configuration. Failure or removal requires
+explicit reconciliation or retirement; it cannot silently shrink the required
+acknowledgement set. Lane-local recovery remains possible while the supervisor
+survives, subject to verified cleanup and the transaction's committed decision.
+
+### Consolidate ownership while preserving the reload boundary
+
+The supervisor prepares and retains exact per-lane recovery records itself,
+removing separate owner acknowledgement rounds. Preserve immutable session
+decisions, idempotent requests, worker validation, bounded admission gates and
+receipts describing actual installed policy. Candidate recovery records must be
+durable before Commit; the committed recovery choice must be established before
+any worker resumes admission. Uncertain publication never permits assumed Abort.
+
+Previously admitted requests keep their captured policy. Preference reload
+preserves current client settings, independent synthesis and output. Report
+success only after all required workers acknowledge the committed policy and the
+terminal result is retained. The initial preference-only scope of ADR 0011 stays
+in force; helper/output Apply remains proposed separately.
+
+### Supervisor loss ends the session
+
+Workers belong to the lifetime of their session supervisor. Supervisor loss ends
+that session and requires retirement of all its worker/helper trees; a successor
+does not reattach to surviving speech workers. Recovery must reconcile the
+retained decision and confirm native cleanup before starting fresh workers from
+the last conclusively committed configuration. Never reconstruct that recovery
+configuration from subsequently edited files or replay interrupted speech.
+
+Native lifetime enforcement and cleanup evidence must be qualified per platform.
+A free claim, disconnected socket or saved PID is insufficient proof. Uncertain
+publication, damaged history or unconfirmed cleanup keeps recovery blocked and
+retains records and asset pins. No automatic recovery is advertised without the
+necessary proof.
+
+Client loss does not remove the supervisor's obligations: resolve or retain an
+in-flight operation and retire the owned session without depending on client I/O.
+This remains distinct from supervisor failure. The consolidated supervisor
+replaces the separate owner/controller layout only for the new local session
+path; existing managed validation/Apply ownership and standalone launch contracts
+continue to apply to their existing paths.
+
+### Preserve existing clients and service boundaries
+
+Introduce the session path with explicit capability negotiation. Keep standalone
+and older-client speech startup and their explicit restart path. Existing launch
+paths remain available until their replacements are qualified. This decision
+does not change ordinary stdio EOF behavior or the remote service's single-session,
+two-lane, authentication and retirement contract under ADR 0004.
+
+This record refines ADR 0011's reuse of existing local ownership
+boundaries for the new session path. It extends ADR 0007's native ownership rules
+to a supervisor responsible for multiple lanes, retaining assignment before
+initialization, management exclusion, asset retention and confirmed retirement.
+It does not authorize helper/output Apply, new engine boundaries or remote
+management. Exact formats, migration stages and platform evidence belong in the
+[delivery plan](../plans/session-configuration-reload.md#supervisor-migration)
+and its linked references.
+
+## Consequences and alternatives
+
+One supervisor centralizes lane lifecycle, recovery selection and configuration
+decisions. Adding lanes becomes a bounded membership operation. Worker admission
+barriers and native cleanup still require coordination and evidence; fewer
+processes alone establish no latency improvement. Per-lane model memory remains.
+
+The cost is a larger supervisor failure boundary and changes to native ownership,
+client startup and recovery qualification. Unlike the existing prototype,
+controller replacement cannot preserve idle speech workers. Migration can reuse
+source classification, immutable snapshots, policy slots, admission gates and
+native cleanup checks; it must replace fixed-pair records and owner coordination.
+
+Keeping a separate controller and owner per lane preserves existing launch paths
+and surviving workers after controller loss, but retains distributed recovery
+selection and extra participants as lanes are added. Combining all speech lanes
+inside one process could simplify policy publication, but the current
+[eSpeak adapter's](../../omnivox-tts/src/espeak.rs) synthesis and Stop state are
+process-global. Independent lanes would require engine
+isolation or a different scheduling/cancellation contract, plus broader engine
+and I/O audits. A mandatory shared multi-client daemon adds attachment, lifetime,
+fairness and version-selection obligations without being necessary for reload.
+
+Creation or acceptance of this record establishes no implementation, native
+platform qualification or release capability. Those remain separately tracked
+in the [roadmap](../ROADMAP.md#host-configuration-follow-up).

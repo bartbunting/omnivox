@@ -74,6 +74,83 @@ the public acknowledgement from the private launch record. Paired client
 orchestration remains an integration requirement; this capability alone does not
 claim that an older client prepared its workers together.
 
+### Independent local punctuation reload
+
+`host_preferences_v1` is advertised only by a locally owned worker whose
+resident preparation task started successfully. Unowned and remote workers omit
+it and reject these requests. Negotiate independently on each connection.
+No new transport, token, forwarding process or executable launch is needed.
+
+Version-1 requests are strict: duplicate/unknown fields are rejected. Status has
+only the ordinary envelope; reload adds the worker incarnation, next operation
+sequence and expected live revision. There is no caller-selected path or uploaded
+configuration.
+
+```json
+{"protocol_version":1,"request_id":20,"type":"host_preferences_status_v1"}
+{"protocol_version":1,"request_id":21,"type":"reload_punctuation_v1","incarnation":"WORKER_UUID","sequence":1,"expected_revision":0}
+```
+
+Status returns `type: "host_preferences_status_v1"` with these required fields:
+
+| Field | Meaning |
+| --- | --- |
+| `incarnation` | UUID for this worker's live preference state; changes on restart. |
+| `configuration_file` | Native canonical destination selected at startup, including a not-yet-created file. Compare editor targets locally; never send it back as file-reading authority. |
+| `startup_activation_id` | Immutable consumed launch identity. |
+| `revision` | Unsigned 64-bit live punctuation revision, initially zero. |
+| `punctuation_sha256` | SHA-256 of compact JSON for the complete current resolved tables/profiles. |
+| `startup_punctuation_sha256` | The initial policy hash, retained across reload. |
+| `last_operation` | Null, or `{sequence, expected_revision, outcome, reason}`; reason is nullable. |
+
+The reload response has `type: "reload_punctuation_v1"`, requested `sequence`,
+`outcome` and `state` (the same status fields, without its envelope/type).
+An accepted operation first reports `preparing`, then `pending` after capture,
+and finally `applied`, `unchanged` or `rejected`. Query status until terminal.
+A client deadline means unknown/pending; it neither cancels nor rolls back work.
+
+Operations start at sequence one and must advance by exactly one from the last
+accepted operation, with the current revision and incarnation. An identical retry
+of the last sequence/expected-revision pair returns its retained outcome without
+recapturing files. Other old/skipped sequences, stale revision or wrong incarnation
+return `stale`. A new operation during preparation/pending returns `busy`.
+Rejected and unchanged operations consume their sequence; only changed content
+increments the policy revision. Neither identity wraps. Only the last operation
+is retained: status is observation, not a durable transaction history.
+
+Preparation reads the worker's selected files off admission using captured native
+environment and pinned managed assets. It does not reread a mutable active pointer,
+construct engines or publish history. Invalid/unreadable configuration, effective
+changes outside punctuation, or removal of the currently selected profile reject
+the operation and retain working policy. The existing configuration, snapshot and
+policy size limits apply; only one preparation/candidate may be pending.
+
+Installation swaps a complete immutable policy at a clean command boundary.
+Admitted requests keep their earlier coherent snapshots. Multipart assembly and
+queued legacy text preserve their existing boundary; dispatch or Stop can release
+a pending installation. Ongoing playback need not drain. Voice, rate and selected
+profile remain unchanged. Reset retains installed tables. Retained-startup recovery
+can restore old punctuation; an explicit fresh restart captures saved files.
+
+Replies use a bounded 16-record background queue. A blocked reader can lose a
+management reply; it cannot make this reload handler wait. File I/O, hashing and
+retirement of the preparer's retained policy also stay off admission. This does
+not remove older synchronous control-response paths or promise progress for every
+protocol operation when a client stops reading stdout. Closing input does not
+wait for blocked preparation/replies before ordinary native retirement.
+
+Workers install independently and may read different file versions. A failed
+notification worker cannot gate foreground installation; clients report each
+outcome instead of claiming a cross-stream commit. After successful installation,
+refresh that worker's `get_punctuation_profiles_v1` catalogue. Supporting clients
+may select a profile from each worker's own descriptor; older workers retain the
+matching-catalogue contract. Missing profiles still use the client's saved fallback.
+
+`engine_configuration_status_v1` continues to acknowledge consumed startup,
+including its initial host preferences. It does not prove current live punctuation.
+Native cleanup, asset exclusion and managed Apply proofs are unchanged. See
+[ADR 0017](../adr/0017-independent-host-preference-reload.md).
+
 ### Negotiated voice-library status
 
 Servers advertising `voice_library_v1` implement request and response `voice_library_status_v1`

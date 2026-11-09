@@ -14,6 +14,7 @@ pub mod engine_voice_choices;
 pub mod espeak;
 pub mod helper_engine;
 pub mod helper_protocol;
+pub mod host_preferences;
 pub mod logical_voices;
 pub mod macos;
 pub mod marker_protocol;

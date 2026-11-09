@@ -24,6 +24,7 @@ mod engine;
 mod engine_execution;
 mod health;
 mod lifecycle;
+mod lightweight;
 mod marker_events;
 mod native_plans;
 mod parameter_queries;

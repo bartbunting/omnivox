@@ -8,6 +8,16 @@ The [decision index](adr/README.md) explains architectural choices;
 [the roadmap](ROADMAP.md) tracks future work. Accepted design,
 implemented behavior, native qualification and published releases are distinct.
 
+This experimental branch implements independent punctuation reload on ordinary
+local owned workers under [ADR 0017](adr/0017-independent-host-preference-reload.md).
+It uses the existing stdio control connection and a bounded resident preparation
+task. Immutable request policy, native ownership and cancellation remain intact;
+live policy status is separate from consumed startup identity. Preference reload
+requires neither durable management writes nor cross-stream convergence. The
+[control contract](protocols/control.md#independent-local-punctuation-reload) and
+[delivery plan](plans/lightweight-preference-reload.md) distinguish this implementation
+from published 1.18.0 and the earlier private socket experiment.
+
 ## Runtime boundary
 
 Omnivox is a host-rendered speech server. Engines return PCM to the host, where

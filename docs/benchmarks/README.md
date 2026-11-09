@@ -17,6 +17,8 @@ acceptance on every platform.
 
 | Concern | Retained comparison / reproduction source | Measurement boundary |
 | --- | --- | --- |
+| Lightweight preference reload | [Independent punctuation investigation](2026-11-10-lightweight-reload.md) | Release/maintenance/candidate source-start comparisons, active reload overlap, native helpers, source Emacs, failure checks and platform limits. Private prototype; no acoustic or public-release claim. |
+| Resident preference delivery | [Owned-worker punctuation reload](2026-11-10-resident-reload.md) | Negotiated stdio control, resident preparation, independent Emacsvox results, native checks and qualification in progress. |
 | Warm/cold synthesis and resampling | [Progressive resampler reuse](2026-09-20-progressive-resampler-reuse.md) | Windows GNU, null output; matched compiler control, raw timing and workload plans. |
 | Legacy letter navigation | [Letter playback reserve](2026-09-20-letter-playback-reserve.md), [initial investigation](2026-09-20-dectalk-letter-navigation.md) | Muted Windows device runs; first/final mixer-source consumption, stalls and rapid replacement. |
 | Native control overhead | [Parameter timing](2026-09-20-dectalk-parameter-timing.md), [batched parameters](2026-09-20-dectalk-batched-parameters.md), [reset placement experiment](2026-09-20-dectalk-reset-latency.md) | DECtalk runtime-specific measurements; distinguish private prototypes from shipped behavior. |

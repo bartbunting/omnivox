@@ -20,6 +20,14 @@ Proposed records do not override accepted decisions.
 | [0010: Windows default output recovery](0010-windows-default-output-recovery.md) | Accepted | Follow default endpoint changes, retire interrupted speech and recover output without restarting engines. |
 | [0011: Omnivox session configuration and reload](0011-session-configuration-and-reload.md) | Proposed | Omnivox coordinates configuration across independent workers; staged preference reload and later lifecycle Apply. |
 | [0012: TGSpeechBox default distribution](0012-tgspeechbox-default-distribution.md) | Accepted | Default bundled helper, retained isolation and native platform qualification; partially supersedes 0001. |
+| [0017: Independent host preference reload](0017-independent-host-preference-reload.md) | Accepted for implementation | Independent ordinary-worker preferences, coherent requests and separate native lifetime/asset safety. |
+
+This maintenance-based branch retains the earlier 0011 text and does not contain
+the session implementation. Accepted session records 0011 and 0013–0016 at
+`7879419` remain applicable; [0017](0017-independent-host-preference-reload.md)
+links their exact retained texts and identifies which preference requirements it
+supersedes. Their IDs remain reserved. Absence of those implementation modules
+does not revoke their native ownership or asset protections.
 
 The approved 2026-09-27 consolidation replaced the earlier collection, available
 in Git at `cdd6176`. The approved 2026-09-28 consolidation combined the local

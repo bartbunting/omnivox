@@ -1,0 +1,446 @@
+# Speech availability and reload architecture review
+
+Date: 2026-11-09. Architectural recommendation and isolated Linux evidence.
+Existing accepted decisions remain unchanged. No production code, installed
+runtime, public capability, live Emacs session or release is changed.
+
+## Recommendation
+
+**Simplify the experimental direction and selectively reuse its implementation.**
+Make lightweight, independent speech-preference reload the next delivery target
+on the existing owned-worker path. Preserve the fast ordinary speech transport.
+Keep native lifecycle and asset safety, while separating their responsibilities
+from exact cross-lane configuration commitment. A small Rust management layer
+outside ordinary speech forwarding is a possible subsequent consolidation;
+building another supervisor framework is not the first step.
+
+Defer further session-managed voice-library Apply integration until two bounded
+experiments compare lightweight reload with an optimized existing session. Keep
+the experimental session available as that comparator. The existing guards,
+policy snapshots, classification, cancellation and failure fixtures are useful
+assets. Reverting all post-1.18.0 work would lose them without resolving recovery.
+
+Confidence is **high** that availability and cross-lane consistency must become
+separate requirements, and that the current forwarding path has a measurable
+cost. Confidence is **medium** that extending the existing owners is the best
+delivery route: its hot-reload prototype does not yet exist, and its native
+ownership has limitations that the new guards address. No candidate yet proves
+the complete restart-availability requirement on all target platforms.
+
+The current design is a substantial implementation of a stronger transactional
+activation contract. Optimizing it could recover useful performance. Its
+supervisor-loss and blocked-recovery policies, however, need a product decision
+even if its transport becomes fast. These policies cannot be fixed by shortening
+a polling interval.
+
+## Current state and evidence boundaries
+
+| Item | Observed state |
+| --- | --- |
+| Omnivox checkout | Local `main`, `78794197f718bc0dabfc7e43d0cfab9ac2ac04f8`, initially clean, 81 commits ahead of `origin/main`. |
+| Release baseline | Annotated tag `v1.18.0`, peeled commit `246e3b72013b4a8a25c18355d567e4cc8ed3fded`. No other local `v1.18*` tag. |
+| Emacsvox checkout | Clean `master`, `fb916e4f3327f4aa97ff1d2cfe30d48b16174ca6`, two commits ahead of its remote. |
+| Emacsvox session branch | `feat/omnivox-session-client`, `a0404c398d76a923a49faaaaaa99e10c43421948`; 15 commits unique to it and 30 unique to current master. It is not checked out. |
+| New probe executables | Existing complete staged builds from release `246e3b7` and development `502633d`. Rust source, lock file, workspace manifest and toolchain are unchanged between the latter and review HEAD. Executable and all 364 adjacent eSpeak data hashes match the prior comparison. |
+
+The ordinary path has independent foreground and notification owners/workers,
+runtime settings commands, native helper isolation, fallback routing, bounded
+admission and cancellation. Its client deliberately replaces workers to load
+changed saved host policies. It is the usable baseline, not a complete solution
+to every ownership failure.
+
+Private sessions implement preference Reload, notification replacement,
+whole-session replacement, and recovery with retained native cleanup proof.
+[Installed qualification](2026-10-26-installed-lane-replacement.md) covers Linux
+and WSL Emacs driving Windows Omnivox, including recovery after replaced workers.
+It also verifies that guard loss can keep recovery blocked. Earlier plan text
+describing Windows recovery as simply unimplemented predates that checkpoint.
+The complete path remains private; normal session selection is disabled.
+
+Managed Apply has candidate construction, retained settings, probe ownership,
+candidate/rollback worker plumbing and transfer validation. Live submission,
+provisional initialization, client confirmation, pointer publication and complete
+orchestration remain unfinished. This is more than a final UI connection.
+The [roadmap](../ROADMAP.md#host-configuration-follow-up) and
+[implementation overview](../ARCHITECTURE.md#configuration-and-engine-discovery)
+identify those gaps. Neither native helper staging nor null-output session tests
+establishes session-helper or acoustic qualification.
+
+Useful post-release work to retain includes strict change classification,
+immutable per-request host policy, actual installed-policy observations,
+admission-boundary and Stop handling, guard ownership after supervisor failure,
+retained Windows pipe cancellation, independent notification replacement and
+failure reproductions. Migration must also preserve current Emacsvox master
+fixes rather than replacing it with the older session branch.
+
+## What the request paths cost
+
+The ordinary local route is:
+
+```text
+client -> per-lane native owner -> speech worker -> engine/helper -> audio
+```
+
+The private adapter route is:
+
+```text
+client -> per-lane adapter -> session supervisor -> speech worker -> engine/helper -> audio
+                                   |
+                             native cleanup guard
+```
+
+The guard owns native lifetimes; it does not add a speech-byte forwarding hop.
+Direct socket attachment removes the adapter, while retaining supervisor
+forwarding. For two lanes, excluding helpers and the client, ordinary owners use
+four persistent processes; adapter sessions use six; direct sessions use four.
+Process count alone therefore cannot explain their performance difference.
+
+| Work | Location and consequence |
+| --- | --- |
+| Ordinary owner forwarding | [Owner loop](../../omnivox-cli/src/voice_local.rs) forwards input on arrival and has a separate output reader. Its 50 ms receive timeout checks idle lifecycle state; it is not a mandatory 50 ms delay on received speech. |
+| Session forwarding | [Unix](../../omnivox-cli/src/session_supervisor/forward.rs) and [Windows](../../omnivox-cli/src/session_windows/forward.rs) send buffered data before receiving the next chunk. Newly read data waits for another poll. |
+| Adapter/supervisor scheduling | [Runtime](../../omnivox-cli/src/session_client/runtime.rs) defines a 2 ms tick; the [adapter](../../omnivox-cli/src/session_client/runtime/adapter.rs) sleeps after each forwarding pass. These costs apply to normal speech and responses, as well as setup. |
+| Management on the worker | [Admission](../../omnivox-cli/src/server/admission.rs) checks management at command boundaries. Its 10 ms receive timeout wakes for management while idle; data arrival can wake it sooner. During a transaction hold it parks ordinary commands, while still handling Stop. |
+| Policy installation | [Worker policy](../../omnivox-tts/src/engine_configuration/reload/worker.rs) replaces defaults, capital pitch, punctuation tables and chunk size. Already captured requests retain their immutable policy. Engine reconstruction is not intrinsic to this operation. |
+| Startup verification | Executable hashing and repeated retained-record checks occur at launch/management boundaries. The startup profile measured about 106 ms for the Emacs executable hash. This is not evidence of hashing per utterance. |
+| Client initialization | The profiled private path makes 18 synchronous control calls, including final fixture observations. Capabilities are fetched twice per lane. Some replies are ordering/readiness checks and cannot simply be replaced by caches. |
+| Durable reload | Candidate retention, Commit/Abort and result retention surround the worker hold. [Batching](2026-10-24-reload-batching.md) reduced repeated executable reads from 8/12 to four, but retained a roughly 82 ms controller-observed hold envelope. This is not measured acoustic silence. |
+| Engine startup | [Engine construction](../../omnivox-cli/src/engine.rs) begins helper work concurrently, but completes registration before returning the ready registry. Merely selecting eSpeak does not disable every optional registration. |
+
+The [Emacs startup profile](2026-10-27-session-startup-profile.md) demonstrated a
+roughly 25 ms whole-startup saving from a shorter launcher wait. That experiment
+does not explain the whole session penalty. The
+[eSpeak file investigation](2026-10-27-espeak-startup-files.md) found about 8 ms
+combined initialization in the current ordinary warm-Linux workload; it does
+not justify starting with a data-file caching redesign.
+
+Repeated verification deserves a threat-model review. Build compatibility,
+checking an executable before a new launch, managed-asset integrity before native
+use, and rereading the same executable during a punctuation-only transaction are
+different obligations. A content hash does not attest already loaded code.
+Preserve current checks until a replacement verification boundary is reviewed;
+do not substitute path/mtime alone for content identity.
+
+## New isolated speech observations
+
+The [probe](data/2026-11-09-availability-review/probe.py) exercised two real
+eSpeak workers with null output through the existing Python attachment fixture.
+Six blocks rotated release owners, current owners, current direct sessions and
+current adapter sessions. Each trial had one untimed speech warmup per lane and
+40 measured one-character ordered v3 timelines per lane. An additional session
+trial after each block submitted 70 per lane while changing chunk size once.
+All 30 latency trials and all 2,760 measured speech requests completed, with
+expected eSpeak source markers and verified final native cleanup.
+
+| Path | Requests | Median of six trial medians, dispatch to received source-start event |
+| --- | ---: | ---: |
+| Release 1.18.0 owners | 480 | 1.46 ms |
+| Current owners | 480 | 1.52 ms |
+| Current direct session | 480 | 8.53 ms |
+| Current adapter session | 480 | 10.45 ms |
+
+This reproduces the scale of the older control-RTT difference with actual short
+speech requests. The metric includes return transport for the marker. It does
+not establish an additional 9 ms of acoustic onset delay or isolate input delay
+from response delay. Removing adapters alone leaves most of the observed cost.
+
+In each of the six Reload trials, one request overlapping the operation took
+50.2–62.9 ms to reach its received source-start event. The operation took
+234.1–246.3 ms through observed completion under this particular client's
+interleaved status polling. No request failed. This demonstrates delayed newly
+submitted speech during Reload; it does not measure the silence gap of ongoing
+playback. The earlier Emacs preference-change timings use a different boundary
+and workload and must not be pooled with these numbers.
+
+Occasional roughly 152–162 ms source-event observations also occurred outside
+Reload in release and development paths. Their cause is unresolved. All remain
+in the raw data, and this review makes no p95/p99 or worst-case qualification.
+The requests are sequential, alternating lanes, not independently paced clients
+under sustained load. They are structured one-character speech, not the special
+legacy letter command. No physical audio device, real Emacs client, cancellation
+stress, other engine, native Windows or macOS was tested in this new experiment.
+Normal host load was not isolated; case ordering rotates but six blocks do not
+provide exact balance over all four starting positions.
+
+The [historical matched Emacs comparison](2026-10-27-release-1.18-comparison.md)
+remains the full-client baseline: 424.2 ms release startup versus 782.1 ms session
+startup; 396.1 ms restart-based preference change versus 361.7 ms session Reload.
+Those measurements favor keeping sessions experimental, but do not determine the
+benefit for expensive engines or acoustic restart gaps.
+
+## Minimum settings contract worth testing
+
+| Settings class | Existing behaviour | Proposed minimum boundary |
+| --- | --- | --- |
+| Temporary voice, rate, pitch, gains, punctuation selection and supported native voice parameters | Existing commands/registrations already update running speech. | Retain their established per-request/per-lane ordering and precedence. Do not turn these into configuration transactions. |
+| Punctuation pronunciation tables/profiles, capital-cue policy, chunking | Current private Reload updates host policy without reconstructing engines. | Validate one complete preference bundle, then install independently on each worker at a safe admission boundary. Preserve old snapshots for already admitted work. |
+| Saved speech defaults | Separate from transient client choices; Reset restores the captured baseline. | Reload changes the future Reset baseline. It does not reset current voice/rate/gain unless explicitly requested. Report which lanes adopted it. |
+| Engine definitions, helper executable/arguments, managed load sets | Classification requires lifecycle work; Apply has asset and eligibility obligations. | Keep explicit lifecycle operations. Replace only affected workers/helpers when safe and justified; first retain whole-worker replacement as the simpler implementation. |
+| Output backend or native connection | Backend is process-lifetime configuration; Windows default-device recovery already preserves engines. | Reuse qualified output recovery. Review backend reconstruction separately. Live channel/gain commands do not imply every saved audio-field edit is already reloadable. |
+| Administrative engine/voice exclusions | Constrain selection, fallback, preview and native load. | Preserve them in ordinary operation. An explicit emergency mode needs a documented restricted fallback policy, not silent permission to run excluded external code. |
+
+The reusable [classifier](../../omnivox-tts/src/engine_configuration/sources.rs)
+already rejects routing, helper, audio and other non-preference edits. Initially
+keep that whole-candidate rejection rather than silently applying a subset of a
+mixed edit. Narrower per-field behaviour can follow when it has a clear contract.
+
+For the lightweight experiment:
+
+1. Load and validate off the speech/admission thread, with bounded input. Failure
+   leaves the running policy unchanged. No synchronous filesystem work belongs
+   in Stop or the ordinary utterance path.
+2. Install at an existing safe command boundary, respecting queued legacy text,
+   multipart frames and replacement semantics. Incomplete frames must not acquire
+   half an old and half a new policy.
+3. Acknowledge the policy actually installed by that worker. Return independent
+   lane results and a retryable pending/failed state. A notification failure does
+   not roll back a successful foreground preference change.
+4. Keep per-worker revisions and bounded retry identity; remove the requirement
+   for one durable all-lane Commit before speech can resume. A lost reply requires
+   observing/retrying that worker, not assuming success or repeating speech.
+5. Distinguish engine-startup identity from live host-policy revision. Existing
+   owner descriptions and Apply checks compare retained startup with worker
+   state; simply modifying the worker without updating that contract would break
+   recovery and managed activation. Older clients need their existing semantics.
+6. If a selected named profile disappears, choose and report a defined built-in
+   fallback or reject that lane's update. Never invent successful use of a missing
+   profile. The current client already withdraws inconsistent named-profile caches
+   while leaving built-in punctuation available.
+
+Rust should own validation, native lifecycle and installation. Emacsvox should
+request operations and present actual results. A new local reload operation must
+not accidentally grant remote clients configuration-file or executable-management
+access merely because existing control frames can traverse the remote broker.
+
+## Availability and recovery contract
+
+The practical target assumes a functioning OS, a usable output route and at
+least one working bundled/system engine. Ordinary configuration and management
+failures must not require repairing a transaction journal before basic speech
+can be requested again. Failure to restore the exact preferred voice or a recent
+punctuation edit can be reported as degradation.
+
+Separate three facts: the old configuration may be uncertain; an old process may
+still exist; an old process may still emit speech or use mutable managed assets.
+We can relax the first. The latter two need real ownership and output-lifetime
+answers. New UUIDs, a fresh directory or an elapsed timeout do not mute a previous
+worker or bound accumulated orphan resources.
+
+| Failure | Current evidence or code behaviour | Required direction and remaining condition |
+| --- | --- | --- |
+| Malformed saved preferences while speech works | Both benchmarked restart and session paths reject the candidate and retain working speech. | Preserve this. Validate before interruption; keep the last working in-memory preference bundle. |
+| Preferred optional engine unavailable | Ordinary startup can register unavailable providers and use eligible fallback; no eligible engine or malformed managed metadata still fails. | Restore basic eligible speech promptly and report the degraded voice. Do not require complete optional inventory before emergency readiness. |
+| One lane fails during preference change | Session membership is frozen; Reload requires Ready and all participating receipts. Notification replacement itself can preserve healthy lanes. | Allow independent preference results and retain the healthy foreground. Preserve whole-request coherence within each lane. |
+| Lost reload reply | Private requests have retained identity/status; incomplete Commit is not success. | Keep truthful per-worker acknowledgement and bounded idempotent retries without requiring a global durable decision for preferences. |
+| Helper or worker crash | Existing isolated helpers and native owners retain cancellation/cleanup. Private replacement has real Linux/Windows evidence. | Restart the affected lane using retained working state, or restricted fallback. Never replay interrupted speech. |
+| Configuration supervisor fails | ADR 0013 deliberately ends every lane; surviving guard evidence can enable fresh recovery. | Make an optional settings coordinator unnecessary for healthy ongoing speech. Native owner/client lifetime loss remains a different event. |
+| Guard/owner loss or unknown native cleanup | Private recovery remains blocked when receipts are missing. Old Unix owner/watchers also have demonstrated combined-failure limitations. | Retain real process/tree authority. Resolve output cessation and resource bounds before claiming a safe replacement; a metadata-only fallback cannot solve this case. |
+| Stale claim or damaged management history, with no old live output | Profile admission rejects access, including ordinary owned startup through capture. | Quarantine that profile's assets and mutations while allowing an independently owned restricted speech mode. Do not fabricate historical retirement. |
+| Disk write fails | Current durable management may remain incomplete and exclude conflicting work. | Keep existing speech and reject/defer persistence. Basic in-memory fallback startup should not require new library/history writes. |
+| Machine reboot after an incomplete operation | The accepted session design provides no forced damaged-history/machine-loss recovery route. | Establish a trustworthy platform boot/lifetime boundary before treating old native processes as gone. Preserve uncertain asset/publication history while allowing fresh restricted speech. Do not infer a reboot from a stale PID or free lock. |
+| Output device temporarily fails | Existing Windows/PulseAudio recovery has distinct cancellation and no-replay rules. | Reuse output recovery without restarting healthy engines; unavailable hardware remains outside a software promise of audible speech. |
+
+### What the new management-boundary probe establishes
+
+In an isolated root containing a **synthetic** well-formed unretired session
+claim and no old native workers, ordinary owned startup rejected capture because
+the retirement file was missing. A direct standalone eSpeak worker, using an
+explicit eSpeak-only configuration and no selected managed generation, completed
+tracked null-output speech. Every file in the managed root remained unchanged.
+
+The source explains the distinction: [startup capture](../../omnivox-tts/src/voice_library/local.rs)
+opens the managed profile when no explicit generation was selected;
+[session admission](../../omnivox-tts/src/voice_library/operations/admission/sessions.rs)
+checks permanent session claims. [Standalone engine startup](../../omnivox-cli/src/engine/startup.rs)
+does not implicitly acquire that profile. This proves a useful dependency can
+be separated. It is **not** a working emergency command or evidence that it is
+safe to start parallel speech alongside unknown old trees.
+
+A production rescue path should have a trusted restricted configuration, no
+optional native helpers or mutable managed assets, a bounded owner lifetime,
+and a client action available when normal speech is down. It should preserve
+usable output selection, language and safe volume where verified. Ignoring
+broken settings must be explicit and reported. It also needs a tested answer
+for old output and repeated rescue attempts; otherwise it trades one unavailable
+state for stale audio or accumulating resources.
+
+### Existing restart and native ownership limits
+
+Current Emacsvox `tts-initialize` starts and engine-checks a new foreground owner
+before retiring the old one. Notification failure leaves main speech available.
+However, final `voice-setup` and synchronization occur after foreground retirement;
+this is not already a zero-gap switch to a completely initialized client. Preparing
+full client readiness before cutover is a focused restart improvement to test.
+
+The old [owner](../../omnivox-cli/src/voice_local.rs) performs a blocking write
+to worker stdin and forwards stdout through a shared output lock. A stalled pipe
+can therefore prevent its normal control loop from progressing; cleanup itself
+has a five-second native/reader deadline. This source inspection does not newly
+reproduce a release failure, but prevents treating the old path as a finished
+solution to blocked-I/O ownership.
+
+The [native lifetime investigation](2026-10-24-supervisor-native-lifetime.md)
+demonstrated helpers surviving worker-then-owner loss on Unix. Reuse guard
+ownership, bounded cancellation and blocked-I/O fixtures rather than removing
+them with global settings coordination. The surviving owner should depend on
+the actual client/native lifetime contract, not on the success of a preference
+coordinator or a disk transaction. The exact ownership topology needs the next
+failure experiments before approval.
+
+## Platform implications
+
+Keep a common Rust preference/command model and explicit platform ownership/I/O
+implementations. Do not require a shared system service or Linux-specific kernel
+feature merely to reload punctuation.
+
+Windows jobs provide tree management and kill-on-last-handle-close behaviour
+when configured accordingly; retaining additional handles changes that lifetime.
+The existing guard's handle transfer and I/O completion work remains valuable.
+[Microsoft's job documentation](https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects)
+and the [repository recovery review](2026-10-26-windows-recovery-review.md) support
+these constraints. WSL relay EOF and Windows native lifetime must still be tested
+separately; a Linux pipe closure is not sufficient evidence about the native tree.
+
+On Linux, a parent-death signal applies to a process and is cleared in forked
+children; it is not whole-tree cleanup.
+[Linux API documentation](https://man7.org/linux/man-pages/man2/PR_SET_PDEATHSIG.2const.html).
+Cgroup v2 offers subtree control but requires appropriate hierarchy/delegation;
+it is an optional hardening candidate, not a portable default requirement.
+[Kernel documentation](https://docs.kernel.org/admin-guide/cgroup-v2.html).
+
+macOS needs its own native lifecycle qualification and retains its speech engine's
+main-run-loop constraint. Sharing Unix source does not establish parity with
+Linux subreaping or prove restart behaviour. Retain current helper ABI, licence,
+package and architecture boundaries; no new in-process engine consolidation or
+shared model pool is justified by these measurements.
+
+## Alternatives
+
+| Direction | Strengths | Costs and unresolved requirements | Assessment |
+| --- | --- | --- | --- |
+| A. Finish and optimize the current session | Working multi-lane reload, replacement, retained recovery and native guards; strongest existing failure fixtures; potentially valuable with expensive engines. | Forwarding currently adds response latency; global holds delay new speech; supervisor failure deliberately removes all lanes; damaged history can prevent recovery; substantial managed Apply/client/platform integration remains. | Keep as comparator. A transport breakthrough would be useful, but unchanged guarantees do not fully meet the revised availability requirement. |
+| B. Lightweight reload on existing owners | Preserves measured ordinary response time and existing clients; worker policy/classifier already available; independent updates can avoid global hold and unrelated native setup. | Requires a new negotiated local operation, host-policy versus startup identity, client partial-result handling and owner recovery semantics. Old owner blocked-I/O and combined-failure gaps remain. | Best next bounded delivery experiment. It is not yet implemented or fully reliable by assertion. |
+| C. Smaller Rust management outside speech transport | Keeps native lifecycle policy out of clients, can serve more clients and reuse guard implementations; preference failure need not remove speech. | Correct lifetime ownership and direct connection transfer differ on Windows/Unix; an over-ambitious replacement could reproduce today's integration burden. | Preferred longer-term shape if consolidation is justified. Start with B, then extract only demonstrated common lifecycle needs. |
+
+All retain independent engine residency per lane. Rolling replacement can briefly
+increase model memory and may conflict with exclusive runtimes/output resources.
+Preparing candidates while old speech works is useful where supported; it is not
+a universal permission to duplicate every engine or open every device twice.
+Sequential cold replacement with prompt restricted fallback remains a possible
+resource-bounded alternative. None of these options warrants moving eSpeak's
+process-global cancellation/synthesis state into shared in-process lanes.
+
+The strongest case for A is that its hard native ownership and crash cases are
+already partly solved, and transport overhead may be cheap to remove compared
+with replacing the management contract. A large model may make reload far more
+valuable than eSpeak-only measurements suggest. The strongest case against it is
+semantic: punctuation changes are tied to durable all-lane recovery and to a
+supervisor whose loss removes all speech. Ordinary adoption also brings unrelated
+voice-library integration into the critical delivery path.
+
+## Decisions to reconsider explicitly
+
+| Accepted record | Required review |
+| --- | --- |
+| [0011](../adr/0011-session-configuration-and-reload.md) | Replace mandatory authoritative cross-lane preference revision, coordinated admission and all-lane durable completion with independent installation and truthful per-lane status, if B succeeds. Keep Rust validation, explicit operation and local access boundaries. |
+| [0013](../adr/0013-private-sessions-and-multi-lane-supervision.md) | Reconsider supervisor-on-speech-path placement, frozen acknowledgement membership for preferences, and supervisor loss ending every lane. Retain private instances, bounded resources and independent workers. |
+| [0014](../adr/0014-unix-session-cleanup-guard.md), [0015](../adr/0015-windows-session-cleanup-guard.md) | Preserve real native ownership and cleanup. Review which failures mandate retirement and distinguish permission to start restricted speech from permission to reclaim old assets/history. No inferred cleanup or fabricated receipts. |
+| [0016](../adr/0016-session-managed-voice-activation.md) | Keep its current private managed-Apply scope unimplemented where unfinished. It need not be completed to add a separate ordinary-path preference operation. Revising its all-lane retirement/publication contract would be a separate future decision. |
+| [0007](../adr/0007-managed-voice-lifecycle.md) | Keep strict managed activation, asset identity, exclusions and deletion safety. Explicitly review the boundary allowing restricted emergency speech while managed operations remain blocked. |
+| [0009](../adr/0009-local-speech-preferences.md), with [0008](../adr/0008-extensible-engine-registration.md) | Separate live speech-policy baseline from immutable native launch context and specify degraded recovery/reset behaviour. Do not silently reread arbitrary helper definitions during a preference retry. |
+| [0006](../adr/0006-voice-selection-and-customization.md) | Retain negotiated compatibility and actual-choice behaviour. Public protocol integration still requires full Windows development staging. |
+| [0001](../adr/0001-engine-isolation-and-distribution.md), [0003](../adr/0003-progressive-audio-and-markers.md), [0004](../adr/0004-workstation-service-and-worker-ownership.md) | Preserve engine isolation, cancellation/no-replay, bounded audio and existing remote access limits. No relaxation is needed to prototype the smaller preference contract. |
+
+These are proposed changes to decisions, not amendments made by this report.
+A new linked ADR requires explicit approval under the repository workflow.
+
+## Bounded next experiments and acceptance proposals
+
+**First: one lightweight punctuation reload on the ordinary pair.** In an
+isolated checkout, prototype the existing policy installer without session-wide
+Commit/history or a new forwarding process. Change one named punctuation entry;
+retain the normal owned-worker transport and all engine instances. Define a
+separate host-policy revision and local-only operation. Validate malformed input,
+in-flight multipart/legacy input, Stop during preparation, duplicate/lost replies,
+a missing selected profile, and one unavailable notification lane. Observe actual
+text preparation as well as status; an echoed revision is not enough. Preserve
+transient voice/rate/gain and test Reset. Stop if a full managed Apply rewrite is
+needed before the first preference can change: that would expose coupling to
+resolve, not justify expanding this experiment.
+
+**Second: give the current architecture a fair transport comparison.** Make a
+separate same-turn bounded receive/send candidate, retaining per-lane fairness,
+partial writes, EOF and cancellation ownership. Do not globally shorten sleeps.
+Compare with the untouched session and ordinary path using identical payloads
+and client boundaries. The smaller Emacs launcher-wait experiment can follow
+with its specified stream-order/timeout checks. Stop when common forwarding and
+client acknowledgement costs are attributed; do not build a general async
+framework before the first comparison. A fast result favors reusing this
+transport work regardless of the final consistency contract.
+
+**Third: qualify restore-speech independently from library repair.** Use owned
+fixtures for invalid configuration, failed persistence, lost supervisor,
+blocked output, missing receipts and repeated restart attempts. Test both cases:
+old output positively stopped, and old output genuinely unknown. The latter must
+never be reported as solved by changing a directory. Exercise a trusted fallback
+without mutable library access and verify original records remain quarantined.
+Then test real helper workloads on Linux and WSL-to-Windows, followed by native
+macOS and Windows-client coverage. Long-running restart/notification tests must
+check processes, handles, memory and stale audio as well as returned statuses.
+
+The following are **proposed screening targets**, not established guarantees or
+approved product thresholds. Compare on the same reference host and output:
+
+| Boundary | Initial screening target |
+| --- | --- |
+| Ordinary short speech and replacement | No material regression from the matched 1.18.x path; investigate more than 2 ms added median or 5 ms added empirical p95 source-event latency. Confirm with physical onset and Stop-to-silence measurements before adoption. |
+| Speech during ordinary preference reload | No failed requests or global pause; investigate more than 10 ms added empirical p95 latency relative to the same path without reload. A stalled secondary lane must not gate healthy foreground admission. |
+| Preference operation | Aim for at most 100 ms p95 for the local two-lane preference-only workload, with partial results when one lane is unavailable. File I/O outside the speech path may delay completion without withholding speech. |
+| Explicit restore to basic speech | Aim for 250 ms warm and one second cold to first usable built-in fallback on the reference healthy host, measured separately from full optional-engine readiness. Native forced retirement may have a separate documented bound; do not silently count it outside the user-visible restart interval. |
+| Reliability | Every injected supported failure preserves healthy speech or reaches a defined restore-speech outcome. No stale PCM, replay, unowned helper accumulation, unsafe asset deletion or false success. Unresolved cases block claims of complete availability. |
+
+Use several independently started, counterbalanced blocks and hundreds of
+requests per workload before interpreting empirical p95. Use a larger designed
+sample for p99. Include cold/warm caches, rapid letter navigation, normal lines,
+long progressive speech, simultaneous notifications, CPU/I/O load and actual
+preferred engines. Record request-to-first-PCM, received source events, acoustic
+onset, cancellation and the true speech-unavailable interval separately. Do not
+infer engine-independent speed from this eSpeak/null result.
+
+Choose A if optimized sessions meet the same responsiveness and recovery goals
+and evidence shows that finishing them is smaller and safer than introducing the
+lighter contract. Choose B/C if per-worker reload preserves the ordinary path's
+latency and availability with a small bounded implementation. Reject either
+candidate if its speed requires weakening native ownership or allowing stale
+speech. Reassess after these discriminating slices, before resuming the broader
+managed Apply programme.
+
+## Evidence and reproducibility
+
+The [evidence pack](data/2026-11-09-availability-review/) contains raw results,
+source hashes, payload/data manifests, the probe, an offline summarizer and
+the [summary](data/2026-11-09-availability-review/summary.json). Original startup
+environment records and attachment secrets are not included. Existing reports
+and measurements remain unchanged.
+
+Run `probe.py <fresh-output-directory> --blocks 6 --samples 40` from the repository
+to reproduce the combined experiment with the recorded executable paths, or
+select `--baseline` and `--current` explicitly. Each root must be new. Extract
+`observations.tar.gz` into a new directory and run `summarize.py <that-directory>`
+to reproduce the summary without native execution. Reused fixture inputs and
+their hashes are recorded in `provenance.json`.
+
+The pilot's synthetic claim used an incorrect `OsString` representation. The
+measured invocation then completed all 30 latency trials but failed a subsequent
+boundary assertion that expected a particular error message. In the actual
+source, missing `retired.sha256` propagates the file-open error before the later
+descriptive mapping. The corrected boundary-only run passes; passing latency
+trials were not repeated. Both earlier fixture versions, responses and successful
+latency observations remain retained. These are fixture corrections, not runtime
+fixes or discarded timing outliers.
+
+This review uses retained native Windows evidence rather than a new Windows run.
+No new Rust/Lisp implementation, compilation or deployment was required for the
+Python probes. They do not establish a working lightweight reload implementation,
+an emergency startup feature, helper-engine session performance, physical audio
+continuity or complete cross-platform recovery.

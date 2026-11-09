@@ -39,6 +39,11 @@ fn canonical_destination(path: &Path) -> Result<PathBuf> {
 pub(super) fn path(root: &ConfigurationRoot) -> Result<PathBuf> {
     // Match ordinary startup validation, including explicitly missing roots.
     root.load()?;
+    destination(root)
+}
+
+/// Identify the selected file without reading preferences or managed history.
+pub fn destination(root: &ConfigurationRoot) -> Result<PathBuf> {
     Ok(canonical_destination(&root.path)?.join("config.json"))
 }
 

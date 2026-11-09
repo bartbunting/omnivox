@@ -9,6 +9,16 @@ records publication and platform acceptance separately.
 tracks outstanding work, and [retained evidence](benchmarks/README.md) records
 actual runs and their limits.
 
+On `experimental/lightweight-reload`, [ADR 0017](adr/0017-independent-host-preference-reload.md)
+adopts independent ordinary-worker preferences. The
+[resident punctuation implementation](protocols/control.md#independent-local-punctuation-reload)
+and paired Emacsvox command/editor integration replace the private test socket.
+[Delivery evidence](benchmarks/2026-11-10-resident-reload.md) records native failure
+checks, client and performance qualification separately. Other host preferences,
+recovery hardening, acoustic timing and native macOS qualification remain in the
+[plan](plans/lightweight-preference-reload.md). This branch is not published or
+deployed to installed speech.
+
 [Omnivox 1.18.0 is published](https://github.com/bartbunting/omnivox/releases/tag/v1.18.0).
 It adds individual tone gain, waveforms, Pulse width, pitch sweeps and shaped
 envelopes. All 74 release jobs passed, and the Homebrew and Emacsvox installer

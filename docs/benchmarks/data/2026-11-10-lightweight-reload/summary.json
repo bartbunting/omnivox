@@ -1,0 +1,1038 @@
+{
+  "matched-ordered-2": {
+    "idle": {
+      "samples": {
+        "n": 1024,
+        "median": 1.6576155,
+        "p95": 2.48797,
+        "maximum": 153.255793
+      },
+      "operations": {
+        "n": 16,
+        "median": 1.1910470000000002,
+        "p95": 2.841238,
+        "maximum": 2.841238
+      },
+      "preparation": {
+        "n": 8,
+        "median": 3.1321755,
+        "p95": 3.451939,
+        "maximum": 3.451939
+      },
+      "runs": [
+        {
+          "run": "0-idle",
+          "n": 128,
+          "median": 1.73222,
+          "p95": 2.597704,
+          "maximum": 152.718836
+        },
+        {
+          "run": "1-idle",
+          "n": 128,
+          "median": 1.6254255,
+          "p95": 2.386872,
+          "maximum": 153.170554
+        },
+        {
+          "run": "2-idle",
+          "n": 128,
+          "median": 1.618544,
+          "p95": 2.607553,
+          "maximum": 152.200016
+        },
+        {
+          "run": "3-idle",
+          "n": 128,
+          "median": 1.662596,
+          "p95": 2.246274,
+          "maximum": 3.305969
+        },
+        {
+          "run": "4-idle",
+          "n": 128,
+          "median": 1.8235190000000001,
+          "p95": 2.472527,
+          "maximum": 153.014622
+        },
+        {
+          "run": "5-idle",
+          "n": 128,
+          "median": 1.634932,
+          "p95": 2.293399,
+          "maximum": 3.668448
+        },
+        {
+          "run": "6-idle",
+          "n": 128,
+          "median": 1.7658575,
+          "p95": 2.931012,
+          "maximum": 153.255793
+        },
+        {
+          "run": "7-idle",
+          "n": 128,
+          "median": 1.4614345,
+          "p95": 2.027065,
+          "maximum": 152.555274
+        }
+      ],
+      "during": null,
+      "overlap": null
+    },
+    "maintenance": {
+      "samples": {
+        "n": 1024,
+        "median": 1.675419,
+        "p95": 2.772669,
+        "maximum": 152.440736
+      },
+      "operations": null,
+      "preparation": null,
+      "runs": [
+        {
+          "run": "0-maintenance",
+          "n": 128,
+          "median": 1.5276365,
+          "p95": 2.53924,
+          "maximum": 152.14274
+        },
+        {
+          "run": "1-maintenance",
+          "n": 128,
+          "median": 1.597188,
+          "p95": 2.338485,
+          "maximum": 152.440736
+        },
+        {
+          "run": "2-maintenance",
+          "n": 128,
+          "median": 1.6807385,
+          "p95": 2.626561,
+          "maximum": 9.244884
+        },
+        {
+          "run": "3-maintenance",
+          "n": 128,
+          "median": 1.6650145,
+          "p95": 2.255945,
+          "maximum": 3.1375
+        },
+        {
+          "run": "4-maintenance",
+          "n": 128,
+          "median": 1.690884,
+          "p95": 2.720934,
+          "maximum": 3.288689
+        },
+        {
+          "run": "5-maintenance",
+          "n": 128,
+          "median": 1.6575005,
+          "p95": 2.421705,
+          "maximum": 152.360547
+        },
+        {
+          "run": "6-maintenance",
+          "n": 128,
+          "median": 2.405145,
+          "p95": 3.30638,
+          "maximum": 5.920617
+        },
+        {
+          "run": "7-maintenance",
+          "n": 128,
+          "median": 1.4579855,
+          "p95": 2.33057,
+          "maximum": 2.979531
+        }
+      ],
+      "during": null,
+      "overlap": null
+    },
+    "release": {
+      "samples": {
+        "n": 1024,
+        "median": 1.6344185,
+        "p95": 2.569368,
+        "maximum": 153.184952
+      },
+      "operations": null,
+      "preparation": null,
+      "runs": [
+        {
+          "run": "0-release",
+          "n": 128,
+          "median": 1.6322985,
+          "p95": 2.690064,
+          "maximum": 4.771712
+        },
+        {
+          "run": "1-release",
+          "n": 128,
+          "median": 1.684298,
+          "p95": 2.687832,
+          "maximum": 152.001544
+        },
+        {
+          "run": "2-release",
+          "n": 128,
+          "median": 1.6380089999999998,
+          "p95": 2.245366,
+          "maximum": 2.929956
+        },
+        {
+          "run": "3-release",
+          "n": 128,
+          "median": 1.551671,
+          "p95": 2.064132,
+          "maximum": 2.974281
+        },
+        {
+          "run": "4-release",
+          "n": 128,
+          "median": 1.5934515,
+          "p95": 2.52409,
+          "maximum": 152.2582
+        },
+        {
+          "run": "5-release",
+          "n": 128,
+          "median": 1.799507,
+          "p95": 3.111489,
+          "maximum": 152.443264
+        },
+        {
+          "run": "6-release",
+          "n": 128,
+          "median": 1.841527,
+          "p95": 2.830614,
+          "maximum": 153.184952
+        },
+        {
+          "run": "7-release",
+          "n": 128,
+          "median": 1.4753675,
+          "p95": 2.1843,
+          "maximum": 152.528519
+        }
+      ],
+      "during": null,
+      "overlap": null
+    },
+    "reload": {
+      "samples": {
+        "n": 1024,
+        "median": 1.6727535,
+        "p95": 2.496008,
+        "maximum": 153.586149
+      },
+      "operations": {
+        "n": 1616,
+        "median": 0.9988275,
+        "p95": 1.636642,
+        "maximum": 2.582924
+      },
+      "preparation": {
+        "n": 8,
+        "median": 3.2427894999999998,
+        "p95": 7.167435,
+        "maximum": 7.167435
+      },
+      "runs": [
+        {
+          "run": "0-reload",
+          "n": 128,
+          "median": 1.7017055,
+          "p95": 2.314859,
+          "maximum": 2.956689
+        },
+        {
+          "run": "1-reload",
+          "n": 128,
+          "median": 1.631899,
+          "p95": 2.385457,
+          "maximum": 152.662943
+        },
+        {
+          "run": "2-reload",
+          "n": 128,
+          "median": 1.5878505,
+          "p95": 2.48539,
+          "maximum": 153.586149
+        },
+        {
+          "run": "3-reload",
+          "n": 128,
+          "median": 1.592046,
+          "p95": 2.349042,
+          "maximum": 152.285215
+        },
+        {
+          "run": "4-reload",
+          "n": 128,
+          "median": 1.7612225000000001,
+          "p95": 2.491765,
+          "maximum": 152.611649
+        },
+        {
+          "run": "5-reload",
+          "n": 128,
+          "median": 1.799763,
+          "p95": 2.587506,
+          "maximum": 4.40779
+        },
+        {
+          "run": "6-reload",
+          "n": 128,
+          "median": 1.74881,
+          "p95": 2.507614,
+          "maximum": 152.65007
+        },
+        {
+          "run": "7-reload",
+          "n": 128,
+          "median": 1.6326345,
+          "p95": 2.591642,
+          "maximum": 2.867425
+        }
+      ],
+      "during": null,
+      "overlap": null
+    }
+  },
+  "matched-letter": {
+    "idle": {
+      "samples": {
+        "n": 1024,
+        "median": 1.56647,
+        "p95": 2.481081,
+        "maximum": 153.343663
+      },
+      "operations": {
+        "n": 16,
+        "median": 1.494513,
+        "p95": 2.703132,
+        "maximum": 2.703132
+      },
+      "preparation": {
+        "n": 8,
+        "median": 3.6287979999999997,
+        "p95": 6.566755,
+        "maximum": 6.566755
+      },
+      "runs": [
+        {
+          "run": "0-idle",
+          "n": 128,
+          "median": 1.416137,
+          "p95": 2.063251,
+          "maximum": 152.051298
+        },
+        {
+          "run": "1-idle",
+          "n": 128,
+          "median": 1.41893,
+          "p95": 1.9132,
+          "maximum": 152.141127
+        },
+        {
+          "run": "2-idle",
+          "n": 128,
+          "median": 1.4388665,
+          "p95": 2.014348,
+          "maximum": 153.343663
+        },
+        {
+          "run": "3-idle",
+          "n": 128,
+          "median": 2.049388,
+          "p95": 2.659322,
+          "maximum": 3.454101
+        },
+        {
+          "run": "4-idle",
+          "n": 128,
+          "median": 1.9785154999999999,
+          "p95": 2.930126,
+          "maximum": 152.54185
+        },
+        {
+          "run": "5-idle",
+          "n": 128,
+          "median": 1.7139665,
+          "p95": 2.261469,
+          "maximum": 152.406149
+        },
+        {
+          "run": "6-idle",
+          "n": 128,
+          "median": 1.5068320000000002,
+          "p95": 2.530507,
+          "maximum": 152.075385
+        },
+        {
+          "run": "7-idle",
+          "n": 128,
+          "median": 1.4170099999999999,
+          "p95": 2.178685,
+          "maximum": 152.035051
+        }
+      ],
+      "during": null,
+      "overlap": null
+    },
+    "maintenance": {
+      "samples": {
+        "n": 1024,
+        "median": 1.625386,
+        "p95": 2.552582,
+        "maximum": 152.928084
+      },
+      "operations": null,
+      "preparation": null,
+      "runs": [
+        {
+          "run": "0-maintenance",
+          "n": 128,
+          "median": 1.3723925000000001,
+          "p95": 1.827857,
+          "maximum": 2.897096
+        },
+        {
+          "run": "1-maintenance",
+          "n": 128,
+          "median": 1.4575395,
+          "p95": 2.185922,
+          "maximum": 152.12248
+        },
+        {
+          "run": "2-maintenance",
+          "n": 128,
+          "median": 1.4146079999999999,
+          "p95": 1.903544,
+          "maximum": 2.833043
+        },
+        {
+          "run": "3-maintenance",
+          "n": 128,
+          "median": 1.869003,
+          "p95": 2.549162,
+          "maximum": 152.407732
+        },
+        {
+          "run": "4-maintenance",
+          "n": 128,
+          "median": 1.889891,
+          "p95": 3.202429,
+          "maximum": 152.928084
+        },
+        {
+          "run": "5-maintenance",
+          "n": 128,
+          "median": 1.9229595000000002,
+          "p95": 2.434846,
+          "maximum": 152.516492
+        },
+        {
+          "run": "6-maintenance",
+          "n": 128,
+          "median": 1.6961594999999998,
+          "p95": 2.642485,
+          "maximum": 152.170719
+        },
+        {
+          "run": "7-maintenance",
+          "n": 128,
+          "median": 1.4509604999999999,
+          "p95": 1.865773,
+          "maximum": 151.987319
+        }
+      ],
+      "during": null,
+      "overlap": null
+    },
+    "release": {
+      "samples": {
+        "n": 1024,
+        "median": 1.5727635,
+        "p95": 2.395904,
+        "maximum": 152.55472
+      },
+      "operations": null,
+      "preparation": null,
+      "runs": [
+        {
+          "run": "0-release",
+          "n": 128,
+          "median": 1.446849,
+          "p95": 2.066663,
+          "maximum": 2.261407
+        },
+        {
+          "run": "1-release",
+          "n": 128,
+          "median": 1.480629,
+          "p95": 2.130383,
+          "maximum": 3.661067
+        },
+        {
+          "run": "2-release",
+          "n": 128,
+          "median": 1.4952135,
+          "p95": 2.297557,
+          "maximum": 152.55472
+        },
+        {
+          "run": "3-release",
+          "n": 128,
+          "median": 1.5732879999999998,
+          "p95": 2.542331,
+          "maximum": 152.040756
+        },
+        {
+          "run": "4-release",
+          "n": 128,
+          "median": 1.8623155,
+          "p95": 2.648847,
+          "maximum": 152.137702
+        },
+        {
+          "run": "5-release",
+          "n": 128,
+          "median": 1.5496855,
+          "p95": 2.378325,
+          "maximum": 152.459006
+        },
+        {
+          "run": "6-release",
+          "n": 128,
+          "median": 1.8596784999999998,
+          "p95": 2.389658,
+          "maximum": 152.443857
+        },
+        {
+          "run": "7-release",
+          "n": 128,
+          "median": 1.4259895,
+          "p95": 1.994158,
+          "maximum": 2.701806
+        }
+      ],
+      "during": null,
+      "overlap": null
+    },
+    "reload": {
+      "samples": {
+        "n": 1024,
+        "median": 1.575222,
+        "p95": 2.502134,
+        "maximum": 153.012011
+      },
+      "operations": {
+        "n": 1616,
+        "median": 0.9376515,
+        "p95": 1.567158,
+        "maximum": 4.251386
+      },
+      "preparation": {
+        "n": 8,
+        "median": 3.1482815000000004,
+        "p95": 4.962984,
+        "maximum": 4.962984
+      },
+      "runs": [
+        {
+          "run": "0-reload",
+          "n": 128,
+          "median": 1.4957585,
+          "p95": 1.951617,
+          "maximum": 2.461797
+        },
+        {
+          "run": "1-reload",
+          "n": 128,
+          "median": 1.495415,
+          "p95": 2.244989,
+          "maximum": 152.330051
+        },
+        {
+          "run": "2-reload",
+          "n": 128,
+          "median": 1.4990315,
+          "p95": 2.824738,
+          "maximum": 152.374819
+        },
+        {
+          "run": "3-reload",
+          "n": 128,
+          "median": 1.4636385,
+          "p95": 2.652903,
+          "maximum": 152.096001
+        },
+        {
+          "run": "4-reload",
+          "n": 128,
+          "median": 1.919283,
+          "p95": 2.554927,
+          "maximum": 152.465533
+        },
+        {
+          "run": "5-reload",
+          "n": 128,
+          "median": 1.454167,
+          "p95": 2.166456,
+          "maximum": 152.256972
+        },
+        {
+          "run": "6-reload",
+          "n": 128,
+          "median": 1.8839475,
+          "p95": 2.738969,
+          "maximum": 152.839596
+        },
+        {
+          "run": "7-reload",
+          "n": 128,
+          "median": 1.460654,
+          "p95": 2.34948,
+          "maximum": 153.012011
+        }
+      ],
+      "during": null,
+      "overlap": null
+    }
+  },
+  "matched-replacement": {
+    "idle": {
+      "samples": {
+        "n": 1024,
+        "median": 21.810778,
+        "p95": 22.519405,
+        "maximum": 172.915437
+      },
+      "operations": {
+        "n": 16,
+        "median": 1.172893,
+        "p95": 2.107095,
+        "maximum": 2.107095
+      },
+      "preparation": {
+        "n": 8,
+        "median": 3.0185315,
+        "p95": 3.478634,
+        "maximum": 3.478634
+      },
+      "runs": [
+        {
+          "run": "0-idle",
+          "n": 128,
+          "median": 21.7734535,
+          "p95": 22.366934,
+          "maximum": 172.389519
+        },
+        {
+          "run": "1-idle",
+          "n": 128,
+          "median": 21.779592,
+          "p95": 22.175976,
+          "maximum": 172.191412
+        },
+        {
+          "run": "2-idle",
+          "n": 128,
+          "median": 21.8172,
+          "p95": 22.776355,
+          "maximum": 172.631205
+        },
+        {
+          "run": "3-idle",
+          "n": 128,
+          "median": 21.8086195,
+          "p95": 22.426054,
+          "maximum": 23.389933
+        },
+        {
+          "run": "4-idle",
+          "n": 128,
+          "median": 21.763651,
+          "p95": 22.296317,
+          "maximum": 22.539896
+        },
+        {
+          "run": "5-idle",
+          "n": 128,
+          "median": 21.825540500000002,
+          "p95": 22.568555,
+          "maximum": 172.504649
+        },
+        {
+          "run": "6-idle",
+          "n": 128,
+          "median": 21.873337499999998,
+          "p95": 22.696423,
+          "maximum": 172.536327
+        },
+        {
+          "run": "7-idle",
+          "n": 128,
+          "median": 21.878939000000003,
+          "p95": 22.732177,
+          "maximum": 172.915437
+        }
+      ],
+      "during": null,
+      "overlap": null
+    },
+    "maintenance": {
+      "samples": {
+        "n": 1024,
+        "median": 21.799605999999997,
+        "p95": 22.440643,
+        "maximum": 172.523876
+      },
+      "operations": null,
+      "preparation": null,
+      "runs": [
+        {
+          "run": "0-maintenance",
+          "n": 128,
+          "median": 21.9002775,
+          "p95": 22.332579,
+          "maximum": 172.388043
+        },
+        {
+          "run": "1-maintenance",
+          "n": 128,
+          "median": 21.8470035,
+          "p95": 22.614163,
+          "maximum": 172.523876
+        },
+        {
+          "run": "2-maintenance",
+          "n": 128,
+          "median": 21.7979515,
+          "p95": 22.344003,
+          "maximum": 22.645534
+        },
+        {
+          "run": "3-maintenance",
+          "n": 128,
+          "median": 21.7499965,
+          "p95": 22.145208,
+          "maximum": 22.816476
+        },
+        {
+          "run": "4-maintenance",
+          "n": 128,
+          "median": 21.747273999999997,
+          "p95": 22.354089,
+          "maximum": 172.146641
+        },
+        {
+          "run": "5-maintenance",
+          "n": 128,
+          "median": 21.821345,
+          "p95": 22.645287,
+          "maximum": 172.359109
+        },
+        {
+          "run": "6-maintenance",
+          "n": 128,
+          "median": 21.753780499999998,
+          "p95": 22.402664,
+          "maximum": 22.942194
+        },
+        {
+          "run": "7-maintenance",
+          "n": 128,
+          "median": 21.812886,
+          "p95": 22.476081,
+          "maximum": 23.030002
+        }
+      ],
+      "during": null,
+      "overlap": null
+    },
+    "release": {
+      "samples": {
+        "n": 1024,
+        "median": 21.829152,
+        "p95": 22.450325,
+        "maximum": 172.79124
+      },
+      "operations": null,
+      "preparation": null,
+      "runs": [
+        {
+          "run": "0-release",
+          "n": 128,
+          "median": 21.8256345,
+          "p95": 22.388913,
+          "maximum": 23.300989
+        },
+        {
+          "run": "1-release",
+          "n": 128,
+          "median": 21.8109555,
+          "p95": 22.46684,
+          "maximum": 22.741795
+        },
+        {
+          "run": "2-release",
+          "n": 128,
+          "median": 21.811076,
+          "p95": 22.21643,
+          "maximum": 22.869115
+        },
+        {
+          "run": "3-release",
+          "n": 128,
+          "median": 21.829176500000003,
+          "p95": 22.384697,
+          "maximum": 172.18956
+        },
+        {
+          "run": "4-release",
+          "n": 128,
+          "median": 21.761791000000002,
+          "p95": 22.414398,
+          "maximum": 22.733222
+        },
+        {
+          "run": "5-release",
+          "n": 128,
+          "median": 21.896165500000002,
+          "p95": 22.642965,
+          "maximum": 172.79124
+        },
+        {
+          "run": "6-release",
+          "n": 128,
+          "median": 21.845169,
+          "p95": 22.441138,
+          "maximum": 172.134296
+        },
+        {
+          "run": "7-release",
+          "n": 128,
+          "median": 21.88512,
+          "p95": 22.640081,
+          "maximum": 23.001865
+        }
+      ],
+      "during": null,
+      "overlap": null
+    },
+    "reload": {
+      "samples": {
+        "n": 1024,
+        "median": 21.820683,
+        "p95": 22.546035,
+        "maximum": 173.468597
+      },
+      "operations": {
+        "n": 1616,
+        "median": 0.944847,
+        "p95": 19.025948,
+        "maximum": 21.796031
+      },
+      "preparation": {
+        "n": 8,
+        "median": 3.0509700000000004,
+        "p95": 3.544371,
+        "maximum": 3.544371
+      },
+      "runs": [
+        {
+          "run": "0-reload",
+          "n": 128,
+          "median": 21.808916500000002,
+          "p95": 22.590059,
+          "maximum": 22.846754
+        },
+        {
+          "run": "1-reload",
+          "n": 128,
+          "median": 21.764888,
+          "p95": 22.290858,
+          "maximum": 172.394082
+        },
+        {
+          "run": "2-reload",
+          "n": 128,
+          "median": 21.863826,
+          "p95": 22.426529,
+          "maximum": 172.312996
+        },
+        {
+          "run": "3-reload",
+          "n": 128,
+          "median": 21.771182500000002,
+          "p95": 22.383702,
+          "maximum": 23.22171
+        },
+        {
+          "run": "4-reload",
+          "n": 128,
+          "median": 21.879466999999998,
+          "p95": 22.643328,
+          "maximum": 22.867484
+        },
+        {
+          "run": "5-reload",
+          "n": 128,
+          "median": 21.796467999999997,
+          "p95": 22.442471,
+          "maximum": 172.547883
+        },
+        {
+          "run": "6-reload",
+          "n": 128,
+          "median": 21.864634000000002,
+          "p95": 23.069297,
+          "maximum": 173.468597
+        },
+        {
+          "run": "7-reload",
+          "n": 128,
+          "median": 21.791726,
+          "p95": 22.489583,
+          "maximum": 22.87995
+        }
+      ],
+      "during": null,
+      "overlap": null
+    }
+  },
+  "overlap-1": {
+    "idle": {
+      "samples": {
+        "n": 1000,
+        "median": 1.996243,
+        "p95": 2.859335,
+        "maximum": 153.245613
+      },
+      "operations": {
+        "n": 10,
+        "median": 1.550537,
+        "p95": 3.255451,
+        "maximum": 3.255451
+      },
+      "preparation": {
+        "n": 5,
+        "median": 3.74759,
+        "p95": 5.843796,
+        "maximum": 5.843796
+      },
+      "runs": [
+        {
+          "run": "0-idle",
+          "n": 200,
+          "median": 1.7538765,
+          "p95": 2.460714,
+          "maximum": 3.016649
+        },
+        {
+          "run": "1-idle",
+          "n": 200,
+          "median": 1.8838279999999998,
+          "p95": 2.681764,
+          "maximum": 152.41214
+        },
+        {
+          "run": "2-idle",
+          "n": 200,
+          "median": 1.940324,
+          "p95": 2.808882,
+          "maximum": 152.581262
+        },
+        {
+          "run": "3-idle",
+          "n": 200,
+          "median": 2.201793,
+          "p95": 3.256425,
+          "maximum": 153.245613
+        },
+        {
+          "run": "4-idle",
+          "n": 200,
+          "median": 2.216737,
+          "p95": 2.978908,
+          "maximum": 152.85357
+        }
+      ],
+      "during": null,
+      "overlap": null
+    },
+    "reload": {
+      "samples": {
+        "n": 1000,
+        "median": 2.257177,
+        "p95": 3.685971,
+        "maximum": 153.378575
+      },
+      "operations": {
+        "n": 10010,
+        "median": 1.4627415,
+        "p95": 2.559241,
+        "maximum": 8.65877
+      },
+      "preparation": {
+        "n": 5,
+        "median": 4.179315,
+        "p95": 4.916301,
+        "maximum": 4.916301
+      },
+      "runs": [
+        {
+          "run": "0-reload",
+          "n": 200,
+          "median": 2.006506,
+          "p95": 2.59714,
+          "maximum": 3.204755
+        },
+        {
+          "run": "1-reload",
+          "n": 200,
+          "median": 2.158723,
+          "p95": 2.861792,
+          "maximum": 153.324006
+        },
+        {
+          "run": "2-reload",
+          "n": 200,
+          "median": 2.420824,
+          "p95": 3.661545,
+          "maximum": 7.423284
+        },
+        {
+          "run": "3-reload",
+          "n": 200,
+          "median": 3.0422275,
+          "p95": 4.525313,
+          "maximum": 153.378575
+        },
+        {
+          "run": "4-reload",
+          "n": 200,
+          "median": 2.0914025,
+          "p95": 3.034054,
+          "maximum": 153.058745
+        }
+      ],
+      "during": {
+        "n": 1000,
+        "median": 2.257177,
+        "p95": 3.685971,
+        "maximum": 153.378575
+      },
+      "overlap": {
+        "n": 606,
+        "median": 2.3732645000000003,
+        "p95": 3.89161,
+        "maximum": 153.378575
+      }
+    }
+  }
+}

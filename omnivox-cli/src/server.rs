@@ -1874,7 +1874,12 @@ pub(crate) fn run_server(
         engine_registry.local_routing_policy(),
     );
 
-    let (input_tx, input_rx) = mpsc::sync_channel::<io::Result<String>>(INPUT_QUEUE_CAPACITY);
+    let (input_tx, input_rx) = mpsc::sync_channel::<Input>(INPUT_QUEUE_CAPACITY);
+    let reload =
+        crate::lightweight::Runtime::start(input_tx.clone(), &state).unwrap_or_else(|error| {
+            warn!("Preference reload unavailable: {error}");
+            None
+        });
     let input_handle = std::thread::Builder::new()
         .name("omnivox-stdin".to_owned())
         .spawn(move || {
@@ -1883,7 +1888,7 @@ pub(crate) fn run_server(
             loop {
                 match read_bounded_protocol_line(&mut input) {
                     Ok(Some(BoundedProtocolLine::Line(line))) => {
-                        if input_tx.send(Ok(line)).is_err() {
+                        if input_tx.send(Input::Line(line)).is_err() {
                             break;
                         }
                     }
@@ -1899,11 +1904,14 @@ pub(crate) fn run_server(
                     }
                     Ok(None) => break,
                     Err(error) => {
-                        let _ = input_tx.send(Err(error));
+                        let _ = input_tx.send(Input::Error(error));
                         break;
                     }
                 }
             }
+            // Management may retain a wake sender. EOF must not depend on its
+            // file I/O finishing or its channel clone being dropped.
+            let _ = input_tx.send(Input::Closed);
         })
         .expect("Failed to spawn stdin reader thread");
     play_ready_tune(&control, &state);
@@ -1912,6 +1920,9 @@ pub(crate) fn run_server(
     let mut input_closed = false;
 
     while !input_closed {
+        if let Some(runtime) = &reload {
+            runtime.install(&mut state, pending.is_empty());
+        }
         let command = match deferred_command
             .take()
             .map_or_else(|| receive_command(&input_rx), |command| Ok(Some(command)))?
@@ -1920,6 +1931,17 @@ pub(crate) fn run_server(
             None => break,
         };
 
+        if let Some(runtime) = &reload {
+            runtime.install(&mut state, pending.is_empty());
+            if command.id == CommandId::OmnivoxControl && command.args.is_none() {
+                continue;
+            }
+            if command.id == CommandId::OmnivoxControl
+                && runtime.try_handle(command.args.as_deref().unwrap_or(""))
+            {
+                continue;
+            }
+        }
         if command.id == CommandId::OmnivoxControl
             && parameter_queries.try_handle(
                 command.args.as_deref().unwrap_or(""),
@@ -2364,16 +2386,29 @@ fn parse_input_line(line: &str) -> Option<Command> {
     }
 }
 
-fn receive_command(receiver: &mpsc::Receiver<io::Result<String>>) -> Result<Option<Command>> {
+pub(crate) enum Input {
+    Line(String),
+    Error(io::Error),
+    PreferenceWake,
+    Closed,
+}
+
+fn receive_command(receiver: &mpsc::Receiver<Input>) -> Result<Option<Command>> {
     loop {
         match receiver.recv() {
-            Ok(Ok(line)) => {
+            Ok(Input::Line(line)) => {
                 if let Some(command) = parse_input_line(&line) {
                     return Ok(Some(command));
                 }
             }
-            Ok(Err(error)) => return Err(error.into()),
-            Err(_) => return Ok(None),
+            Ok(Input::PreferenceWake) => {
+                return Ok(Some(Command {
+                    id: CommandId::OmnivoxControl,
+                    args: None,
+                }));
+            }
+            Ok(Input::Error(error)) => return Err(error.into()),
+            Ok(Input::Closed) | Err(_) => return Ok(None),
         }
     }
 }
@@ -2394,7 +2429,7 @@ fn begin_keyed_cancellation(
 }
 
 fn receive_command_until(
-    receiver: &mpsc::Receiver<io::Result<String>>,
+    receiver: &mpsc::Receiver<Input>,
     deadline: Instant,
 ) -> Result<TimedCommand> {
     loop {
@@ -2402,14 +2437,17 @@ fn receive_command_until(
             return Ok(TimedCommand::Timeout);
         };
         match receiver.recv_timeout(remaining) {
-            Ok(Ok(line)) => {
+            Ok(Input::Line(line)) => {
                 if let Some(command) = parse_input_line(&line) {
                     return Ok(TimedCommand::Command(command));
                 }
             }
-            Ok(Err(error)) => return Err(error.into()),
+            Ok(Input::PreferenceWake) => continue,
+            Ok(Input::Error(error)) => return Err(error.into()),
             Err(mpsc::RecvTimeoutError::Timeout) => return Ok(TimedCommand::Timeout),
-            Err(mpsc::RecvTimeoutError::Disconnected) => return Ok(TimedCommand::Closed),
+            Ok(Input::Closed) | Err(mpsc::RecvTimeoutError::Disconnected) => {
+                return Ok(TimedCommand::Closed)
+            }
         }
     }
 }
@@ -2437,7 +2475,7 @@ struct AbortedStructuredSubmission {
 fn read_structured_submission(
     generations: &PresentationGenerations,
     first: Command,
-    receiver: &mpsc::Receiver<io::Result<String>>,
+    receiver: &mpsc::Receiver<Input>,
     state: &TtsState,
     logical_voices: &LogicalVoiceRegistry,
 ) -> Result<StructuredSubmissionRead> {
@@ -2454,7 +2492,7 @@ fn read_structured_submission(
 fn read_structured_submission_with_timeout(
     generations: &PresentationGenerations,
     first: Command,
-    receiver: &mpsc::Receiver<io::Result<String>>,
+    receiver: &mpsc::Receiver<Input>,
     state: &TtsState,
     logical_voices: &LogicalVoiceRegistry,
     multipart_timeout: Duration,
@@ -3736,7 +3774,7 @@ fn handle_command(
                             omnivox_tts::engine_voice_choices::ParameterKnowledge::Ready(catalogue)
                         })
                         .collect::<Vec<_>>();
-                    let response = process_control_request_with_configuration(
+                    let mut response = process_control_request_with_configuration(
                         payload,
                         crate::VERSION,
                         inventory.generation,
@@ -3749,6 +3787,13 @@ fn handle_command(
                         &knowledge,
                         configuration_status.as_ref(),
                     );
+                    if crate::lightweight::available() {
+                        if let ControlResponse::Capabilities { features, .. } =
+                            &mut response.response
+                        {
+                            features.push(omnivox_tts::host_preferences::FEATURE.into());
+                        }
+                    }
                     write_control_response(&response);
                 }
             }
@@ -4885,7 +4930,7 @@ mod tests {
         let second = commands.next().unwrap();
         let (sender, receiver) = mpsc::channel();
         sender
-            .send(Ok(format!(
+            .send(Input::Line(format!(
                 "emacsvox_timeline_part {}",
                 second.args.unwrap()
             )))
@@ -5049,7 +5094,7 @@ mod tests {
     fn stop_between_multipart_frames_cancels_the_logical_dispatch() {
         let first = multipart_commands(13, 35).into_iter().next().unwrap();
         let (sender, receiver) = mpsc::channel();
-        sender.send(Ok("s".to_owned())).unwrap();
+        sender.send(Input::Line("s".to_owned())).unwrap();
 
         let read = read_structured_submission(
             &PresentationGenerations::default(),
@@ -5081,7 +5126,7 @@ mod tests {
         let duplicate = first.clone();
         let (sender, receiver) = mpsc::channel();
         sender
-            .send(Ok(format!(
+            .send(Input::Line(format!(
                 "emacsvox_timeline_part {}",
                 duplicate.args.unwrap()
             )))
@@ -5116,13 +5161,13 @@ mod tests {
         let new_second = new_commands.next().unwrap();
         let (sender, receiver) = mpsc::channel();
         sender
-            .send(Ok(format!(
+            .send(Input::Line(format!(
                 "emacsvox_timeline_part {}",
                 new_first.args.clone().unwrap()
             )))
             .unwrap();
         sender
-            .send(Ok(format!(
+            .send(Input::Line(format!(
                 "emacsvox_timeline_part {}",
                 new_second.args.unwrap()
             )))
@@ -5166,7 +5211,7 @@ mod tests {
         let second = commands.next().unwrap();
         let (sender, receiver) = mpsc::channel();
         sender
-            .send(Ok(format!(
+            .send(Input::Line(format!(
                 "emacsvox_timeline_part {}",
                 second.args.unwrap()
             )))
