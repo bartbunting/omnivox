@@ -278,7 +278,9 @@ repairs a late registry reply after a settings timeout. The
 healthy concurrent helpers from exhausting a single creation-phase deadline
 while waiting for their turn. The current private profile also translates WSL
 sound paths for the Windows worker. These fixes passed isolated source and
-recovery checks; listening acceptance of the corrected runtime remains separate.
+recovery checks. The user subsequently confirmed that Eloquence works in the
+corrected prototype; broader interaction and recovery listening checks remain
+separate.
 
 Next slices:
 

@@ -104,3 +104,12 @@ artificial native API delay; the deterministic contention regression covers its
 queue-expiry mechanism. Fresh checks used warm payloads and do not establish
 cold-start or tail-latency guarantees. Native macOS and additional engines retain
 their existing qualification gaps.
+
+## Subsequent listening confirmation
+
+After being asked to reopen **Emacsvox Development** and try Eloquence with the
+corrected startup, the user reported: "yes it works". This confirms functional
+Eloquence listening for this fix. The user also clarified that the intervening
+Emacs crash had a known, unrelated cause; it is not attributed to this prototype.
+This confirmation does not separately establish acoustic timing, extended
+stability or listening acceptance of every restart and failure scenario.
