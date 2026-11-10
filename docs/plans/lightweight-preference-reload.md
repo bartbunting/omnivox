@@ -284,7 +284,7 @@ separate.
 
 Next slices:
 
-1. Use the [isolated listening profile](../benchmarks/data/2026-11-10-helper-queue/listening/start.py)
+1. Use the [isolated listening profile](../benchmarks/data/2026-11-10-early-speech-refresh/listening/start.py)
    to assess character navigation, replacement, simultaneous notifications,
    reload and restart on real output. Source markers and null output do not
    establish listening acceptance or physical-device recovery.

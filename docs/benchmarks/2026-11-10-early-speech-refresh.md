@@ -114,7 +114,13 @@ All launchers verify the pinned executable hash and compiled client preflight.
 
 ## Handoff
 
-The qualified launcher is ready for the Development shortcut. The expected
+The Development shortcut now reaches the qualified launcher through the existing
+Windows `evox.bat` and WSL wrapper. A check through that actual batch entry point
+passes reload, restart, retained recovery, emergency eSpeak and return to saved
+Flite. The [deployment record](data/2026-11-10-early-speech-refresh/deployment.json)
+identifies the wrapper backup and launch log. The existing shortcut executable,
+installed release and other shortcuts were not changed. No user Emacs was restarted.
+The expected
 improvement is earlier usable speech during startup/restart when optional helpers
 are slow; ordinary navigation is expected to retain its existing responsiveness.
 The previous matched server experiment remains the evidence for a warm first-source

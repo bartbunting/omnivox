@@ -148,5 +148,11 @@
     "profile": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-listening-performance-20261110/39a674b6-1155-4f73-b660-aae0acac9ff8",
     "passed": true,
     "failed": false
+  },
+  {
+    "case": "shortcut-batch",
+    "profile": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-listening-performance-20261110/0da11975-70dc-4e27-9b48-1b59f207842c",
+    "passed": true,
+    "failed": false
   }
 ]
