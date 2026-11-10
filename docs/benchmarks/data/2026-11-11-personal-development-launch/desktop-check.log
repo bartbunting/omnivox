@@ -1,0 +1,29 @@
+Emacsvox byte-code is current.
+{
+  "command": [
+    "/home/bart/opt/emacs-31/bin/emacs",
+    "--init-directory=/home/bart/.emacsvox.d",
+    "-q",
+    "--debug-init",
+    "--no-splash",
+    "--name",
+    "emacsvox-development",
+    "--load",
+    "/home/bart/.emacsvox.d/early-init.el",
+    "--load",
+    "/home/bart/src/omnivox-lightweight-reload/docs/benchmarks/data/2026-11-11-personal-development-launch/bootstrap.el",
+    "--load",
+    "/home/bart/.emacsvox.d/init.el",
+    "--eval",
+    "(setq frame-title-format (quote (\"Emacsvox Development \u2014 \" (:eval (buffer-name)))))"
+  ],
+  "environment": {
+    "HOME": "/home/bart",
+    "EMACSVOX_DIR": "/home/bart/src/emacsvox-lightweight-reload",
+    "EMACSVOX_CONFIG_FILE": "/home/bart/emacs/site-lisp/emacsvox-config.org",
+    "TTS_PROGRAM": "/home/bart/src/emacsvox-lightweight-reload/servers/omnivox",
+    "OMNIVOX_PROGRAM": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-lightweight-20261110/Emacsvox/Omnivox/runtime/4e1c1561f51908a6/omnivox.exe",
+    "OMNIVOX_CONFIG_DIR": "C:\\Users\\bart\\AppData\\Local\\Emacsvox\\Omnivox\\profiles\\development-lightweight-reload",
+    "OMNIVOX_EXPERIMENTAL_EARLY_SPEECH": "1"
+  }
+}

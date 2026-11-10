@@ -284,7 +284,9 @@ separate.
 
 Next slices:
 
-1. Use the [isolated listening profile](../benchmarks/data/2026-11-10-early-speech-refresh/listening/start.py)
+1. The Development shortcut now uses the
+   [normal personal profile](../benchmarks/2026-11-11-personal-development-launch.md)
+   with the qualified runtime. Use the [isolated listening profile](../benchmarks/data/2026-11-10-early-speech-refresh/listening/start.py)
    to assess character navigation, replacement, simultaneous notifications,
    reload and restart on real output. Source markers and null output do not
    establish listening acceptance or physical-device recovery.
