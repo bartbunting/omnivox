@@ -1,0 +1,8 @@
+{
+  "omnivox_commit": "dc4678ca3fc530344997cfc1998c9bd205b0f35d",
+  "client_commit": "0c72147cc1e25924c9cf7fc538e8fc0700dc5b1c",
+  "runtime": "529499252023e106b0329e670b13f85fb9cb3a6b729acddabe394b92208dee28",
+  "early_runs": "Uncommitted development toward the recorded client commit; final focused and qualification runs use the completed code.",
+  "profile_manifests": "Earlier per-run runtime manifests retain the original stage client commit; the paired client under test is identified here and in the report.",
+  "current_profile": "Fresh isolated Emacs loading compiled client, null output; no changes to the existing user session."
+}

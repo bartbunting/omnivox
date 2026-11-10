@@ -1,0 +1,21 @@
+Emacsvox byte-code is current.
+Private profile: /mnt/c/Users/bart/AppData/Local/Temp/omnivox-listening-performance-20261110/39a674b6-1155-4f73-b660-aae0acac9ff8
+Loading /home/bart/src/emacsvox-lightweight-reload/lisp/emacsvox-setup.el (source)...
+Loading voice-defs...
+
+Loading voice-defs...
+
+Loading voice-defs...
+
+Loading voice-defs...
+
+Loading voice-defs...
+Speech source completed using flite.
+Speech source completed using flite.
+Speech source completed using flite.
+Speech source completed using flite.
+Speech source completed using espeak.
+Speech source completed using flite.
+PASS reload, restart, retained recovery, emergency and return to saved settings.
+Client: /home/bart/src/emacsvox-lightweight-reload/lisp/speech/tts-speak.elc
+Profile: /mnt/c/Users/bart/AppData/Local/Temp/omnivox-listening-performance-20261110/39a674b6-1155-4f73-b660-aae0acac9ff8/

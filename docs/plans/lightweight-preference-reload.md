@@ -299,9 +299,11 @@ Next slices:
    now passes delayed discovery, fallback, active cancellation, retirement,
    independent notification and compiled client late-selection checks. Warm
    first-source median improves from 1,137 to 864 ms in six matched runs per path.
-   Before adoption, qualify saved preferences targeting a pending engine and
-   client visibility/refresh of pending discovery, then review the readiness
-   contract. Existing complete-inventory managed startup remains unchanged.
+   The [paired client follow-up](../benchmarks/2026-11-10-early-speech-refresh.md)
+   qualifies saved preferences targeting a pending engine, automatic per-lane
+   observation, newer choices, optional failure and prepared restart. The private
+   launcher reuses Emacs native code caches while preserving isolated settings.
+   Before public adoption, review the readiness and pending-discovery contract. Existing complete-inventory managed startup remains unchanged.
    Foreground availability now survives the longer notification startup;
    reducing total operation time is a separate objective. Any further engine's
    cancellation exception needs its own replacement, native retention and failure
