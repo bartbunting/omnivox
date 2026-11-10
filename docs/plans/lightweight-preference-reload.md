@@ -271,9 +271,18 @@ preserves old speech. Managed activation and native cleanup boundaries are uncha
 The new private profile passes reload, restart, retained recovery, minimal emergency
 speech and return to saved settings with all eight engines.
 
+Interactive listening exposed two follow-up startup failures. The
+[client acknowledgement correction](../benchmarks/2026-11-10-foreground-registration.md)
+repairs a late registry reply after a settings timeout. The
+[Windows queue correction](../benchmarks/2026-11-10-helper-queue.md) prevents
+healthy concurrent helpers from exhausting a single creation-phase deadline
+while waiting for their turn. The current private profile also translates WSL
+sound paths for the Windows worker. These fixes passed isolated source and
+recovery checks; listening acceptance of the corrected runtime remains separate.
+
 Next slices:
 
-1. Use the [isolated listening profile](../benchmarks/data/2026-11-10-replacement-and-handover/listening/start.py)
+1. Use the [isolated listening profile](../benchmarks/data/2026-11-10-helper-queue/listening/start.py)
    to assess character navigation, replacement, simultaneous notifications,
    reload and restart on real output. Source markers and null output do not
    establish listening acceptance or physical-device recovery.

@@ -1,0 +1,402 @@
+[
+  {
+    "run": "gui-eloquence",
+    "log": "omnivox-20261110T104610Z-2218698.log",
+    "engines": [
+      "winrt",
+      "espeak",
+      "dectalk",
+      "eloquence",
+      "flite",
+      "rhvoice",
+      "rutts",
+      "tgspeechbox"
+    ],
+    "selected": [
+      "eloquence"
+    ],
+    "helper_unavailable": 0,
+    "registry_rejections": 0,
+    "warnings": 0
+  },
+  {
+    "run": "gui-eloquence",
+    "log": "omnivox-20261110T104611Z-2218749.log",
+    "engines": [
+      "winrt",
+      "espeak",
+      "dectalk",
+      "eloquence",
+      "flite",
+      "rhvoice",
+      "rutts",
+      "tgspeechbox"
+    ],
+    "selected": [
+      "eloquence"
+    ],
+    "helper_unavailable": 0,
+    "registry_rejections": 0,
+    "warnings": 0
+  },
+  {
+    "run": "gui-eloquence-sound",
+    "log": "omnivox-20261110T105112Z-2231089.log",
+    "engines": [
+      "winrt",
+      "espeak",
+      "dectalk",
+      "eloquence",
+      "flite",
+      "rhvoice",
+      "rutts",
+      "tgspeechbox"
+    ],
+    "selected": [
+      "eloquence"
+    ],
+    "helper_unavailable": 0,
+    "registry_rejections": 0,
+    "warnings": 0
+  },
+  {
+    "run": "gui-eloquence-sound",
+    "log": "omnivox-20261110T105113Z-2231154.log",
+    "engines": [
+      "winrt",
+      "espeak",
+      "dectalk",
+      "eloquence",
+      "flite",
+      "rhvoice",
+      "rutts",
+      "tgspeechbox"
+    ],
+    "selected": [
+      "eloquence"
+    ],
+    "helper_unavailable": 0,
+    "registry_rejections": 0,
+    "warnings": 0
+  },
+  {
+    "run": "gui-flite-sound",
+    "log": "omnivox-20261110T105150Z-2233641.log",
+    "engines": [
+      "winrt",
+      "espeak",
+      "dectalk",
+      "eloquence",
+      "flite",
+      "rhvoice",
+      "rutts",
+      "tgspeechbox"
+    ],
+    "selected": [
+      "flite"
+    ],
+    "helper_unavailable": 0,
+    "registry_rejections": 0,
+    "warnings": 0
+  },
+  {
+    "run": "gui-flite-sound",
+    "log": "omnivox-20261110T105152Z-2233730.log",
+    "engines": [
+      "winrt",
+      "espeak",
+      "dectalk",
+      "eloquence",
+      "flite",
+      "rhvoice",
+      "rutts",
+      "tgspeechbox"
+    ],
+    "selected": [
+      "flite"
+    ],
+    "helper_unavailable": 0,
+    "registry_rejections": 0,
+    "warnings": 0
+  },
+  {
+    "run": "batch-eloquence",
+    "log": "omnivox-20261110T105149Z-2233531.log",
+    "engines": [
+      "winrt",
+      "espeak",
+      "dectalk",
+      "eloquence",
+      "flite",
+      "rhvoice",
+      "rutts",
+      "tgspeechbox"
+    ],
+    "selected": [
+      "eloquence"
+    ],
+    "helper_unavailable": 0,
+    "registry_rejections": 0,
+    "warnings": 0
+  },
+  {
+    "run": "batch-eloquence",
+    "log": "omnivox-20261110T105150Z-2233616.log",
+    "engines": [
+      "winrt",
+      "espeak",
+      "dectalk",
+      "eloquence",
+      "flite",
+      "rhvoice",
+      "rutts",
+      "tgspeechbox"
+    ],
+    "selected": [
+      "eloquence"
+    ],
+    "helper_unavailable": 0,
+    "registry_rejections": 0,
+    "warnings": 0
+  },
+  {
+    "run": "batch-eloquence",
+    "log": "omnivox-20261110T105152Z-2233766.log",
+    "engines": [
+      "winrt",
+      "espeak",
+      "dectalk",
+      "eloquence",
+      "flite",
+      "rhvoice",
+      "rutts",
+      "tgspeechbox"
+    ],
+    "selected": [
+      "eloquence"
+    ],
+    "helper_unavailable": 0,
+    "registry_rejections": 0,
+    "warnings": 0
+  },
+  {
+    "run": "batch-eloquence",
+    "log": "omnivox-20261110T105154Z-2233934.log",
+    "engines": [
+      "winrt",
+      "espeak",
+      "dectalk",
+      "eloquence",
+      "flite",
+      "rhvoice",
+      "rutts",
+      "tgspeechbox"
+    ],
+    "selected": [
+      "eloquence"
+    ],
+    "helper_unavailable": 0,
+    "registry_rejections": 0,
+    "warnings": 0
+  },
+  {
+    "run": "batch-eloquence",
+    "log": "omnivox-20261110T105155Z-2234066.log",
+    "engines": [
+      "winrt",
+      "espeak",
+      "dectalk",
+      "eloquence",
+      "flite",
+      "rhvoice",
+      "rutts",
+      "tgspeechbox"
+    ],
+    "selected": [
+      "eloquence"
+    ],
+    "helper_unavailable": 0,
+    "registry_rejections": 0,
+    "warnings": 0
+  },
+  {
+    "run": "batch-eloquence",
+    "log": "omnivox-20261110T105158Z-2234365.log",
+    "engines": [
+      "winrt",
+      "espeak",
+      "dectalk",
+      "eloquence",
+      "flite",
+      "rhvoice",
+      "rutts",
+      "tgspeechbox"
+    ],
+    "selected": [
+      "eloquence"
+    ],
+    "helper_unavailable": 0,
+    "registry_rejections": 0,
+    "warnings": 0
+  },
+  {
+    "run": "batch-eloquence",
+    "log": "omnivox-20261110T105159Z-2234436.log",
+    "engines": [
+      "winrt",
+      "espeak",
+      "dectalk",
+      "eloquence",
+      "flite",
+      "rhvoice",
+      "rutts",
+      "tgspeechbox"
+    ],
+    "selected": [
+      "eloquence"
+    ],
+    "helper_unavailable": 0,
+    "registry_rejections": 0,
+    "warnings": 0
+  },
+  {
+    "run": "desktop-batch",
+    "log": "omnivox-20261110T105310Z-2237226.log",
+    "engines": [
+      "winrt",
+      "espeak",
+      "dectalk",
+      "eloquence",
+      "flite",
+      "rhvoice",
+      "rutts",
+      "tgspeechbox"
+    ],
+    "selected": [
+      "flite"
+    ],
+    "helper_unavailable": 0,
+    "registry_rejections": 0,
+    "warnings": 0
+  },
+  {
+    "run": "desktop-batch",
+    "log": "omnivox-20261110T105311Z-2237272.log",
+    "engines": [
+      "winrt",
+      "espeak",
+      "dectalk",
+      "eloquence",
+      "flite",
+      "rhvoice",
+      "rutts",
+      "tgspeechbox"
+    ],
+    "selected": [
+      "flite"
+    ],
+    "helper_unavailable": 0,
+    "registry_rejections": 0,
+    "warnings": 0
+  },
+  {
+    "run": "desktop-batch",
+    "log": "omnivox-20261110T105313Z-2237498.log",
+    "engines": [
+      "winrt",
+      "espeak",
+      "dectalk",
+      "eloquence",
+      "flite",
+      "rhvoice",
+      "rutts",
+      "tgspeechbox"
+    ],
+    "selected": [
+      "flite"
+    ],
+    "helper_unavailable": 0,
+    "registry_rejections": 0,
+    "warnings": 0
+  },
+  {
+    "run": "desktop-batch",
+    "log": "omnivox-20261110T105314Z-2237582.log",
+    "engines": [
+      "winrt",
+      "espeak",
+      "dectalk",
+      "eloquence",
+      "flite",
+      "rhvoice",
+      "rutts",
+      "tgspeechbox"
+    ],
+    "selected": [
+      "flite"
+    ],
+    "helper_unavailable": 0,
+    "registry_rejections": 0,
+    "warnings": 0
+  },
+  {
+    "run": "desktop-batch",
+    "log": "omnivox-20261110T105316Z-2237675.log",
+    "engines": [
+      "winrt",
+      "espeak",
+      "dectalk",
+      "eloquence",
+      "flite",
+      "rhvoice",
+      "rutts",
+      "tgspeechbox"
+    ],
+    "selected": [
+      "flite"
+    ],
+    "helper_unavailable": 0,
+    "registry_rejections": 0,
+    "warnings": 0
+  },
+  {
+    "run": "desktop-batch",
+    "log": "omnivox-20261110T105318Z-2237829.log",
+    "engines": [
+      "winrt",
+      "espeak",
+      "dectalk",
+      "eloquence",
+      "flite",
+      "rhvoice",
+      "rutts",
+      "tgspeechbox"
+    ],
+    "selected": [
+      "flite"
+    ],
+    "helper_unavailable": 0,
+    "registry_rejections": 0,
+    "warnings": 0
+  },
+  {
+    "run": "desktop-batch",
+    "log": "omnivox-20261110T105320Z-2237884.log",
+    "engines": [
+      "winrt",
+      "espeak",
+      "dectalk",
+      "eloquence",
+      "flite",
+      "rhvoice",
+      "rutts",
+      "tgspeechbox"
+    ],
+    "selected": [
+      "flite"
+    ],
+    "helper_unavailable": 0,
+    "registry_rejections": 0,
+    "warnings": 0
+  }
+]
