@@ -1,0 +1,6 @@
+Loading /home/bart/src/emacsvox-lightweight-reload/lisp/emacsvox-setup.el (source)...
+Loading voice-defs...
+
+Omnivox control error on Speaker, request 15: Omnivox speech connection closed
+Omnivox control error on Notify, request 17: Omnivox speech connection closed
+PASS guarded eloquence source speech; persistent development engine configuration.

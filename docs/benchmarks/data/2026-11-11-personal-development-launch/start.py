@@ -21,7 +21,7 @@ def prepare(arguments):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--check-launch', action='store_true', help='Validate and describe the launch without opening Emacs')
     parser.add_argument('--terminal', action='store_true')
-    parser.add_argument('--engine', choices=('espeak', 'flite', 'winrt', 'eloquence', 'dectalk', 'rutts', 'tgspeechbox', 'rhvoice'), default='flite')
+    parser.add_argument('--engine', choices=('espeak', 'flite', 'winrt', 'eloquence', 'dectalk', 'rutts', 'tgspeechbox', 'rhvoice'), default='eloquence')
     options, extra = parser.parse_known_args(arguments)
     manifest = json.loads((QUALIFIED / 'runtime.json').read_text())
     executable = Path(manifest['executable'])
@@ -88,7 +88,7 @@ def main():
     if options.check_launch:
         print(json.dumps({'command': command, 'environment': {key: environment[key] for key in
               ('HOME', 'EMACSVOX_DIR', 'EMACSVOX_CONFIG_FILE', 'TTS_PROGRAM', 'OMNIVOX_PROGRAM',
-               'OMNIVOX_CONFIG_DIR', 'OMNIVOX_EXPERIMENTAL_EARLY_SPEECH')}}, indent=2))
+               'OMNIVOX_CONFIG_DIR', 'OMNIVOX_ENGINE', 'OMNIVOX_EXPERIMENTAL_EARLY_SPEECH')}}, indent=2))
         return
     print(f'Emacs profile: {PROFILE}\nSpeech executable: {environment["OMNIVOX_PROGRAM"]}', flush=True)
     os.execve(command[0], command, environment)

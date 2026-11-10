@@ -19,7 +19,7 @@ The speech engine configuration remains separate from an installed release. It
 is now persistent under the Windows local application directory at
 `Emacsvox/Omnivox/profiles/development-lightweight-reload`. Its initial configuration
 retains the qualified engine setup, with macOS, Piper and MBROLA disabled for
-this Windows guarded prototype. Later edits are preserved. Flite remains the
+this Windows guarded prototype. Later edits are preserved. Eloquence is now the
 launcher startup preference; the personal profile's saved voice choices load
 normally. This does not add engine qualification or change native ownership.
 
@@ -48,3 +48,14 @@ identifies the wrapper backup and desktop-check log. The
 outputs are retained beside it. The existing Windows shortcut and batch wrapper
 remain in place; the Linux wrapper now selects this launcher. This is a local
 Development handoff, not a release or an installed-runtime replacement.
+
+## Eloquence startup follow-up
+
+The launcher default now selects Eloquence before the personal profile loads,
+matching its current first-choice engine. An explicit `--engine` option still
+selects another startup engine. The Windows shortcut's `--check-launch` reports
+Eloquence, and a fresh guarded worker completes Eloquence source speech with null
+output. The [startup result](data/2026-11-11-personal-development-launch/eloquence-startup-check.log)
+and [desktop check](data/2026-11-11-personal-development-launch/eloquence-desktop-check.log)
+are retained separately from the original Flite qualification. No running user
+session or saved personal voice preferences were changed.
