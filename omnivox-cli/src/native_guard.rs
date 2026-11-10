@@ -2,6 +2,7 @@
 //! First integration is Linux only. Other platforms keep their existing owners
 //! until their native handle/transport path has been qualified separately.
 mod linux;
+mod readiness;
 mod wire;
 
 use crate::voice_validation::owned::platform;
@@ -495,7 +496,7 @@ pub fn run(arguments: &[String]) -> Result<()> {
         if parent_channel.closed && client.is_none() && driver.tree_retired() && driver.io_retired {
             return Ok(());
         }
-        std::thread::sleep(TICK);
+        readiness::wait(&driver, &parent_channel, client.as_ref(), &listener)?;
     }
 }
 

@@ -40,7 +40,27 @@ pub struct Channel<S> {
     pub closed: bool,
 }
 
+pub enum WaitFor {
+    Closed,
+    Buffered,
+    Write,
+    Read(Option<Instant>),
+}
+
 impl<S: Read + Write> Channel<S> {
+    pub fn wait_for(&self) -> WaitFor {
+        if self.closed {
+            WaitFor::Closed
+        } else if !self.output.is_empty() {
+            // A blocked reply does not turn buffered input or its old deadline
+            // into a busy loop. Native lifetime is watched independently.
+            WaitFor::Write
+        } else if self.input.contains(&b'\n') {
+            WaitFor::Buffered
+        } else {
+            WaitFor::Read(self.since.map(|since| since + TIMEOUT))
+        }
+    }
     pub fn new(stream: S) -> Self {
         Self {
             stream,
@@ -82,7 +102,8 @@ impl<S: Read + Write> Channel<S> {
             // Backpressure may delay this reply, never the native cleanup loop.
             return Ok(None);
         }
-        if self.since.is_some_and(|since| since.elapsed() > TIMEOUT) {
+        if !self.input.contains(&b'\n') && self.since.is_some_and(|since| since.elapsed() > TIMEOUT)
+        {
             anyhow::bail!("incomplete guard frame timed out");
         }
         if !self.input.contains(&b'\n') {
@@ -114,5 +135,62 @@ impl<S: Read + Write> Channel<S> {
             return Ok(Some(request));
         }
         Ok(None)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::os::unix::net::UnixStream;
+
+    #[test]
+    fn buffered_second_request_needs_no_new_kernel_event() {
+        let (mut sender, receiver) = UnixStream::pair().unwrap();
+        receiver.set_nonblocking(true).unwrap();
+        let mut channel = Channel::new(receiver);
+        sender.write_all(b"{\"request_id\":1,\"command\":\"status\"}\n{\"request_id\":2,\"command\":\"status\"}\n").unwrap();
+        assert_eq!(channel.poll().unwrap().unwrap().request_id, 1);
+        assert!(matches!(channel.wait_for(), WaitFor::Buffered));
+        channel.since = Some(Instant::now() - TIMEOUT - Duration::from_secs(1));
+        // A complete queued request is not an incomplete-frame timeout.
+        assert_eq!(channel.poll().unwrap().unwrap().request_id, 2);
+        assert!(matches!(channel.wait_for(), WaitFor::Read(None)));
+    }
+
+    #[test]
+    fn blocked_reply_waits_for_write_even_with_queued_input() {
+        let (mut sender, receiver) = UnixStream::pair().unwrap();
+        sender.set_nonblocking(true).unwrap();
+        receiver.set_nonblocking(true).unwrap();
+        let mut channel = Channel::new(receiver);
+        sender.write_all(b"{\"request_id\":1,\"command\":\"status\"}\n{\"request_id\":2,\"command\":\"status\"}\n").unwrap();
+        channel.poll().unwrap().unwrap();
+        let padding = [b' '; 8192];
+        loop {
+            match channel.stream.write(&padding) {
+                Ok(_) => (),
+                Err(e) if e.kind() == io::ErrorKind::WouldBlock => break,
+                Err(e) => panic!("{e}"),
+            }
+        }
+        channel
+            .reply(&serde_json::json!({"request_id": 1}))
+            .unwrap();
+        channel.since = Some(Instant::now() - TIMEOUT - Duration::from_secs(1));
+        assert!(channel.poll().unwrap().is_none());
+        assert!(matches!(channel.wait_for(), WaitFor::Write));
+        assert!(!channel.closed);
+    }
+
+    #[test]
+    fn incomplete_frame_has_a_real_deadline() {
+        let (mut sender, receiver) = UnixStream::pair().unwrap();
+        receiver.set_nonblocking(true).unwrap();
+        let mut channel = Channel::new(receiver);
+        sender.write_all(b"{\"request_id\":").unwrap();
+        assert!(channel.poll().unwrap().is_none());
+        assert!(matches!(channel.wait_for(), WaitFor::Read(Some(_))));
+        channel.since = Some(Instant::now() - TIMEOUT - Duration::from_secs(1));
+        assert!(channel.poll().is_err());
     }
 }
