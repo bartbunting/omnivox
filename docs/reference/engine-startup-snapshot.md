@@ -260,7 +260,8 @@ blocked. No saved PID, missing record, EOF or process exit grants new authority.
 Emergency startup creates a private instance; it cannot discover or retire unknown
 workers from other clients. The current ordinary owner still shares its management
 transport with speech forwarding. A blocked owner/pipe or combined owner failure
-is not qualified emergency recovery; independent native guard reuse and an OS
+is not qualified emergency recovery on the default path. The opt-in Linux guard
+below handles retained independent authority; combined guard loss and an OS
 recovery boundary remain separate work under
 [ADR 0018](../adr/0018-minimal-emergency-speech.md).
 
@@ -285,6 +286,65 @@ The [deferred-start comparison](../benchmarks/2026-11-10-deferred-start.md) meas
 the preparation/release increment. Opt-in `OMNIVOX_STARTUP_TIMING=1` emits owner
 startup spans on stderr; it does not instrument speech admission. WSL callers
 must explicitly pass this diagnostic variable through `WSLENV`.
+
+## Opt-in independent Linux cleanup guard
+
+This private implementation is enabled by `--guarded` on `--voice-library-owner`
+or `--emergency-owner`. Other native platforms reject it before opening a host
+or initializing an engine. It is not the default or a published feature. See the
+[integration evidence](../benchmarks/2026-11-10-guard-integration.md) for the
+qualified cases and remaining work under [0018](../adr/0018-minimal-emergency-speech.md).
+
+A guarded owner is always prepared before native speech starts. Its `owner` reply
+adds `guard`: `version: 1`, exact `guard` and `worker` UUIDs, `transport:
+"linux-abstract"`, `address: "omnivox-guard-<guard UUID>"`, and a private random
+`token`. Keep this descriptor on the private client connection, never in arguments
+or ordinary diagnostics. No filesystem socket or writable management state is
+needed. Linux requires native pidfd support; unavailable support fails preparation
+while old speech remains available.
+
+The client starts the same selected executable as `--native-guard-control` and
+writes the descriptor as its first newline-delimited JSON frame. This bridge
+connects a same-user Linux abstract Unix-domain socket. It carries lifecycle
+control only. The client's speech connection stays stdio; the guarded owner and
+worker retain anonymous pipes as their stdin/stdout endpoints. Neither
+the guard nor its bridge forwards speech. There is no TCP listener, network port
+or new speech forwarding hop.
+
+Subsequent lifecycle frames contain positive `request_id`, `command`, and exact
+`guard` and `worker` values. The first command is `attach`, also carrying `token`.
+Only the owner's separate inherited control connection can request native start.
+After attachment succeeds, the client sends the existing owner connection
+`start-guarded` (or prepared `start-emergency`) with its exact worker identity.
+One attempt is consumed before native creation; duplicate starts cannot create
+another worker. The original bounded START snapshot gate still precedes engine
+initialization and output creation.
+
+The client channel accepts `status`, `retire`, and `retire-owner`. Replies are
+`guard_status` records with matching identities and request ID, Boolean
+`attempted`, `started`, `tree_retired`, `io_retired`, and nullable `error`.
+`started` reports native creation, not usable speech. `retire` cancels preparation
+and begins tree cleanup. `retire-owner` is legal only after `tree_retired: true`;
+it signals the actual inherited owner pidfd, never a PID recovered from storage.
+The guard observes actual native tree retirement separately from the completion
+lease held by every forwarding endpoint and startup writer. Minimal replacement
+requires both retirement fields to be true.
+
+Frames are bounded to 8 KiB, bootstrap state to 32 MiB, and one active client
+connection per guard. Native lifecycle polling runs every 5 ms; this does not
+poll or gate ordinary speech. Status output is nonblocking and bounded to one
+pending reply. A slow status consumer cannot block parent-lifetime observation.
+A lost client connection alone preserves a healthy owner and speech. Losing all
+native authority remains a blocked replacement, even if a worker has exited.
+
+The experimental Emacs client uses internal `omnivox-native-guard--enabled`,
+default nil. It retains at most four unresolved guard authorities, including
+unpublished attempts, and keeps received monotonic cleanup proof when releasing
+a completed control connection. This transient proof is consumed by explicit
+minimal recovery. It neither fabricates durable receipts nor releases retained
+asset claims. Ordinary managed operations still require their existing evidence.
+The launcher bridge entry bypasses preference conversion, data discovery and
+logging setup so damaged settings cannot obstruct cleanup.
 
 ## Remote workstation ownership
 

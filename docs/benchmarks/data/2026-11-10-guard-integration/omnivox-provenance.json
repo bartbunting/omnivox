@@ -1,0 +1,5 @@
+{
+  "base": "9316c751461f86fa5ad2429fbf929fbe15095ff0",
+  "branch": "experimental/lightweight-reload",
+  "patch_sha256": "2ac72589902483d2cb5f112159c59617411a2952ea1b2e57b61669dd99639581"
+}

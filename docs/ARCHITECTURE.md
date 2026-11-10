@@ -53,6 +53,13 @@ retirement can be acknowledged by the surviving owner despite a failed durable
 write, while old claims remain retained. This is not recovery after losing all
 native authority; see the [minimal startup contract](reference/engine-startup-snapshot.md#explicit-minimal-emergency-startup)
 and [ADR 0018](adr/0018-minimal-emergency-speech.md).
+The opt-in Linux `--guarded` owner additionally retains an independent Rust native
+cleanup authority and a client-held lifecycle bridge. Its control uses local Unix
+sockets; speech stays on the owner/worker stdio path without another forwarder.
+The guard owns native tree retirement and observes forwarding-I/O completion
+independently of a blocked or dead owner. The [private contract](reference/engine-startup-snapshot.md#opt-in-independent-linux-cleanup-guard)
+records its bounded scope, exact proof and platform limits. It is disabled by
+default and adds startup processes and lifecycle exchanges.
 The local management
 service coordinates installation and Apply; it is separate from speech admission.
 See [local activation](guides/voice-management.md#local-provider).

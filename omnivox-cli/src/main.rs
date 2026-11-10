@@ -27,6 +27,8 @@ mod health;
 mod lifecycle;
 mod lightweight;
 mod marker_events;
+#[cfg(target_os = "linux")]
+mod native_guard;
 mod native_plans;
 mod parameter_queries;
 mod pipeline;
@@ -75,6 +77,24 @@ pub(crate) const SOUND_MAX_DEPTH: usize = 10;
 
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    #[cfg(target_os = "linux")]
+    match args.first().map(String::as_str) {
+        Some(native_guard::MODE) => return native_guard::run(&args[1..]),
+        Some(native_guard::CLIENT) => {
+            anyhow::ensure!(args.len() == 1, "guard control takes its endpoint on stdin");
+            return native_guard::bridge();
+        }
+        _ => (),
+    }
+    #[cfg(not(target_os = "linux"))]
+    if args.first().is_some_and(|argument| {
+        matches!(
+            argument.as_str(),
+            "--native-cleanup-guard" | "--native-guard-control"
+        )
+    }) {
+        anyhow::bail!("independent native guard control is not implemented on this platform");
+    }
     #[cfg(any(target_os = "linux", target_os = "macos", windows))]
     if voice_local::requested(&args) {
         return voice_local::run(&args);

@@ -109,6 +109,8 @@ pub enum Reply {
         emergency: bool,
         deferred_start_version: u32,
         prepared: bool,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        guard: Option<GuardEndpoint>,
     },
     Started {
         worker: String,
@@ -170,6 +172,18 @@ pub enum Reply {
     Error {
         message: String,
     },
+}
+
+/// Private cleanup-only endpoint, disclosed solely over the owned local channel.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct GuardEndpoint {
+    pub version: u32,
+    pub guard: String,
+    pub worker: String,
+    pub transport: String,
+    pub address: String,
+    pub token: String,
 }
 impl Reply {
     pub fn line(&self, request_id: u64) -> Result<String, LibraryError> {

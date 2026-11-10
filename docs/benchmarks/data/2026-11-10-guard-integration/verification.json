@@ -1,0 +1,32 @@
+{
+  "rust_toolchain": "1.97.1",
+  "emacs": "31.0.90",
+  "workspace": "passed",
+  "clippy": "CLI and TTS all targets with Piper; passed",
+  "core": {
+    "passed": 1073,
+    "skipped": 18,
+    "failed": 0
+  },
+  "compiled_recovery": {
+    "passed": 27,
+    "failed": 0
+  },
+  "native_cases": 6,
+  "compiled_native_cases": [
+    "paused",
+    "killed",
+    "repeated",
+    "lost-reply and explicit retry"
+  ],
+  "formatting": "passed",
+  "documentation": "local and paired passed",
+  "installed_runtime_modified": false,
+  "platform": "Linux only",
+  "acoustic": false,
+  "host": {
+    "platform": "Linux-6.18.54.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "machine": "x86_64",
+    "python": "3.14.4"
+  }
+}

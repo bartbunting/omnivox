@@ -27,3 +27,7 @@ serde.workspace = true
 serde_json.workspace = true
 sha2.workspace = true
 ureq = { version = "=3.3.0", default-features = false, features = ["rustls"] }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# Already pinned in the workspace lockfile; native descriptor and pidfd calls.
+libc = "0.2"

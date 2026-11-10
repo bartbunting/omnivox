@@ -1,12 +1,13 @@
-//! Local stdio management and one native owner per speech worker. No listener,
-//! remote management command, native model loading or audio in the owner.
+//! Local stdio management and one forwarding owner per speech worker. The
+//! opt-in native guard carries only lifecycle control on independent local IPC.
+//! No remote management command, native model loading or audio in the owner.
 use crate::voice_validation::owned::platform;
 use anyhow::{Context, Result};
 use omnivox_tts::contracts::PhysicalVoiceId;
 use omnivox_tts::voice_library::installation::Activation;
 use omnivox_tts::voice_library::local::{self, Host, Reply, Request, Startup};
 use omnivox_tts::voice_library::ActivePointer;
-use std::io::{self, BufRead, BufReader, Write};
+use std::io::{self, BufRead, BufReader, Read, Write};
 use std::path::Path;
 use std::process::{Child, Command, Stdio};
 use std::sync::{mpsc, Arc, Mutex};
@@ -35,10 +36,12 @@ pub fn run(args: &[String]) -> Result<()> {
         let mut output = None;
         let mut data = None;
         let mut prepared = false;
+        let mut guarded = false;
         let mut options = args[1..].iter();
         while let Some(flag) = options.next() {
             match flag.as_str() {
                 "--prepare" if !prepared => prepared = true,
+                "--guarded" if !guarded => guarded = true,
                 "--audio-output" if output.is_none() => {
                     output = Some(options.next().context("missing emergency output")?.as_str());
                 }
@@ -50,10 +53,18 @@ pub fn run(args: &[String]) -> Result<()> {
                 _ => anyhow::bail!("invalid or repeated emergency startup option"),
             }
         }
-        return owner(None, Some((output.unwrap_or("device"), data)), prepared);
+        check_guard_platform(guarded)?;
+        return owner(
+            None,
+            Some((output.unwrap_or("device"), data)),
+            prepared || guarded,
+            guarded,
+        );
     }
+    let guarded = args == ["--voice-library-owner", "--guarded"];
+    check_guard_platform(guarded)?;
     anyhow::ensure!(
-        args.len() == 1,
+        args.len() == 1 || guarded,
         "local provider takes no path arguments; use native environment settings"
     );
     if args[0] == "--voice-library-local-version" {
@@ -67,8 +78,16 @@ pub fn run(args: &[String]) -> Result<()> {
     if args[0] == "--voice-library-service" {
         service(host)
     } else {
-        owner(Some(host), None, false)
+        owner(Some(host), None, false, guarded)
     }
+}
+
+fn check_guard_platform(guarded: bool) -> Result<()> {
+    anyhow::ensure!(
+        !guarded || cfg!(target_os = "linux"),
+        "guarded owners are currently implemented only on Linux"
+    );
+    Ok(())
 }
 
 pub(crate) fn line(input: &mut impl BufRead) -> Result<Option<Vec<u8>>> {
@@ -360,9 +379,18 @@ fn service(host: Host) -> Result<()> {
     Ok(())
 }
 
+enum NativeOwner {
+    Direct {
+        child: Child,
+        tree: platform::Tree,
+    },
+    #[cfg(target_os = "linux")]
+    Guarded(crate::native_guard::Peer),
+}
+
 struct Worker {
-    child: Child,
-    tree: platform::Tree,
+    native: NativeOwner,
+    input: Option<Box<dyn Write + Send>>,
     readers: Vec<JoinHandle<Result<()>>>,
     cleaned: bool,
     snapshot: Option<(Host, std::path::PathBuf, String)>,
@@ -379,8 +407,6 @@ impl Worker {
         command.args(&startup.arguments);
         startup.environment.apply(&mut command);
         command
-            // Local ownership needs the START barrier, not the remote
-            // broker's restriction to bundled icon identifiers.
             .env_remove("OMNIVOX_REMOTE_WORKER")
             .env("OMNIVOX_OWNED_WORKER", "1")
             .current_dir(&startup.working_directory)
@@ -388,22 +414,84 @@ impl Worker {
             .stdout(Stdio::piped())
             .stderr(Stdio::inherit());
         platform::configure_speech(&mut command);
-        let child = crate::emergency::timed("spawn-worker", || command.spawn())
+        let mut child = crate::emergency::timed("spawn-worker", || command.spawn())
             .context("could not start owned speech worker")?;
+        let input = child
+            .stdin
+            .take()
+            .map(|input| Box::new(input) as Box<dyn Write + Send>);
         *slot = Some(Self {
-            child,
-            tree,
+            native: NativeOwner::Direct { child, tree },
+            input,
             readers: Vec::new(),
             cleaned: false,
             snapshot: None,
         });
-        // Retain the child before assignment, reader creation or START can
-        // fail. The owner can then acknowledge cleanup of a partial attempt.
+        // Retain the child before assignment, reader creation or START can fail.
         let worker = slot.as_mut().unwrap();
-        worker.tree.assign(&worker.child)?;
-        let mut input = BufReader::new(worker.child.stdout.take().context("missing owned stdout")?);
+        let source = match &mut worker.native {
+            NativeOwner::Direct { child, tree } => {
+                tree.assign(child)?;
+                child.stdout.take().context("missing owned stdout")?
+            }
+            #[cfg(target_os = "linux")]
+            NativeOwner::Guarded(_) => unreachable!(),
+        };
+        worker.forward_output(source, output)?;
+        worker.send_startup(startup)
+    }
+
+    fn prepare_guarded(
+        startup: &Startup,
+        worker_id: &str,
+        output: &Arc<Mutex<io::Stdout>>,
+        slot: &mut Option<Self>,
+    ) -> Result<()> {
+        #[cfg(target_os = "linux")]
+        {
+            let (peer, input, source) = crate::native_guard::Peer::prepare(startup, worker_id)?;
+            *slot = Some(Self {
+                native: NativeOwner::Guarded(peer),
+                input: Some(Box::new(input)),
+                readers: Vec::new(),
+                cleaned: false,
+                snapshot: None,
+            });
+            slot.as_mut().unwrap().forward_output(source, output)
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            let _ = (startup, worker_id, output, slot);
+            anyhow::bail!("guarded native ownership is not implemented on this platform")
+        }
+    }
+
+    fn guard_endpoint(&self) -> Option<local::GuardEndpoint> {
+        match &self.native {
+            #[cfg(target_os = "linux")]
+            NativeOwner::Guarded(peer) => Some(peer.endpoint()),
+            _ => None,
+        }
+    }
+
+    fn start_guarded(&mut self, startup: &Startup) -> Result<()> {
+        #[cfg(target_os = "linux")]
+        if let NativeOwner::Guarded(peer) = &mut self.native {
+            peer.start()?;
+            return self.send_startup(startup);
+        }
+        let _ = startup;
+        anyhow::bail!("worker has no independent native guard")
+    }
+
+    fn forward_output(
+        &mut self,
+        source: impl Read + Send + 'static,
+        output: &Arc<Mutex<io::Stdout>>,
+    ) -> Result<()> {
+        let mut input = BufReader::new(source);
         let output = Arc::clone(output);
-        worker.readers.push(
+        self.readers.push(
             thread::Builder::new()
                 .name("owned-speech-output".into())
                 .spawn(move || {
@@ -421,15 +509,18 @@ impl Worker {
                     Ok(())
                 })?,
         );
+        Ok(())
+    }
+
+    fn send_startup(&mut self, startup: &Startup) -> Result<()> {
         let snapshot = startup
             .engines
             .clone()
             .context("owner lacks frozen engine startup")?;
-        let mut stdin = worker.child.stdin.take().context("missing owned stdin")?;
+        let mut stdin = self.input.take().context("missing owned stdin")?;
         let (sender, receiver) = mpsc::sync_channel(1);
-        // A complete record may exceed pipe capacity. Retain its writer with
-        // the owned tree and bound transmission; cleanup also joins this pipe.
-        worker.readers.push(
+        // Keep every startup writer and its completion lease until joined.
+        self.readers.push(
             thread::Builder::new()
                 .name("owned-speech-startup".into())
                 .spawn(move || {
@@ -439,33 +530,40 @@ impl Worker {
                     Ok(())
                 })?,
         );
-        worker.child.stdin = Some(crate::emergency::timed("send-owned-startup", || {
+        self.input = Some(crate::emergency::timed("send-owned-startup", || {
             receiver
                 .recv_timeout(Duration::from_secs(10))
                 .context("owned worker startup transmission did not complete")?
         })?);
         Ok(())
     }
+
     fn cleanup(&mut self) -> Result<()> {
         if self.cleaned {
             self.record_retirement()?;
             return Ok(());
         }
+        self.input.take();
         let deadline = Instant::now() + Duration::from_secs(5);
-        self.child.stdin.take();
-        self.tree.terminate()?;
-        let _ = self.child.kill(); // Covers failed assignment before START.
-        while self.child.try_wait()?.is_none() {
-            anyhow::ensure!(
-                Instant::now() < deadline,
-                "speech worker retirement unconfirmed"
-            );
-            thread::sleep(Duration::from_millis(10));
+        match &mut self.native {
+            NativeOwner::Direct { child, tree } => {
+                tree.terminate()?;
+                let _ = child.kill(); // Covers failed assignment before START.
+                while child.try_wait()?.is_none() || !tree.empty()? {
+                    anyhow::ensure!(
+                        Instant::now() < deadline,
+                        "speech tree retirement unconfirmed"
+                    );
+                    thread::sleep(Duration::from_millis(10));
+                }
+            }
+            #[cfg(target_os = "linux")]
+            NativeOwner::Guarded(peer) => peer.retire_tree()?,
         }
-        while !self.tree.empty()? || self.readers.iter().any(|reader| !reader.is_finished()) {
+        while self.readers.iter().any(|reader| !reader.is_finished()) {
             anyhow::ensure!(
                 Instant::now() < deadline,
-                "speech helper or pipe retirement unconfirmed"
+                "speech pipe retirement unconfirmed"
             );
             thread::sleep(Duration::from_millis(10));
         }
@@ -473,6 +571,10 @@ impl Worker {
             reader
                 .join()
                 .map_err(|_| anyhow::anyhow!("speech reader panicked"))??;
+        }
+        #[cfg(target_os = "linux")]
+        if let NativeOwner::Guarded(peer) = &mut self.native {
+            peer.finish_io()?;
         }
         self.cleaned = true;
         self.record_retirement()?;
@@ -497,6 +599,7 @@ fn owner(
     host: Option<Host>,
     emergency_output: Option<(&str, Option<&Path>)>,
     deferred: bool,
+    guarded: bool,
 ) -> Result<()> {
     platform::initialize()?; // Dedicated owner; never an ordinary speech worker.
     let worker_id = local::new_uuid()?;
@@ -525,6 +628,9 @@ fn owner(
                     parent.join("espeak-ng-data/phontab").is_file(),
                     "emergency speech requires its selected bundled eSpeak data"
                 );
+                if guarded {
+                    Worker::prepare_guarded(&startup, &worker_id, &output, &mut worker)?;
+                }
                 prepared = Some(startup);
                 return Ok(());
             }
@@ -569,7 +675,15 @@ fn owner(
             .engines
             .as_ref()
             .map(|snapshot| snapshot.activation_id().to_owned());
-        let result = Worker::spawn(&startup, &output, &mut worker);
+        let result = if guarded {
+            let result = Worker::prepare_guarded(&startup, &worker_id, &output, &mut worker);
+            if result.is_ok() {
+                prepared = Some(startup);
+            }
+            result
+        } else {
+            Worker::spawn(&startup, &output, &mut worker)
+        };
         if let Some(worker) = &mut worker {
             worker.snapshot = Some((host.clone(), path.clone(), digest.clone()));
         } else {
@@ -622,12 +736,25 @@ fn owner(
                         emergency: emergency_output.is_some(),
                         deferred_start_version: 1,
                         prepared: prepared.is_some(),
+                        guard: worker.as_ref().and_then(Worker::guard_endpoint),
                     }),
-                    "start-emergency" if deferred && request.worker == worker_id => {
+                    "start-emergency" | "start-guarded"
+                        if request.worker == worker_id
+                            && ((request.command == "start-emergency" && deferred)
+                                || (request.command == "start-guarded" && guarded)) =>
+                    {
                         if let Some(startup) = prepared.take() {
                             // Consume the single attempt before native creation. Retrying
                             // a lost reply can observe it but never launch another worker.
-                            if let Err(error) = Worker::spawn(&startup, &output, &mut worker) {
+                            let start = if guarded {
+                                worker
+                                    .as_mut()
+                                    .context("prepared guard missing")?
+                                    .start_guarded(&startup)
+                            } else {
+                                Worker::spawn(&startup, &output, &mut worker)
+                            };
+                            if let Err(error) = start {
                                 startup_error = Some(format!("{error:#}"));
                                 if let Err(cleanup_error) = cleanup(&mut worker) {
                                     eprintln!(
@@ -687,12 +814,12 @@ fn owner(
                     return Ok(());
                 }
             }
-            Ok(Ok(Some(_))) if worker.as_ref().is_none_or(|worker| worker.cleaned) => (),
+            Ok(Ok(Some(_)))
+                if prepared.is_some() || worker.as_ref().is_none_or(|worker| worker.cleaned) => {}
             Ok(Ok(Some(line))) => worker
                 .as_mut()
                 .unwrap()
-                .child
-                .stdin
+                .input
                 .as_mut()
                 .context("owned speech stdin closed")?
                 .write_all(&line)?,

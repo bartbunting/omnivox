@@ -25,8 +25,11 @@ speech after lost replies while preserving the damaged/missing-evidence boundary
 damaged or unwritable management state after proven native cleanup under
 [ADR 0018](adr/0018-minimal-emergency-speech.md). A bounded
 [owner-failure experiment](benchmarks/2026-11-10-owner-authority.md) confirms the
-need for independent cleanup authority. Owner/guard loss, blocked forwarding,
-acoustic timing and native macOS remain in the
+need for independent cleanup authority. The opt-in
+[Linux integration](benchmarks/2026-11-10-guard-integration.md) now covers owner
+loss and blocked forwarding with a surviving guard, including compiled-client
+minimal recovery. Guard loss remains blocked. Integrated partial-transfer/status
+backpressure, Windows/WSL, acoustic timing and native macOS remain in the
 [plan](plans/lightweight-preference-reload.md). This branch is not published or
 deployed to installed speech.
 

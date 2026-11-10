@@ -273,6 +273,9 @@ The remaining configuration work is:
   from damaged management state while retaining native proof and old claims.
   [Prepared emergency startup](benchmarks/2026-11-10-deferred-start.md) reduces
   recovery time and the measured source gap by preparing before old retirement.
+  The opt-in [Linux native guard](benchmarks/2026-11-10-guard-integration.md)
+  connects independent cleanup to the paired client without TCP or another speech
+  hop. Its startup cost and remaining platform qualification remain explicit.
   The [plan](plans/lightweight-preference-reload.md) tracks remaining acoustic/platform
   qualification and recovery hardening.
 - **Retained session work:** preserve the accepted session experiment at

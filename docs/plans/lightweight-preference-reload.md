@@ -200,11 +200,24 @@ status output, owner loss, partial START and explicit guard-loss blocking. Its
 Rust guard observes tree and I/O retirement separately and adds no speech hop or
 management write. This is an isolated fixture, not paired-client integration.
 
-Next, integrate one negotiated guarded worker and a client-held lifecycle
-connection under 0018. Retain exact guard/member identity before native creation,
-then qualify real partial handle transfer, helper survival, guard loss and failed
-writes through the compiled client before multiple-lane integration. Stop if the
-candidate needs global preference commits, infers cleanup, adds an unmeasured
-speech hop or depends on writable management state for minimal recovery. Measure
-matched request latency and restart cost before broadening the scope. Native
-Windows/WSL and macOS remain separate acceptance gates.
+The [Linux guard integration](../benchmarks/2026-11-10-guard-integration.md) now
+connects the actual owner, native guard and paired client. It remains opt-in.
+Native faults cover owner death/pause, blocked speech input/output, a surviving
+helper and explicit guard-loss blocking. The compiled client restores minimal
+speech through its independent local control link with damaged management state,
+preserving notifications and old claims. The first paired tests caught a lost
+in-memory proof during completed-connection cleanup; a regression now preserves
+that proof for explicit emergency recovery.
+
+The guard adds no speech forwarding hop, but its extra executable launches and
+lifecycle round trips have a measured startup cost, and the matched speech samples
+leave a small possible latency penalty unresolved. Compare readiness-based
+lifecycle waiting with the current poll loop using unchanged speech pipes and
+native fault checks before default or platform enablement; measure rather than
+assume an improvement. Continue with bounded partial
+bootstrap/START and status-backpressure qualification on the integrated path;
+the earlier standalone fixture is not a substitute. Port the native handle and
+local transport boundary to Windows using the retained named-pipe/handle work,
+then measure actual WSL-to-Windows prepared recovery before enabling it. Native
+macOS and acoustic/listening checks remain independent gates. Do not enable this
+path by default, import global preference commits, or infer missing cleanup.
