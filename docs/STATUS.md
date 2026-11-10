@@ -32,7 +32,11 @@ minimal recovery. Guard loss remains blocked. Integrated Linux partial-transfer
 and status-backpressure checks pass. The
 [Windows transport investigation](benchmarks/2026-11-10-windows-guard-qualification.md)
 passes native pipe and several recovery checks but fails strict descendant
-completion; Windows guarded startup is unavailable pending that proof. Windows
+completion; Windows guarded startup is unavailable pending that proof. The
+[bounded handoff experiment](benchmarks/2026-11-10-guard-handoff-and-preparation.md)
+passes 132 native cases with actual Flite handles, but its creation boundary is
+not integrated into product Rust. Concurrent client bridge preparation is
+implemented and measured separately. Windows
 qualification, acoustic timing and native macOS remain in the
 [plan](plans/lightweight-preference-reload.md). This branch is not published or
 deployed to installed speech.

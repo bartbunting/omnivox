@@ -278,8 +278,12 @@ The remaining configuration work is:
   hop. Its startup cost and remaining platform qualification remain explicit.
   [Windows native testing](benchmarks/2026-11-10-windows-guard-qualification.md)
   found job-accounting zero can precede helper process-handle completion. Retain
-  the transport work, keep Windows guarded startup unavailable, and establish
-  actual descendant ownership/completion before further preparation optimization.
+  the transport work and keep Windows guarded startup unavailable. The bounded
+  [creation-handoff experiment](benchmarks/2026-11-10-guard-handoff-and-preparation.md)
+  establishes actual-handle completion for Flite and concurrent creation; it
+  requires a reviewed helper-creation and compatibility boundary before product
+  integration. Concurrent client bridge preparation now reduces operation time
+  independently, without establishing a smaller source gap.
   The [plan](plans/lightweight-preference-reload.md) tracks remaining acoustic/platform
   qualification and recovery hardening.
 - **Retained session work:** preserve the accepted session experiment at

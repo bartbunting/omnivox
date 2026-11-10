@@ -222,14 +222,26 @@ management/native initialization. The old child-ended plus job-accounting-zero
 criterion can precede descendant process-handle completion. Transport and compiled
 client successes do not override that failed proof.
 
-Next, isolate one Flite helper creation/ownership handoff that retains every actual
-process handle before native execution, including creator failure and concurrent
-creation. Require actual completion without saved-PID authority, guessed helper
-counts or sleeps. Stop and review the concrete boundary if a small complete
-protocol cannot establish it; do not expand managed Apply to solve this problem.
-Review retained ADR 0015's completion criterion against that evidence without
-silently rewriting it. After proof, target preparation/bridge startup: the matched
-prototype adds roughly 588–682 ms to two-lane preparation under WSL, while normal
-eSpeak/Flite speech remains close to the direct path. Preserve the working reload
-path independently. Native macOS and acoustic/listening checks remain separate
+The [bounded Flite handoff](../benchmarks/2026-11-10-guard-handoff-and-preparation.md)
+now passes 132 native cases, including worker death during handoff and concurrent
+creation. It retains actual process handles before execution and requires their
+completion. The result supports a Windows creation service but does not qualify
+the current product guard. Retained ADR 0015's completion criterion and the
+compatibility of child-creating helpers need explicit review before adopting that
+boundary. No accepted decision has been rewritten.
+
+Concurrent owner/control-bridge preparation is implemented independently in the
+client. Matched Windows emergency-call medians fall from 876 to 696 ms. A focused
+20-per-variant healthy-restart follow-up shows source-gap bounds around 181/184 ms;
+it does not establish acoustic or tail non-regression. Both
+old lanes continue source speech during repeated preparation and preference
+reload. Preserve the existing steady-speech baseline evidence.
+
+Next, decide the bounded Rust creation interface and compatibility scope: one
+actual Flite helper first, direct PCM pipes, verified launch inputs, actual process
+handles and cancellation through failed transfers. Resolve child-creating helpers
+before broader enablement; do not silently exclude them. Follow the ADR approval
+workflow for a durable ownership change. Keep Windows guarded startup unavailable
+until native proof is integrated and qualified. Preserve ordinary preference
+reload independently. Native macOS and acoustic/listening checks remain separate
 gates; the guard is not enabled by default.

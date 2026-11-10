@@ -1,0 +1,103 @@
+{
+  "omnivox_source_base": "67bf3446796e425fbba9096797c5f6ea305deb80",
+  "emacsvox_baseline": "ac338dde7",
+  "emacsvox_candidate": "b83c43aada0883d8f6d1338b5e560268442fbe52",
+  "rust_product_changes": false,
+  "windows_timing_runtime_qualified": false,
+  "gated_windows_runtime_remains_unavailable": true,
+  "emacs_version": "GNU Emacs 31.0.90",
+  "fixture_c_compiler": "x86_64-w64-mingw32-gcc (GCC) 13-win32",
+  "fixture_c_build": "x86_64-w64-mingw32-gcc -Wall -Wextra -Werror -O2 -mwindows worker.c -o worker-native-v2.exe",
+  "payloads": [
+    {
+      "path": "/home/bart/src/omnivox-lightweight-reload/target/guard-windows/linux-final-payload-2/omnivox",
+      "sha256": "840d7ae934c3c12235187d1347147fd00f9a72a3f007003131df8d77cf344ccd"
+    },
+    {
+      "path": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-lightweight-20261110/Emacsvox/Omnivox/runtime/c56e4a39e052332a/omnivox.exe",
+      "sha256": "4b7d5bd9d61a5f40a2d2a045277c69505acb1275d7b2899ca82d949517dcf4f9"
+    },
+    {
+      "path": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-lightweight-20261110/Emacsvox/Omnivox/runtime/1c1833281316787d/omnivox.exe",
+      "sha256": "e710b325f73a3b96c1808eee4486644abb530951e0e0d9b094c7f92a78b79b28"
+    },
+    {
+      "path": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-lightweight-20261110/Emacsvox/Omnivox/runtime/1c1833281316787d/flite/omnivox-flite-helper.exe",
+      "sha256": "4b02294f7b70ea4a2fabb4831f1bcb6eb70a1dea8a4f1147377885d25c6af910"
+    },
+    {
+      "path": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-handoff-20261110/HandoffProbe-12.exe",
+      "sha256": "2e050642d300bec585bf27591763eb0bc8eb0821495fb5fc827dae280220fc72"
+    },
+    {
+      "path": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-handoff-20261110/worker-native-v2.exe",
+      "sha256": "80a860f16ac65ddffb8769419ccd15b9aaec56542f14f3baddcec0e2cc52bbde"
+    }
+  ],
+  "fixtures": {
+    "fixtures/client-before-exit-record.py": "0b0505341ddd76433971427b3ce84e2432412f597b41f45e6b4aed459fdaf5b7",
+    "fixtures/HandoffProbe-before-diagnostics.cs": "31d15a5a4569ccad0c720cfd2f951e65beadf3ffaab6ecc89b618d1cdd524b5a",
+    "fixtures/build-original.ps1": "99f415d39988a140bd1fa6ee270b5036039673663f5264ffc409b50301ae18da",
+    "fixtures/worker-trial10.c": "b96155df2e7824077e83c538eefc716d661051db9ff42b1f350b287742f2d881",
+    "fixtures/HandoffProbe-trial4.cs": "d0e66f29bbaefc750d71ea8531c2496b3feb3389219a7488382ebc5e6f6761ec",
+    "fixtures/client.el": "3c8cfcf90ea5b2b3882e69778d5ec2a78ddce32e1bfaa5c9f28a07753888eb49",
+    "fixtures/worker.c": "22b38c550d460f7bfd68c8e195f5b703961cb634b5a4134e2894ceb9a9e9d0e0",
+    "fixtures/availability.el": "e247cc4aa277fee3268bac8edd797711f1e5e69677cbc41269a08ebf19f5752f",
+    "fixtures/HandoffProbe-trial8.cs": "360286d4f8be159a289b6a22c634d4e20d8540f6701eed8da8e75b35e54888e8",
+    "fixtures/HandoffProbe-trial11.cs": "4b513ddb986eefba758bc787eb565c3dff52124f382bdc7e85f339eee9f52548",
+    "fixtures/availability-body.el": "61b7f32bfb095f947ea75f53a19beed65f4da360aa7cf85ed5ff21e940519f80",
+    "fixtures/recheck.py": "31d4de64294109c94b1f937cd980153b90ac1a675b6378d84beac1bdf2439b9a",
+    "fixtures/run.py": "87bc890aeb039a0a3f666ac262d0d1d2c0db6a5dd5f8c96c3c2aab835a6b32cc",
+    "fixtures/HandoffProbe-trial7.cs": "53e44b2cad86f6b6168e86e8cee49a57b73a88aa6fd2aa0cca88d714f1b3037f",
+    "fixtures/availability-direct-executable.el": "5b2ef7cc71d2cf0562296b8aa217ad930e6128af4254a885008be09e0e243318",
+    "fixtures/HandoffProbe.cs": "7050ed265fc2f731561dda1465261f856d34fa9fd48964f77f4638092e52cb79",
+    "fixtures/availability-before-json-fix.el": "37138044ab822c6b4593d77ed976cd84d5de809919459d102b2c439baba5017c",
+    "fixtures/build.ps1": "7303cd26ae2c3cccc00c54f447187ef2579020cac697ada00c8149ba0f80996b",
+    "fixtures/HandoffProbe-trial5.cs": "69306dc771ff70c9313b0d5bdeda5c849e263207c4fa28cd7195d5abb4e67dae",
+    "fixtures/summarize.py": "d3a66f5956fcabbfdfc989261d25fe935cbdea807fb1559e5ce903a308050750",
+    "fixtures/compare.py": "2b6106d1c22868e5b2f40c3441ec7b47bc536908796a7e96e6d568fe1847a7f3",
+    "fixtures/client.py": "42d01a0edbea593f0c1fb786e92a6d0e65cf914029400dd16677278906f4da6d",
+    "fixtures/client-before-healthy.py": "c488aaa0558ebd288c743df342a0433bbfb201538d2420aa31f9ea936c231655",
+    "fixtures/healthy.py": "28537e667bddcfd054c06f9ef015ef6809bc8fba1bf4a35499fc695389fc24f5",
+    "fixtures/HandoffProbe-before-kill-fix.cs": "d38b2b198479b92a1bc79c8e2b6c0c94a3f78da680d28beac3317d3bf27f877b",
+    "fixtures/healthy.el": "cb9207cd3e93049e2368c69f73417064da7cacbdfe13d7271a017c5e44b2909a",
+    "fixtures/HandoffProbe-trial9.cs": "fcdb3bd5aba5a047882123bd553acbae3e4824b88560f839abff3075a26f0211",
+    "fixtures/HandoffProbe-trial10.cs": "026f61874de3be36b33051866a2007d47466978c4d4d1689a93fe54daeaae415",
+    "fixtures/snapshot.ps1": "a419c680fe86b9d1939dd867b6ea3526d2e57f85aa7ff05bd01d8b79386ba579"
+  },
+  "baseline_client": {
+    "omnivox-native-guard.elc": "b358d90346a13cdec4daf90d4a6084eb49316088dac4da3f037cbfd403019824",
+    "omnivox-library-runtime.el": "645dd11f6ce2d29e65f8195232a8f8e24db5786d4ba411f6627bd3886db231ce",
+    "omnivox-library-runtime.elc": "f6167f8f232b4137fc24de1fe345254e1b2b5e22d32daf4c9635a722c9e5b69e",
+    "omnivox-native-guard.el": "81ce6721c2fe57df9a8c183a81133ac568621c86bba28eebd7706149708d0d3c"
+  },
+  "matches": {
+    "blocks": 4,
+    "cases_per_run": 5,
+    "successful_emergency_calls_per_variant_platform": 20,
+    "windows_fault_pause": "WSL connector, not native process",
+    "failed_first_baseline_status": "not captured by original runner; retained unsuccessful log; cause unknown"
+  },
+  "native_final": {
+    "trial": 12,
+    "cases": 11,
+    "trials_per_case": 12,
+    "source": "local/fixtures/HandoffProbe.cs",
+    "worker_source": "local/fixtures/worker.c",
+    "result": "windows/result-12.json",
+    "bound": 4,
+    "mode": "controller owns creation; actual handles wait before proof"
+  },
+  "raw_archive_roots": {
+    "local": "/home/bart/src/omnivox-lightweight-reload/target/guard-handoff",
+    "windows": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-handoff-20261110"
+  },
+  "healthy_followup": {
+    "blocks": 4,
+    "healthy_restarts_per_block": 5,
+    "samples_per_variant": 20,
+    "summary": "local/healthy-summary.json",
+    "matched": true,
+    "separate_from_mixed_failure_comparison": true
+  }
+}

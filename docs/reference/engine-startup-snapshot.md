@@ -309,7 +309,12 @@ connects a same-user Linux abstract Unix-domain socket. It carries lifecycle
 control only. The client's speech connection stays stdio; the guarded owner and
 worker retain anonymous pipes as their stdin/stdout endpoints. Neither
 the guard nor its bridge forwards speech. There is no TCP listener, network port
-or new speech forwarding hop.
+or new speech forwarding hop. During emergency preparation the client starts this
+bridge while waiting for the owner's descriptor. At most one unpublished
+emergency owner and its unused bridge are retained. Until validated descriptor
+delivery, the bridge has no native authority. Failed preparation closes it;
+successful attachment consumes it once. Failed attachment retains the exact
+guard identity for later observation and does not establish cleanup.
 
 Subsequent lifecycle frames contain positive `request_id`, `command`, and exact
 `guard` and `worker` values. The first command is `attach`, also carrying `token`.

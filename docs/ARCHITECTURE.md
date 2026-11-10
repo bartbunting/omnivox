@@ -59,7 +59,13 @@ sockets; speech stays on the owner/worker stdio path without another forwarder.
 The guard owns native tree retirement and observes forwarding-I/O completion
 independently of a blocked or dead owner. The [private contract](reference/engine-startup-snapshot.md#opt-in-independent-linux-cleanup-guard)
 records its bounded scope, exact proof and platform limits. It is disabled by
-default and adds startup processes and lifecycle exchanges.
+default and adds startup processes and lifecycle exchanges. During emergency
+preparation the paired client starts its waiting control bridge concurrently with
+the owner, then supplies the validated descriptor and attaches before native
+release. Unused bridges are closed on failed preparation; unresolved native
+authority survives failed attachment. The
+[matched preparation report](benchmarks/2026-11-10-guard-handoff-and-preparation.md)
+separates the operation-time saving from the source-gap bound.
 The Windows transport implementation retains actual process handles and bounded
 overlapped local named pipes, but Windows guarded owners reject startup before
 opening management state. Native testing observed empty job accounting before a
