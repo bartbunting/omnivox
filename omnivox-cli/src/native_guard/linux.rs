@@ -1,10 +1,16 @@
 //! Private inherited descriptors. No saved PID grants signalling authority.
+use omnivox_tts::voice_library::local::GuardEndpoint;
 use std::fs::File;
 use std::io;
+use std::io::{BufRead, Read, Write};
 use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
+use std::os::linux::net::SocketAddrExt;
 use std::os::unix::net::UnixStream;
+use std::os::unix::net::{SocketAddr, UnixListener};
 use std::os::unix::process::CommandExt;
 use std::process::{Child, Command, Stdio};
+use std::sync::Arc;
+use std::time::Duration;
 
 pub fn parent_identity() -> io::Result<File> {
     // SAFETY: open a handle to this very process, before creating its guard.
@@ -155,4 +161,172 @@ pub unsafe fn receive(
             File::from_raw_fd(fds[5]),
         )
     })
+}
+
+pub type Parent = File;
+pub type Completion = UnixStream;
+pub type Lease = UnixStream;
+pub type Blocking = UnixStream;
+pub type Control = UnixStream;
+pub type GuardChild = Child;
+pub const TRANSPORT: &str = "linux-abstract";
+pub struct Spawned {
+    pub child: GuardChild,
+    pub control: Blocking,
+    pub input: File,
+    pub output: File,
+    pub completion: Arc<Lease>,
+}
+pub fn launch(executable: &str) -> io::Result<Spawned> {
+    let (control, inherited_control) = UnixStream::pair()?;
+    let (inherited_input, input) = speech_pipe()?;
+    let (output, inherited_output) = speech_pipe()?;
+    let (completion, inherited_completion) = UnixStream::pair()?;
+    let child = spawn(
+        executable,
+        vec![
+            OwnedFd::from(inherited_control),
+            OwnedFd::from(inherited_input),
+            OwnedFd::from(inherited_output),
+            OwnedFd::from(stderr_copy()?),
+            OwnedFd::from(inherited_completion),
+            OwnedFd::from(parent_identity()?),
+        ],
+    )?;
+    Ok(Spawned {
+        child,
+        control,
+        input,
+        output,
+        completion: Arc::new(completion),
+    })
+}
+pub fn timeouts(stream: &mut Blocking, timeout: Option<Duration>) -> io::Result<()> {
+    stream.set_read_timeout(timeout)?;
+    stream.set_write_timeout(timeout)
+}
+pub fn into_channel(stream: Blocking) -> io::Result<Control> {
+    stream.set_nonblocking(true)?;
+    stream.set_read_timeout(None)?;
+    stream.set_write_timeout(None)?;
+    Ok(stream)
+}
+pub fn completed(completion: &mut Completion, _parent: &Parent) -> io::Result<bool> {
+    completion.set_nonblocking(true)?;
+    match completion.read(&mut [0]) {
+        Ok(0) => Ok(true),
+        Ok(_) => Err(io::Error::other("invalid completion lease")),
+        Err(e)
+            if matches!(
+                e.kind(),
+                io::ErrorKind::WouldBlock | io::ErrorKind::Interrupted
+            ) =>
+        {
+            Ok(false)
+        }
+        Err(e) => Err(e),
+    }
+}
+pub fn close(_stream: &mut Control) -> io::Result<bool> {
+    Ok(true)
+}
+pub struct Listener {
+    inner: UnixListener,
+    address: String,
+}
+impl Listener {
+    pub fn bind(id: &str) -> io::Result<Self> {
+        let address = format!("omnivox-guard-{id}");
+        let inner = UnixListener::bind_addr(&SocketAddr::from_abstract_name(address.as_bytes())?)?;
+        inner.set_nonblocking(true)?;
+        Ok(Self { inner, address })
+    }
+    pub fn address(&self) -> &str {
+        &self.address
+    }
+    pub fn accept(&mut self) -> io::Result<Option<Control>> {
+        match self.inner.accept() {
+            Ok((stream, _)) => {
+                let mut credential: libc::ucred = unsafe { std::mem::zeroed() };
+                let mut size = size_of_val(&credential) as libc::socklen_t;
+                // SAFETY: exact native storage and actual connected socket.
+                if unsafe {
+                    libc::getsockopt(
+                        stream.as_raw_fd(),
+                        libc::SOL_SOCKET,
+                        libc::SO_PEERCRED,
+                        (&raw mut credential).cast(),
+                        &mut size,
+                    )
+                } < 0
+                {
+                    return Err(io::Error::last_os_error());
+                }
+                if credential.uid != unsafe { libc::geteuid() } {
+                    return Ok(None);
+                }
+                stream.set_nonblocking(true)?;
+                Ok(Some(stream))
+            }
+            Err(e)
+                if matches!(
+                    e.kind(),
+                    io::ErrorKind::WouldBlock | io::ErrorKind::Interrupted
+                ) =>
+            {
+                Ok(None)
+            }
+            Err(e) => Err(e),
+        }
+    }
+}
+impl AsRawFd for Listener {
+    fn as_raw_fd(&self) -> i32 {
+        self.inner.as_raw_fd()
+    }
+}
+pub fn bridge(
+    endpoint: GuardEndpoint,
+    mut input: std::io::BufReader<std::io::Stdin>,
+) -> anyhow::Result<()> {
+    anyhow::ensure!(
+        endpoint.address == format!("omnivox-guard-{}", endpoint.guard),
+        "invalid guard address"
+    );
+    let mut stream = UnixStream::connect_addr(&SocketAddr::from_abstract_name(
+        endpoint.address.as_bytes(),
+    )?)?;
+    let mut sender = stream.try_clone()?;
+    std::thread::Builder::new()
+        .name("guard-control-input".into())
+        .spawn(move || {
+            let result: anyhow::Result<()> = (|| loop {
+                let mut line = Vec::new();
+                (&mut input)
+                    .take((super::wire::MAX_FRAME + 1) as u64)
+                    .read_until(b'\n', &mut line)?;
+                if line.is_empty() {
+                    return Ok(());
+                }
+                anyhow::ensure!(
+                    line.len() <= super::wire::MAX_FRAME && line.last() == Some(&b'\n'),
+                    "guard bridge input exceeds bound"
+                );
+                sender.write_all(&line)?;
+            })();
+            let _ = sender.shutdown(std::net::Shutdown::Both);
+            if let Err(error) = result {
+                eprintln!("Guard control input ended: {error}");
+            }
+        })?;
+    let mut output = std::io::stdout().lock();
+    let mut bytes = [0; super::wire::MAX_FRAME];
+    loop {
+        let n = stream.read(&mut bytes)?;
+        if n == 0 {
+            return Ok(());
+        }
+        output.write_all(&bytes[..n])?;
+        output.flush()?;
+    }
 }

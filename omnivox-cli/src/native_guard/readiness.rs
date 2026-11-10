@@ -1,16 +1,16 @@
 //! Sleep on lifecycle readiness, never on speech admission or forwarding.
+use super::os::{Control, Listener};
 use super::wire::{Channel, WaitFor, TIMEOUT};
 use super::{Driver, TICK};
 use std::io;
 use std::os::fd::{AsRawFd, RawFd};
-use std::os::unix::net::{UnixListener, UnixStream};
 use std::time::Instant;
 
 pub(super) fn wait(
     driver: &Driver,
-    parent: &Channel<UnixStream>,
-    client: Option<&(Channel<UnixStream>, bool, Instant)>,
-    listener: &UnixListener,
+    parent: &Channel<Control>,
+    client: Option<&(Channel<Control>, bool, Instant)>,
+    listener: &Listener,
 ) -> io::Result<()> {
     let mut descriptors = Vec::with_capacity(5);
     let mut deadline = (driver.closing && !driver.tree_retired()).then(|| Instant::now() + TICK);
@@ -71,7 +71,7 @@ fn earlier(deadline: &mut Option<Instant>, candidate: Instant) {
 }
 
 fn channel(
-    channel: &Channel<UnixStream>,
+    channel: &Channel<Control>,
     descriptors: &mut Vec<libc::pollfd>,
     deadline: &mut Option<Instant>,
 ) -> bool {

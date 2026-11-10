@@ -27,7 +27,7 @@ mod health;
 mod lifecycle;
 mod lightweight;
 mod marker_events;
-#[cfg(target_os = "linux")]
+#[cfg(any(target_os = "linux", windows))]
 mod native_guard;
 mod native_plans;
 mod parameter_queries;
@@ -77,7 +77,7 @@ pub(crate) const SOUND_MAX_DEPTH: usize = 10;
 
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
-    #[cfg(target_os = "linux")]
+    #[cfg(any(target_os = "linux", windows))]
     match args.first().map(String::as_str) {
         Some(native_guard::MODE) => return native_guard::run(&args[1..]),
         Some(native_guard::CLIENT) => {
@@ -86,7 +86,7 @@ fn main() -> Result<()> {
         }
         _ => (),
     }
-    #[cfg(not(target_os = "linux"))]
+    #[cfg(not(any(target_os = "linux", windows)))]
     if args.first().is_some_and(|argument| {
         matches!(
             argument.as_str(),

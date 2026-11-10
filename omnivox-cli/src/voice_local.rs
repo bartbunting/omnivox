@@ -83,9 +83,17 @@ pub fn run(args: &[String]) -> Result<()> {
 }
 
 fn check_guard_platform(guarded: bool) -> Result<()> {
+    // The Windows transport is retained for native qualification, but an empty
+    // job was observed before a helper's retained process handle signalled.
+    // Reject before opening management state or creating native ownership.
+    #[cfg(windows)]
+    anyhow::ensure!(
+        !guarded,
+        "Windows guarded startup is unavailable: descendant retirement is not qualified"
+    );
     anyhow::ensure!(
         !guarded || cfg!(target_os = "linux"),
-        "guarded owners are currently implemented only on Linux"
+        "guarded owners are currently qualified only on Linux"
     );
     Ok(())
 }
@@ -384,8 +392,8 @@ enum NativeOwner {
         child: Child,
         tree: platform::Tree,
     },
-    #[cfg(target_os = "linux")]
-    Guarded(crate::native_guard::Peer),
+    #[cfg(any(target_os = "linux", windows))]
+    Guarded(Box<crate::native_guard::Peer>),
 }
 
 struct Worker {
@@ -434,7 +442,7 @@ impl Worker {
                 tree.assign(child)?;
                 child.stdout.take().context("missing owned stdout")?
             }
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", windows))]
             NativeOwner::Guarded(_) => unreachable!(),
         };
         worker.forward_output(source, output)?;
@@ -447,11 +455,11 @@ impl Worker {
         output: &Arc<Mutex<io::Stdout>>,
         slot: &mut Option<Self>,
     ) -> Result<()> {
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", windows))]
         {
             let (peer, input, source) = crate::native_guard::Peer::prepare(startup, worker_id)?;
             *slot = Some(Self {
-                native: NativeOwner::Guarded(peer),
+                native: NativeOwner::Guarded(Box::new(peer)),
                 input: Some(Box::new(input)),
                 readers: Vec::new(),
                 cleaned: false,
@@ -459,7 +467,7 @@ impl Worker {
             });
             slot.as_mut().unwrap().forward_output(source, output)
         }
-        #[cfg(not(target_os = "linux"))]
+        #[cfg(not(any(target_os = "linux", windows)))]
         {
             let _ = (startup, worker_id, output, slot);
             anyhow::bail!("guarded native ownership is not implemented on this platform")
@@ -468,14 +476,14 @@ impl Worker {
 
     fn guard_endpoint(&self) -> Option<local::GuardEndpoint> {
         match &self.native {
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", windows))]
             NativeOwner::Guarded(peer) => Some(peer.endpoint()),
             _ => None,
         }
     }
 
     fn start_guarded(&mut self, startup: &Startup) -> Result<()> {
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", windows))]
         if let NativeOwner::Guarded(peer) = &mut self.native {
             peer.start()?;
             return self.send_startup(startup);
@@ -557,7 +565,7 @@ impl Worker {
                     thread::sleep(Duration::from_millis(10));
                 }
             }
-            #[cfg(target_os = "linux")]
+            #[cfg(any(target_os = "linux", windows))]
             NativeOwner::Guarded(peer) => peer.retire_tree()?,
         }
         while self.readers.iter().any(|reader| !reader.is_finished()) {
@@ -572,7 +580,7 @@ impl Worker {
                 .join()
                 .map_err(|_| anyhow::anyhow!("speech reader panicked"))??;
         }
-        #[cfg(target_os = "linux")]
+        #[cfg(any(target_os = "linux", windows))]
         if let NativeOwner::Guarded(peer) = &mut self.native {
             peer.finish_io()?;
         }

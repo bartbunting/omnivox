@@ -138,7 +138,7 @@ impl<S: Read + Write> Channel<S> {
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests {
     use super::*;
     use std::os::unix::net::UnixStream;
