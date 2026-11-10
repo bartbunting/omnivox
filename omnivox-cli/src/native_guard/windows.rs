@@ -1,5 +1,5 @@
 //! Retained Windows identities and overlapped local control. Speech stays on
-//! anonymous pipes; neither a PID nor a pipe disconnect establishes cleanup.
+//! direct pipes; neither a PID nor a pipe disconnect establishes cleanup.
 #[path = "windows/native.rs"]
 pub(super) mod native;
 #[path = "windows/pipe.rs"]
@@ -7,7 +7,7 @@ mod pipe;
 use super::wire::{MAX_FRAME, TIMEOUT};
 pub(super) use native::Process as GuardChild;
 use omnivox_tts::voice_library::local::{self, GuardEndpoint};
-pub(super) use pipe::{Listener, Stream as Control};
+pub(super) use pipe::{helper_stdio, Listener, Stream as Control};
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Read, Write};
 use std::os::windows::io::{AsHandle, AsRawHandle, OwnedHandle};

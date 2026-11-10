@@ -39,6 +39,23 @@ fn would_block() -> io::Error {
     io::ErrorKind::WouldBlock.into()
 }
 
+/// Return (helper, worker) ends. Native helper stdio is synchronous; Rust's
+/// ChildStdin/ChildStdout require overlapped handles at the worker end. The
+/// guard transfers both endpoints and never forwards their speech or PCM.
+pub(crate) fn helper_stdio(worker_reads: bool) -> io::Result<(std::fs::File, std::fs::File)> {
+    let id = omnivox_tts::voice_library::local::new_uuid().map_err(io::Error::other)?;
+    let name = wide(&format!(r"\\.\pipe\omnivox-helper-{id}"));
+    let security = security::Security::current_user()?;
+    let worker = security.helper_pipe(&name, worker_reads)?;
+    let helper = security::helper_client(&name, worker_reads)?;
+    let mut worker = Stream::new(worker)?;
+    worker.listen()?;
+    if !worker.connected()? {
+        return Err(io::Error::other("local helper pipe did not connect"));
+    }
+    Ok((helper.into(), worker.into_handle()?.into()))
+}
+
 struct Operation {
     overlapped: Box<UnsafeCell<Overlapped>>,
     event: OwnedHandle,

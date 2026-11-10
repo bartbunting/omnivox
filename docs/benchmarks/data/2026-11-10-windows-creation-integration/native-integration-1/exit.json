@@ -1,0 +1,17 @@
+{
+  "command": [
+    "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe",
+    "-NoProfile",
+    "-ExecutionPolicy",
+    "Bypass",
+    "-File",
+    "\\\\wsl.localhost\\Ubuntu-26.04\\home\\bart\\src\\omnivox-lightweight-reload\\target\\guard-rust\\fixtures\\native.ps1",
+    "-Executable",
+    "C:\\Users\\bart\\AppData\\Local\\Temp\\omnivox-lightweight-20261110\\Emacsvox\\Omnivox\\runtime\\28cf0d81c4e6ff81\\omnivox.exe",
+    "-Data",
+    "C:\\Users\\bart\\AppData\\Local\\Temp\\omnivox-lightweight-20261110\\Emacsvox\\Omnivox\\espeak-data\\9a2e176369cfe0b982737abf6c26037f21d2b9af2a2fabcc08062864d0157718",
+    "-Root",
+    "C:\\Users\\bart\\AppData\\Local\\Temp\\omnivox-creation-integration-20261110-native1"
+  ],
+  "exit": 1
+}

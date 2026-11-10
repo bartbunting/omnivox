@@ -1,0 +1,14 @@
+cargo fmt --all -- --check
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned_tests.rs:37:
+         assert!(
+             Instant::now() < deadline,
+             "native test deadline: {:?}; expected {}; job {:?}; pending {}",
+-            native.error, native.total, native.job.counts().map(|c| (c.total, c.active)), native.pending.is_some()
++            native.error,
++            native.total,
++            native.job.counts().map(|c| (c.total, c.active)),
++            native.pending.is_some()
+         );
+         native.poll(false).unwrap();
+         std::thread::sleep(TICK);
+make: *** [Makefile:158: fmt-check] Error 1

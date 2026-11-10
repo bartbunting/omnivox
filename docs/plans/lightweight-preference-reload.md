@@ -217,7 +217,7 @@ source difference around 0.13 ms, within substantial run variation. Startup stil
 costs additional preparation, and acoustic/tail equivalence is not established.
 The [Windows port investigation](../benchmarks/2026-11-10-windows-guard-qualification.md)
 retains native named pipes, handle ownership and component tests, but fails the
-surviving-helper completion check. Guarded Windows startup now rejects before
+surviving-helper completion check. That implementation was gated before
 management/native initialization. The old child-ended plus job-accounting-zero
 criterion can precede descendant process-handle completion. Transport and compiled
 client successes do not override that failed proof.
@@ -238,12 +238,28 @@ old lanes continue source speech during repeated preparation and preference
 reload. Preserve the existing steady-speech baseline evidence.
 
 The [Rust creation components](../benchmarks/2026-11-10-windows-owned-creation.md)
-now pass native tests behind the Windows startup gate. Next, qualify integrated
-eSpeak/Flite speech, interruption, owner/helper failure, compiled-client recovery
-and matched response/source timing during reload. Preserve working speech on
-confirmed helper-launch failures; uncertain transfers still require native
-retirement. Resolve child-creating helpers before broader enablement; do not
-silently exclude them. Keep Windows guarded startup unavailable until native
-proof is integrated and qualified. Preserve ordinary preference
-reload independently. Native macOS and acoustic/listening checks remain separate
-gates; the guard is not enabled by default.
+and [integrated Windows qualification](../benchmarks/2026-11-10-windows-creation-integration.md)
+now support an opt-in eSpeak/Flite prototype. Native owner/worker/helper failures,
+blocked forwarding, lost replies, malformed management state, compiled client
+recovery and direct speech during reload have retained evidence. Confirmed helper
+launch rejection preserves the worker; uncertain transfer still retires it.
+The integrated report separates ordinary response, source timing and startup cost,
+including the smaller helper-pipe capacity found and corrected during comparison.
+
+Next slices:
+
+1. Use the isolated listening profile to assess real character navigation,
+   replacement, notifications, settings reload and restart on the private build.
+   Source markers and null output do not establish audible acceptance.
+2. Qualify the actual everyday Windows engines, including concurrent helper
+   initialization and their cancellation/recovery behavior. Generalize the bounded
+   retained helper set only as needed. Resolve child-creating helpers explicitly;
+   do not silently exclude them or replace the ordinary path.
+3. Measure startup/recovery costs separately from speech blackout. Keep optional
+   discovery out of first usable speech where supported. Qualify native macOS
+   separately, then prepare a broader prototype; no automatic installed deployment.
+
+Preserve ordinary preference reload independently. Loss of all cleanup authority,
+reboot reconciliation and broader asset-management recovery remain distinct work.
+The guard remains disabled by default; this milestone does not close every
+platform, performance or reliability acceptance criterion.

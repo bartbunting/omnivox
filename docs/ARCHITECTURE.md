@@ -66,16 +66,17 @@ release. Unused bridges are closed on failed preparation; unresolved native
 authority survives failed attachment. The
 [matched preparation report](benchmarks/2026-11-10-guard-handoff-and-preparation.md)
 separates the operation-time saving from the source-gap bound.
-The Windows transport implementation retains actual process handles and bounded
-overlapped local named pipes, but Windows guarded owners reject startup before
-opening management state. Native testing observed empty job accounting before a
-helper process handle signalled completion; the
-[qualification report](benchmarks/2026-11-10-windows-guard-qualification.md)
-records the counterexample, successful transport checks and remaining proof work.
-The [Rust creation candidate](benchmarks/2026-11-10-windows-owned-creation.md)
-now retains actual worker/helper handles before execution, creates them outside
-the control loop and hands direct helper pipes to the worker. Its component
-checks pass; integrated qualification still gates Windows guarded startup.
+The opt-in Windows guard uses bounded local named pipes for lifecycle control
+and retains actual worker/helper handles before execution under
+[ADR 0019](adr/0019-windows-native-creation-ownership.md). A bounded background task
+creates suspended processes; the guard releases helpers after acknowledged direct
+pipe transfer. Speech and PCM bypass the guard. Confirmed launch rejection
+preserves the worker and creation channel; uncertain transfer requires retirement.
+[Integrated eSpeak/Flite qualification](benchmarks/2026-11-10-windows-creation-integration.md)
+records failure checks, client recovery and performance limits. Other enabled
+engines reject guarded preparation and remain available through ordinary launch.
+The earlier [job-accounting counterexample](benchmarks/2026-11-10-windows-guard-qualification.md)
+is retained; actual process-handle completion now precedes native cleanup proof.
 The local management
 service coordinates installation and Apply; it is separate from speech admission.
 See [local activation](guides/voice-management.md#local-provider).

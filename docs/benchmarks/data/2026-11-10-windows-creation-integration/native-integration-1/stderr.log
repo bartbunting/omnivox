@@ -1,0 +1,8 @@
+Exception calling "Read" with "1" argument(s): "Native reply timeout"
+At \\wsl.localhost\Ubuntu-26.04\home\bart\src\omnivox-lightweight-reload\target\guard-rust\fixtures\native.ps1:135 
+char:3
++   $line=$p.Read(8000)
++   ~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : TimeoutException
+ 

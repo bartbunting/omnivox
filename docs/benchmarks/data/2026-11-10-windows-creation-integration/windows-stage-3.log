@@ -1,0 +1,17 @@
+"/home/bart/src/emacsvox-lightweight-reload/dist/lightweight-release/stage-main-dev.sh" \
+	"/home/bart/src/emacsvox-lightweight-reload" "/home/bart/src/omnivox-lightweight-reload" "/home/bart/src/emacsvox-lightweight-reload/servers/omnivox-bin" \
+	"/home/bart/src/emacsvox-lightweight-reload/dist/lightweight-release" "emacsvox-omnivox-windows-gnu:lightweight-20261110" \
+	"x86_64-pc-windows-gnu"
+info: syncing channel updates for 1.97.1-x86_64-unknown-linux-gnu
+info: latest update on 2026-07-16 for version 1.97.1 (8bab26f4f 2026-07-14)
+info: downloading component clippy
+   Compiling omnivox-tts v1.18.0 (/workspace/omnivox/omnivox-tts)
+   Compiling espeak-rs-sys v0.1.9
+   Compiling omnivox-cli v1.18.0 (/workspace/omnivox/omnivox-cli)
+    Finished `release` profile [optimized] target(s) in 40.05s
+Staged main-only Omnivox runtime b52607521ce344ac (reused 28cf0d81c4e6ff81)
+make verify-windows-omnivox-main-live
+"/home/bart/src/emacsvox-lightweight-reload/dist/lightweight-release/verify-main-live.sh" \
+	"/home/bart/src/emacsvox-lightweight-reload/servers/omnivox-bin"
+verified_main_build_id=b52607521ce344ac
+live_main_runtime=/mnt/c/Users/bart/AppData/Local/Temp/omnivox-lightweight-20261110/Emacsvox/Omnivox/runtime/b52607521ce344ac

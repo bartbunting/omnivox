@@ -1,0 +1,638 @@
+diff --git a/omnivox-cli/src/native_guard/windows.rs b/omnivox-cli/src/native_guard/windows.rs
+index f227eed..e18ac24 100644
+--- a/omnivox-cli/src/native_guard/windows.rs
++++ b/omnivox-cli/src/native_guard/windows.rs
+@@ -1,5 +1,5 @@
+ //! Retained Windows identities and overlapped local control. Speech stays on
+-//! anonymous pipes; neither a PID nor a pipe disconnect establishes cleanup.
++//! direct pipes; neither a PID nor a pipe disconnect establishes cleanup.
+ #[path = "windows/native.rs"]
+ pub(super) mod native;
+ #[path = "windows/pipe.rs"]
+@@ -7,7 +7,7 @@ mod pipe;
+ use super::wire::{MAX_FRAME, TIMEOUT};
+ pub(super) use native::Process as GuardChild;
+ use omnivox_tts::voice_library::local::{self, GuardEndpoint};
+-pub(super) use pipe::{Listener, Stream as Control};
++pub(super) use pipe::{helper_stdio, Listener, Stream as Control};
+ use std::fs::File;
+ use std::io::{self, BufRead, BufReader, Read, Write};
+ use std::os::windows::io::{AsHandle, AsRawHandle, OwnedHandle};
+diff --git a/omnivox-cli/src/native_guard/windows/helper_client.rs b/omnivox-cli/src/native_guard/windows/helper_client.rs
+index 41f50e6..b315360 100644
+--- a/omnivox-cli/src/native_guard/windows/helper_client.rs
++++ b/omnivox-cli/src/native_guard/windows/helper_client.rs
+@@ -12,6 +12,7 @@ use std::time::{Duration, Instant};
+ struct Client {
+     connection: BufReader<os::Blocking>,
+     sequence: u64,
++    synchronized: bool,
+ }
+ static CLIENT: OnceLock<Mutex<Option<Client>>> = OnceLock::new();
+ 
+@@ -22,6 +23,7 @@ pub(crate) fn install(argument: &str) -> anyhow::Result<()> {
+     let client = Client {
+         connection: BufReader::new(os::Blocking::from_handle(handle)?),
+         sequence: 0,
++        synchronized: true,
+     };
+     anyhow::ensure!(
+         CLIENT.set(Mutex::new(Some(client))).is_ok(),
+@@ -59,7 +61,7 @@ fn launch(
+         .as_mut()
+         .ok_or_else(|| io::Error::other("native helper ownership is unavailable"))?;
+     let result = client.launch(engine, identity);
+-    if result.is_err() {
++    if result.is_err() && !client.synchronized {
+         // No reconnect or blind creation retry: an undelivered offer can contain
+         // handles already installed in this process. The guard retires the worker
+         // on link failure to close those actual handles, not guessed integers.
+@@ -75,19 +77,16 @@ impl Client {
+         serde_json::to_writer(self.connection.get_mut(), request).map_err(io::Error::other)?;
+         self.connection.get_mut().write_all(b"\n")
+     }
+-    fn receive(&mut self, id: u64, expected: &str) -> io::Result<wire::Reply> {
++    fn receive(&mut self, id: u64) -> io::Result<wire::Reply> {
+         let value = super::wire::read_reply(&mut self.connection).map_err(io::Error::other)?;
+         let reply: wire::Reply = serde_json::from_value(value).map_err(io::Error::other)?;
+-        if reply.request_id != id || reply.state != expected || reply.error.is_some() {
+-            return Err(io::Error::other(
+-                reply
+-                    .error
+-                    .unwrap_or_else(|| "uncorrelated native helper response".into()),
+-            ));
++        if reply.request_id != id {
++            return Err(io::Error::other("uncorrelated native helper response"));
+         }
+         Ok(reply)
+     }
+     fn launch(&mut self, engine: &str, identity: String) -> io::Result<Child> {
++        self.synchronized = false;
+         self.sequence = self
+             .sequence
+             .checked_add(1)
+@@ -99,7 +98,18 @@ impl Client {
+             engine: engine.into(),
+             launch: identity,
+         })?;
+-        let reply = self.receive(id, "offered")?;
++        let reply = self.receive(id)?;
++        if reply.state == "rejected" && reply.handles.is_none() {
++            if let Some(error) = &reply.error {
++                // A correlated rejection transferred nothing. Keep this same
++                // channel usable for future recovery; existing speech continues.
++                self.synchronized = true;
++                return Err(io::Error::other(error.clone()));
++            }
++        }
++        if reply.state != "offered" || reply.error.is_some() {
++            return Err(io::Error::other("invalid native helper offer"));
++        }
+         let values = reply
+             .handles
+             .ok_or_else(|| io::Error::other("missing native helper handles"))?;
+@@ -123,10 +133,59 @@ impl Client {
+             engine: String::new(),
+             launch: String::new(),
+         })?;
+-        let reply = self.receive(id, "started")?;
+-        if reply.handles.is_some() {
+-            return Err(io::Error::other("duplicate native handle offer"));
++        let reply = self.receive(id)?;
++        if reply.state != "started" || reply.error.is_some() || reply.handles.is_some() {
++            return Err(io::Error::other("invalid native helper start confirmation"));
+         }
++        self.synchronized = true;
+         Ok(child)
+     }
+ }
++
++#[cfg(test)]
++mod tests {
++    use super::*;
++    use crate::native_guard::wire::{Channel, WaitFor};
++
++    #[test]
++    fn correlated_rejection_keeps_the_creation_link_usable() {
++        let (server, client) = os::channel_pair().unwrap();
++        let thread = std::thread::spawn(move || {
++            let mut channel = Channel::new(server);
++            for expected in [1, 2] {
++                let deadline = Instant::now() + TIMEOUT;
++                let request = loop {
++                    assert!(Instant::now() < deadline);
++                    if let Some(request) = channel.poll_as::<wire::Request>().unwrap() {
++                        break request;
++                    }
++                    std::thread::sleep(Duration::from_millis(1));
++                };
++                assert_eq!(request.request_id, expected);
++                channel
++                    .reply(&wire::Reply {
++                        request_id: expected,
++                        state: "rejected".into(),
++                        handles: None,
++                        error: Some("helper unavailable".into()),
++                    })
++                    .unwrap();
++                while matches!(channel.wait_for(), WaitFor::Write) {
++                    assert!(Instant::now() < deadline);
++                    channel.poll_as::<wire::Request>().unwrap();
++                    std::thread::sleep(Duration::from_millis(1));
++                }
++            }
++        });
++        let mut client = Client {
++            connection: BufReader::new(os::Blocking::from_handle(client).unwrap()),
++            sequence: 0,
++            synchronized: true,
++        };
++        for _ in 0..2 {
++            assert!(client.launch("flite", "test".into()).is_err());
++            assert!(client.synchronized);
++        }
++        thread.join().unwrap();
++    }
++}
+diff --git a/omnivox-cli/src/native_guard/windows/owned.rs b/omnivox-cli/src/native_guard/windows/owned.rs
+index 2f173ff..9104433 100644
+--- a/omnivox-cli/src/native_guard/windows/owned.rs
++++ b/omnivox-cli/src/native_guard/windows/owned.rs
+@@ -33,12 +33,16 @@ enum Product {
+     },
+ }
+ struct Pending {
++    request: Option<u64>,
+     thread: JoinHandle<Result<Product>>,
+     done: Arc<native::Event>,
+     deadline: Instant,
+ }
+ impl Pending {
+-    fn start(work: impl FnOnce() -> Result<Product> + Send + 'static) -> Result<Self> {
++    fn start(
++        request: Option<u64>,
++        work: impl FnOnce() -> Result<Product> + Send + 'static,
++    ) -> Result<Self> {
+         let done = Arc::new(native::Event::new()?);
+         let notify = Arc::clone(&done);
+         let thread = std::thread::Builder::new()
+@@ -54,6 +58,7 @@ impl Pending {
+                 work()
+             })?;
+         Ok(Self {
++            request,
+             thread,
+             done,
+             deadline: Instant::now() + TIMEOUT,
+@@ -86,7 +91,7 @@ impl Native {
+         let directory = startup.working_directory.clone();
+         let [input, output, error] = pipes;
+         let error_output = error.try_clone()?;
+-        let pending = Pending::start(move || {
++        let pending = Pending::start(None, move || {
+             startup.verify()?;
+             let (channel, worker_channel) = os::channel_pair()?;
+             let mut command = Command::new(&startup.executable.path);
+@@ -213,10 +218,17 @@ impl Native {
+             return Ok(());
+         }
+         let pending = self.pending.take().unwrap();
+-        let product = pending
++        let result = pending
+             .thread
+             .join()
+-            .map_err(|_| anyhow::anyhow!("native creation task panicked"))??;
++            .map_err(|_| anyhow::anyhow!("native creation task panicked"))?;
++        let product = match result {
++            Ok(product) => product,
++            Err(error) if pending.request.is_some() && !self.closing => {
++                return self.reject(pending.request.unwrap(), error);
++            }
++            Err(error) => return Err(error),
++        };
+         self.total = self
+             .total
+             .checked_add(1)
+@@ -305,30 +317,10 @@ impl Native {
+                     .context("native helper launch differs from retained snapshot")?
+                     .clone();
+                 self.sequence = request.request_id;
+-                let job = Arc::clone(&self.job);
+-                let directory = self.directory.clone();
+-                let error = self.error_output.try_clone()?;
+-                self.pending = Some(Pending::start(move || {
+-                    let (input, writer) = native::speech_pipe()?;
+-                    let (reader, output) = native::speech_pipe()?;
+-                    let mut command = Command::new(&helper.config.program);
+-                    helper.config.environment.apply(&mut command);
+-                    command
+-                        .args(&helper.config.arguments)
+-                        .current_dir(directory);
+-                    let child = creation::spawn(
+-                        &command,
+-                        job.handle(),
+-                        [input.as_handle(), output.as_handle(), error.as_handle()],
+-                        None,
+-                    )?;
+-                    Ok(Product::Helper {
+-                        child,
+-                        input: writer,
+-                        output: reader,
+-                        id: request.request_id,
+-                    })
+-                })?);
++                match self.create_helper(helper, request.request_id) {
++                    Ok(pending) => self.pending = Some(pending),
++                    Err(error) => self.reject(request.request_id, error)?,
++                }
+             }
+             "acknowledge" => {
+                 anyhow::ensure!(
+@@ -353,6 +345,54 @@ impl Native {
+         }
+         Ok(())
+     }
++    fn reject(&mut self, id: u64, error: anyhow::Error) -> Result<()> {
++        // The creation API failed before returning a process, and no offer or
++        // handle transfer occurred. Refuse this helper, preserving existing
++        // speech. Unexpected job activity is still an ownership failure.
++        let counts = self.job.counts()?;
++        anyhow::ensure!(
++            self.helper.is_none()
++                && self.offer.is_none()
++                && counts.total == self.total
++                && counts.active <= 1,
++            "failed helper creation changed native ownership"
++        );
++        self.channel
++            .as_mut()
++            .context("missing native creation channel")?
++            .reply(&helper_wire::Reply {
++                request_id: id,
++                state: "rejected".into(),
++                handles: None,
++                error: Some(error.to_string()),
++            })
++    }
++    fn create_helper(&self, helper: super::windows_plan::Helper, id: u64) -> Result<Pending> {
++        let job = Arc::clone(&self.job);
++        let directory = self.directory.clone();
++        let error = self.error_output.try_clone()?;
++        Pending::start(Some(id), move || {
++            let (input, writer) = os::helper_stdio(false)?;
++            let (output, reader) = os::helper_stdio(true)?;
++            let mut command = Command::new(&helper.config.program);
++            helper.config.environment.apply(&mut command);
++            command
++                .args(&helper.config.arguments)
++                .current_dir(directory);
++            let child = creation::spawn(
++                &command,
++                job.handle(),
++                [input.as_handle(), output.as_handle(), error.as_handle()],
++                None,
++            )?;
++            Ok(Product::Helper {
++                child,
++                input: writer,
++                output: reader,
++                id,
++            })
++        })
++    }
+     pub fn readiness(
+         &self,
+         events: &mut Vec<RawHandle>,
+diff --git a/omnivox-cli/src/native_guard/windows/owned_tests.rs b/omnivox-cli/src/native_guard/windows/owned_tests.rs
+index 63c5875..614e994 100644
+--- a/omnivox-cli/src/native_guard/windows/owned_tests.rs
++++ b/omnivox-cli/src/native_guard/windows/owned_tests.rs
+@@ -83,7 +83,7 @@ fn pending_creation_keeps_retirement_unconfirmed_and_control_responsive() {
+     let mut native = empty();
+     let (release, wait) = std::sync::mpsc::sync_channel(1);
+     native.pending = Some(
+-        Pending::start(move || {
++        Pending::start(None, move || {
+             wait.recv_timeout(TIMEOUT)?;
+             anyhow::bail!("fixture creation cancelled")
+         })
+@@ -184,3 +184,40 @@ fn unaccounted_job_member_never_becomes_a_retirement_receipt() {
+         .contains("accounting differs"));
+     // Drop still emits no proof and remains bounded by its shutdown deadline.
+ }
++
++#[test]
++#[ignore = "requires explicit private native runtime and Flite helper"]
++fn failed_helper_launch_preserves_the_worker_and_creation_link() {
++    let (mut native, mut client) = fixture();
++    let mut config = native.plan.helper.as_ref().unwrap().config.clone();
++    config.program = std::env::temp_dir().join(format!(
++        "omnivox-absent-{}.exe",
++        omnivox_tts::voice_library::local::new_uuid().unwrap()
++    ));
++    native.plan.helper = Some(Helper::capture(config).unwrap());
++    for id in [1, 2] {
++        let mut request = create(&native);
++        request.request_id = id;
++        send(&mut client, &request);
++        until(&mut native, |n| n.pending.is_some());
++        until(&mut native, |n| n.pending.is_none());
++        let channel = native.channel.as_mut().unwrap();
++        let deadline = Instant::now() + TIMEOUT;
++        while matches!(
++            channel.wait_for(),
++            crate::native_guard::wire::WaitFor::Write
++        ) {
++            assert!(Instant::now() < deadline);
++            channel.poll_as::<helper_wire::Request>().unwrap();
++            std::thread::sleep(TICK);
++        }
++        let mut reader = std::io::BufReader::new(&mut client);
++        let reply = crate::native_guard::wire::read_reply(&mut reader).unwrap();
++        assert_eq!(reply["state"], "rejected");
++        assert_eq!(reply["request_id"], id);
++        assert!(reply["handles"].is_null());
++        assert!(!native.closing && !native.retired && native.error.is_none());
++        assert!(!native.worker.as_ref().unwrap().ended().unwrap());
++        assert_eq!(native.total, 1);
++    }
++}
+diff --git a/omnivox-cli/src/native_guard/windows/pipe.rs b/omnivox-cli/src/native_guard/windows/pipe.rs
+index 3c97f18..c761fd4 100644
+--- a/omnivox-cli/src/native_guard/windows/pipe.rs
++++ b/omnivox-cli/src/native_guard/windows/pipe.rs
+@@ -39,6 +39,23 @@ fn would_block() -> io::Error {
+     io::ErrorKind::WouldBlock.into()
+ }
+ 
++/// Return (helper, worker) ends. Native helper stdio is synchronous; Rust's
++/// ChildStdin/ChildStdout require overlapped handles at the worker end. The
++/// guard transfers both endpoints and never forwards their speech or PCM.
++pub(crate) fn helper_stdio(worker_reads: bool) -> io::Result<(std::fs::File, std::fs::File)> {
++    let id = omnivox_tts::voice_library::local::new_uuid().map_err(io::Error::other)?;
++    let name = wide(&format!(r"\\.\pipe\omnivox-helper-{id}"));
++    let security = security::Security::current_user()?;
++    let worker = security.helper_pipe(&name, worker_reads)?;
++    let helper = security::helper_client(&name, worker_reads)?;
++    let mut worker = Stream::new(worker)?;
++    worker.listen()?;
++    if !worker.connected()? {
++        return Err(io::Error::other("local helper pipe did not connect"));
++    }
++    Ok((helper.into(), worker.into_handle()?.into()))
++}
++
+ struct Operation {
+     overlapped: Box<UnsafeCell<Overlapped>>,
+     event: OwnedHandle,
+diff --git a/omnivox-cli/src/native_guard/windows/pipe/security.rs b/omnivox-cli/src/native_guard/windows/pipe/security.rs
+index 031d0d7..735c182 100644
+--- a/omnivox-cli/src/native_guard/windows/pipe/security.rs
++++ b/omnivox-cli/src/native_guard/windows/pipe/security.rs
+@@ -83,22 +83,52 @@ impl Security {
+     }
+ 
+     pub fn pipe(&self, name: &[u16], first: bool) -> io::Result<std::os::windows::io::OwnedHandle> {
++        self.create(
++            name,
++            3 | OVERLAPPED | if first { FIRST_INSTANCE } else { 0 },
++            super::MAX_INSTANCES,
++            super::BUFFER as u32,
++        )
++    }
++
++    pub fn helper_pipe(
++        &self,
++        name: &[u16],
++        readable: bool,
++    ) -> io::Result<std::os::windows::io::OwnedHandle> {
++        self.create(
++            name,
++            (if readable { 1 } else { 2 }) | OVERLAPPED | FIRST_INSTANCE,
++            1,
++            // Match the pinned Rust standard child pipe capacity. Control
++            // framing/buffers remain smaller and independent of helper PCM.
++            64 * 1024,
++        )
++    }
++
++    fn create(
++        &self,
++        name: &[u16],
++        mode: u32,
++        instances: u32,
++        capacity: u32,
++    ) -> io::Result<std::os::windows::io::OwnedHandle> {
+         let attributes = SecurityAttributes {
+             length: std::mem::size_of::<SecurityAttributes>() as u32,
+             descriptor: self.0.as_ptr().cast_mut().cast(),
+             inherit: 0,
+         };
+         // SAFETY: valid name and self-relative descriptor; a non-inheritable,
+-        // local-only duplex byte pipe with overlapped I/O. Keep the instance
++        // local-only byte pipe with overlapped I/O. Keep the instance
+         // bound below the Win32 unlimited sentinel (255).
+         unsafe {
+             owned(CreateNamedPipeW(
+                 name.as_ptr(),
+-                3 | OVERLAPPED | if first { FIRST_INSTANCE } else { 0 },
++                mode,
+                 REJECT_REMOTE,
+-                super::MAX_INSTANCES,
+-                super::BUFFER as u32,
+-                super::BUFFER as u32,
++                instances,
++                capacity,
++                capacity,
+                 0,
+                 &attributes,
+             ))
+@@ -107,17 +137,36 @@ impl Security {
+ }
+ 
+ pub(super) fn client(name: &[u16]) -> io::Result<std::os::windows::io::OwnedHandle> {
++    connect(name, 0xc000_0000, OVERLAPPED)
++}
++
++pub(super) fn helper_client(
++    name: &[u16],
++    worker_reads: bool,
++) -> io::Result<std::os::windows::io::OwnedHandle> {
++    connect(
++        name,
++        if worker_reads {
++            0x4000_0000
++        } else {
++            0x8000_0000
++        },
++        0,
++    )
++}
++
++fn connect(name: &[u16], access: u32, flags: u32) -> io::Result<std::os::windows::io::OwnedHandle> {
+     // SAFETY: validated local name, no inheritance, OPEN_EXISTING. Explicit
+     // SECURITY_SQOS_PRESENT | SECURITY_IDENTIFICATION prevents impersonation by
+     // the server. No WaitNamedPipe or filesystem/network fallback is used.
+     let handle = unsafe {
+         owned(CreateFileW(
+             name.as_ptr(),
+-            0xc000_0000, // GENERIC_READ | GENERIC_WRITE
++            access,
+             0,
+             null(),
+             3,
+-            OVERLAPPED | 0x0011_0000,
++            flags | 0x0011_0000,
+             null_mut(),
+         ))?
+     };
+diff --git a/omnivox-cli/src/native_guard/windows/pipe/tests.rs b/omnivox-cli/src/native_guard/windows/pipe/tests.rs
+index 0c450cb..6ca179b 100644
+--- a/omnivox-cli/src/native_guard/windows/pipe/tests.rs
++++ b/omnivox-cli/src/native_guard/windows/pipe/tests.rs
+@@ -2,6 +2,26 @@ use super::*;
+ use std::time::Duration;
+ 
+ const BUDGET: Duration = Duration::from_secs(5);
++
++#[test]
++fn helper_stdio_supports_sync_native_and_async_rust_ends() {
++    let (mut helper_input, worker_input) = helper_stdio(false).unwrap();
++    let (mut helper_output, worker_output) = helper_stdio(true).unwrap();
++    let helper = std::thread::spawn(move || {
++        let mut input = Vec::new();
++        helper_input.read_to_end(&mut input).unwrap();
++        assert_eq!(input, vec![42; 256 * 1024]);
++        helper_output.write_all(&input).unwrap();
++    });
++    let mut input = std::process::ChildStdin::from(OwnedHandle::from(worker_input));
++    let mut output = std::process::ChildStdout::from(OwnedHandle::from(worker_output));
++    input.write_all(&vec![42; 256 * 1024]).unwrap();
++    drop(input);
++    let mut echoed = Vec::new();
++    output.read_to_end(&mut echoed).unwrap();
++    assert_eq!(echoed, vec![42; 256 * 1024]);
++    helper.join().unwrap();
++}
+ fn until(mut poll: impl FnMut() -> bool) {
+     let deadline = Instant::now() + BUDGET;
+     while !poll() {
+diff --git a/omnivox-cli/src/native_guard/windows/tests.rs b/omnivox-cli/src/native_guard/windows/tests.rs
+index c560b2a..afb7f7f 100644
+--- a/omnivox-cli/src/native_guard/windows/tests.rs
++++ b/omnivox-cli/src/native_guard/windows/tests.rs
+@@ -41,30 +41,67 @@ fn request(
+ }
+ #[test]
+ #[ignore = "requires explicit private native runtime"]
+-fn guarded_owners_reject_before_accessing_management_state() {
+-    let root =
+-        std::env::temp_dir().join(format!("omnivox-guard-gate-{}", local::new_uuid().unwrap()));
++fn unsupported_guarded_profiles_fail_before_native_creation() {
++    use std::process::{Command, Stdio};
++    let root = std::env::temp_dir().join(format!(
++        "omnivox-guard-scope-{}",
++        local::new_uuid().unwrap()
++    ));
+     std::fs::create_dir(&root).unwrap();
+-    let config = root.join("config.json");
+-    std::fs::write(&config, b"{broken preferences").unwrap();
+-    let voices = root.join("voices");
+-    for mode in ["--voice-library-owner", "--emergency-owner"] {
+-        let output = std::process::Command::new(executable())
+-            .args([mode, "--guarded"])
+-            .env("OMNIVOX_CONFIG_DIR", &root)
+-            .env("OMNIVOX_VOICE_ROOT", &voices)
+-            .output()
+-            .unwrap();
+-        assert!(!output.status.success());
+-        assert!(output.stdout.is_empty());
+-        assert!(String::from_utf8_lossy(&output.stderr)
+-            .contains("descendant retirement is not qualified"));
+-        assert!(!voices.exists(), "rejected startup opened management state");
+-        assert_eq!(std::fs::read(&config).unwrap(), b"{broken preferences");
++    let mut overrides = serde_json::Map::new();
++    for engine in [
++        "macos",
++        "piper",
++        "rhvoice",
++        "rutts",
++        "tgspeechbox",
++        "eloquence",
++        "dectalk",
++        "mbrola",
++        "flite",
++    ] {
++        overrides.insert(engine.into(), serde_json::json!({"enabled": false}));
+     }
+-    std::fs::remove_file(config).unwrap();
+-    std::fs::remove_dir(root).unwrap();
++    overrides.insert("winrt".into(), serde_json::json!({"enabled": true}));
++    let config =
++        serde_json::to_vec(&serde_json::json!({"schema":4, "engine_overrides":overrides})).unwrap();
++    std::fs::write(root.join("config.json"), &config).unwrap();
++    let mut owner = Command::new(executable())
++        .args(["--voice-library-owner", "--guarded"])
++        .env("OMNIVOX_CONFIG_DIR", &root)
++        .env("OMNIVOX_VOICE_ROOT", root.join("voices"))
++        .env("OMNIVOX_ENGINE", "espeak")
++        .env("OMNIVOX_AUDIO_OUTPUT", "null")
++        .stdin(Stdio::piped())
++        .stdout(Stdio::piped())
++        .stderr(Stdio::piped())
++        .spawn()
++        .unwrap();
++    owner
++        .stdin
++        .take()
++        .unwrap()
++        .write_all(b"OMNIVOX-LOCAL {\"command\":\"describe\",\"request_id\":1}\n")
++        .unwrap();
++    let output = owner.wait_with_output().unwrap();
++    assert!(
++        output.status.success(),
++        "{}",
++        String::from_utf8_lossy(&output.stderr)
++    );
++    let line = String::from_utf8(output.stdout).unwrap();
++    let reply: serde_json::Value =
++        serde_json::from_str(line.trim().strip_prefix("OMNIVOX-LOCAL ").unwrap()).unwrap();
++    assert!(reply["guard"].is_null());
++    assert_eq!(reply["prepared"], false);
++    assert!(reply["startup_error"]
++        .as_str()
++        .unwrap()
++        .contains("unsupported engine: winrt"));
++    assert_eq!(std::fs::read(root.join("config.json")).unwrap(), config);
++    std::fs::remove_dir_all(root).unwrap();
+ }
++
+ #[test]
+ #[ignore = "requires explicit private native runtime"]
+ fn partial_bootstrap_expires_without_native_speech() {
+diff --git a/omnivox-cli/src/voice_local.rs b/omnivox-cli/src/voice_local.rs
+index 9c1ceaa..a10657a 100644
+--- a/omnivox-cli/src/voice_local.rs
++++ b/omnivox-cli/src/voice_local.rs
+@@ -83,17 +83,11 @@ pub fn run(args: &[String]) -> Result<()> {
+ }
+ 
+ fn check_guard_platform(guarded: bool) -> Result<()> {
+-    // The Windows transport is retained for native qualification, but an empty
+-    // job was observed before a helper's retained process handle signalled.
+-    // Reject before opening management state or creating native ownership.
+-    #[cfg(windows)]
++    // Windows additionally checks the explicit eSpeak/Flite profile before
++    // creating a guard. Ordinary startup keeps its existing engine coverage.
+     anyhow::ensure!(
+-        !guarded,
+-        "Windows guarded startup is unavailable: descendant retirement is not qualified"
+-    );
+-    anyhow::ensure!(
+-        !guarded || cfg!(target_os = "linux"),
+-        "guarded owners are currently qualified only on Linux"
++        !guarded || cfg!(any(target_os = "linux", windows)),
++        "guarded owners are currently implemented only on Linux and Windows"
+     );
+     Ok(())
+ }

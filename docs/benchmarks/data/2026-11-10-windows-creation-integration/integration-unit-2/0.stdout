@@ -1,0 +1,8 @@
+
+running 3 tests
+test native_guard::os::tests::partial_bootstrap_expires_without_native_speech ... ok
+test native_guard::os::tests::partial_start_requires_real_io_retirement_after_job_cleanup ... ok
+test native_guard::os::tests::unsupported_guarded_profiles_fail_before_native_creation ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 383 filtered out; finished in 32.57s
+

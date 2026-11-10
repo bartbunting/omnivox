@@ -358,28 +358,28 @@ logging setup so damaged settings cannot obstruct cleanup.
 
 ### Windows qualification gate
 
-The Windows transport is implemented for native investigation, but guarded owner
-startup is unavailable. Both ordinary and emergency `--guarded` entry points
-reject before reading configuration, opening management state or creating a
-guard/worker. Ordinary unguarded speech and preference reload remain available.
-The [native qualification report](../benchmarks/2026-11-10-windows-guard-qualification.md)
-records a surviving-helper counterexample: the root process ended and private job
-accounting reached zero while a retained helper process handle was unsignalled.
-The gate must remain until descendant completion is established independently.
+Windows `--guarded` startup is opt-in and limited to explicit eSpeak/Flite
+profiles. Ordinary unguarded speech and independent preference reload remain
+available for other engines. Unsupported guarded profiles fail preparation before
+native creation; they do not silently disable engines or replace working speech.
+The [integrated qualification](../benchmarks/2026-11-10-windows-creation-integration.md)
+records the tested private payload, failures, performance and remaining limits.
 
-The retained private native entry/test code uses `transport: "windows-pipe"` and
-an exact local `\\.\pipe\omnivox-guard-<guard UUID>` address. Its protected user ACL,
-non-inheritable handles, explicit process-launch allowlist, overlapped-I/O
-cancellation and bounded event waiting have native component evidence. None of
-those transport checks makes job-accounting zero sufficient cleanup proof.
-Windows owner descriptors are not exposed through the gated entry points.
+The earlier [job-accounting counterexample](../benchmarks/2026-11-10-windows-guard-qualification.md)
+remains valid: empty job accounting is not descendant process completion. The
+current guard retains each actual process handle before execution and requires
+its completion. This does not qualify ordinary, remote or session ownership.
+
+Descriptors use `transport: "windows-pipe"` and an exact local
+`\\.\pipe\omnivox-guard-<guard UUID>` address. Protected user ACLs,
+non-inheritable handles, explicit launch allowlists, bounded overlapped I/O and
+native cancellation remain. Speech does not pass through this control channel.
 
 ### Windows creation candidate
 
-Under [ADR 0019](../adr/0019-windows-native-creation-ownership.md), the private
-Windows guard now creates its worker and Flite helper itself. The public startup
-gate above remains until integrated qualification. Its [component evidence](../benchmarks/2026-11-10-windows-owned-creation.md)
-does not qualify other helpers, ordinary owners or remote/session ownership.
+Under [ADR 0019](../adr/0019-windows-native-creation-ownership.md), the Windows
+guard creates its worker and Flite helper itself. The [component evidence](../benchmarks/2026-11-10-windows-owned-creation.md)
+records the earlier milestone; integrated qualification is separate.
 
 Preparation accepts only explicit eSpeak/Flite registration snapshots. It rejects
 other enabled engines and external registrations without silently disabling them.
@@ -404,10 +404,22 @@ The worker adopts the handles once and sends `acknowledge` with the same ID and
 empty engine/launch fields. Only then does the guard resume the retained primary
 thread and reply `started`, with no further handles. Helper initialization, PCM
 and cancellation then use the existing direct pipes and retained process object.
-The link is used only for initialization/recovery, never each speech request.
+The helper ends use synchronous native stdio; the worker ends are overlapped
+handles compatible with Rust's child streams. Each helper pipe requests a bounded
+64 KiB capacity, matching the pinned standard child-pipe capacity. Control buffers
+remain separate. The link is used only for initialization/recovery, never each
+speech request.
 Creation and acknowledgement each have a six-second deadline. An uncertain or
 failed handoff closes admission and retires the receiving worker to close any
 handles installed by a partial transfer; its peer remains independent.
+
+A confirmed creation failure before a process is returned or handles are
+transferred may instead return `rejected`, the matching request ID, null `handles`
+and an error string. Unchanged job accounting additionally checks that no unknown
+member appeared. The worker keeps the creation channel and existing speech usable;
+normal engine fallback/recovery policy applies. Unknown activity, malformed
+replies and uncertain handoff still require retirement. A rejection never supplies
+cleanup evidence for a process whose ownership is uncertain.
 
 Retirement stops known processes while pending creation completes. Final job
 termination follows collection of any late suspended result, so it cannot race

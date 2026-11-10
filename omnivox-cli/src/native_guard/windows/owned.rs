@@ -33,12 +33,16 @@ enum Product {
     },
 }
 struct Pending {
+    request: Option<u64>,
     thread: JoinHandle<Result<Product>>,
     done: Arc<native::Event>,
     deadline: Instant,
 }
 impl Pending {
-    fn start(work: impl FnOnce() -> Result<Product> + Send + 'static) -> Result<Self> {
+    fn start(
+        request: Option<u64>,
+        work: impl FnOnce() -> Result<Product> + Send + 'static,
+    ) -> Result<Self> {
         let done = Arc::new(native::Event::new()?);
         let notify = Arc::clone(&done);
         let thread = std::thread::Builder::new()
@@ -54,6 +58,7 @@ impl Pending {
                 work()
             })?;
         Ok(Self {
+            request,
             thread,
             done,
             deadline: Instant::now() + TIMEOUT,
@@ -86,7 +91,7 @@ impl Native {
         let directory = startup.working_directory.clone();
         let [input, output, error] = pipes;
         let error_output = error.try_clone()?;
-        let pending = Pending::start(move || {
+        let pending = Pending::start(None, move || {
             startup.verify()?;
             let (channel, worker_channel) = os::channel_pair()?;
             let mut command = Command::new(&startup.executable.path);
@@ -213,10 +218,17 @@ impl Native {
             return Ok(());
         }
         let pending = self.pending.take().unwrap();
-        let product = pending
+        let result = pending
             .thread
             .join()
-            .map_err(|_| anyhow::anyhow!("native creation task panicked"))??;
+            .map_err(|_| anyhow::anyhow!("native creation task panicked"))?;
+        let product = match result {
+            Ok(product) => product,
+            Err(error) if pending.request.is_some() && !self.closing => {
+                return self.reject(pending.request.unwrap(), error);
+            }
+            Err(error) => return Err(error),
+        };
         self.total = self
             .total
             .checked_add(1)
@@ -305,30 +317,10 @@ impl Native {
                     .context("native helper launch differs from retained snapshot")?
                     .clone();
                 self.sequence = request.request_id;
-                let job = Arc::clone(&self.job);
-                let directory = self.directory.clone();
-                let error = self.error_output.try_clone()?;
-                self.pending = Some(Pending::start(move || {
-                    let (input, writer) = native::speech_pipe()?;
-                    let (reader, output) = native::speech_pipe()?;
-                    let mut command = Command::new(&helper.config.program);
-                    helper.config.environment.apply(&mut command);
-                    command
-                        .args(&helper.config.arguments)
-                        .current_dir(directory);
-                    let child = creation::spawn(
-                        &command,
-                        job.handle(),
-                        [input.as_handle(), output.as_handle(), error.as_handle()],
-                        None,
-                    )?;
-                    Ok(Product::Helper {
-                        child,
-                        input: writer,
-                        output: reader,
-                        id: request.request_id,
-                    })
-                })?);
+                match self.create_helper(helper, request.request_id) {
+                    Ok(pending) => self.pending = Some(pending),
+                    Err(error) => self.reject(request.request_id, error)?,
+                }
             }
             "acknowledge" => {
                 anyhow::ensure!(
@@ -352,6 +344,54 @@ impl Native {
             _ => anyhow::bail!("unsupported native creation request"),
         }
         Ok(())
+    }
+    fn reject(&mut self, id: u64, error: anyhow::Error) -> Result<()> {
+        // The creation API failed before returning a process, and no offer or
+        // handle transfer occurred. Refuse this helper, preserving existing
+        // speech. Unexpected job activity is still an ownership failure.
+        let counts = self.job.counts()?;
+        anyhow::ensure!(
+            self.helper.is_none()
+                && self.offer.is_none()
+                && counts.total == self.total
+                && counts.active <= 1,
+            "failed helper creation changed native ownership"
+        );
+        self.channel
+            .as_mut()
+            .context("missing native creation channel")?
+            .reply(&helper_wire::Reply {
+                request_id: id,
+                state: "rejected".into(),
+                handles: None,
+                error: Some(error.to_string()),
+            })
+    }
+    fn create_helper(&self, helper: super::windows_plan::Helper, id: u64) -> Result<Pending> {
+        let job = Arc::clone(&self.job);
+        let directory = self.directory.clone();
+        let error = self.error_output.try_clone()?;
+        Pending::start(Some(id), move || {
+            let (input, writer) = os::helper_stdio(false)?;
+            let (output, reader) = os::helper_stdio(true)?;
+            let mut command = Command::new(&helper.config.program);
+            helper.config.environment.apply(&mut command);
+            command
+                .args(&helper.config.arguments)
+                .current_dir(directory);
+            let child = creation::spawn(
+                &command,
+                job.handle(),
+                [input.as_handle(), output.as_handle(), error.as_handle()],
+                None,
+            )?;
+            Ok(Product::Helper {
+                child,
+                input: writer,
+                output: reader,
+                id,
+            })
+        })
     }
     pub fn readiness(
         &self,

@@ -83,22 +83,52 @@ impl Security {
     }
 
     pub fn pipe(&self, name: &[u16], first: bool) -> io::Result<std::os::windows::io::OwnedHandle> {
+        self.create(
+            name,
+            3 | OVERLAPPED | if first { FIRST_INSTANCE } else { 0 },
+            super::MAX_INSTANCES,
+            super::BUFFER as u32,
+        )
+    }
+
+    pub fn helper_pipe(
+        &self,
+        name: &[u16],
+        readable: bool,
+    ) -> io::Result<std::os::windows::io::OwnedHandle> {
+        self.create(
+            name,
+            (if readable { 1 } else { 2 }) | OVERLAPPED | FIRST_INSTANCE,
+            1,
+            // Match the pinned Rust standard child pipe capacity. Control
+            // framing/buffers remain smaller and independent of helper PCM.
+            64 * 1024,
+        )
+    }
+
+    fn create(
+        &self,
+        name: &[u16],
+        mode: u32,
+        instances: u32,
+        capacity: u32,
+    ) -> io::Result<std::os::windows::io::OwnedHandle> {
         let attributes = SecurityAttributes {
             length: std::mem::size_of::<SecurityAttributes>() as u32,
             descriptor: self.0.as_ptr().cast_mut().cast(),
             inherit: 0,
         };
         // SAFETY: valid name and self-relative descriptor; a non-inheritable,
-        // local-only duplex byte pipe with overlapped I/O. Keep the instance
+        // local-only byte pipe with overlapped I/O. Keep the instance
         // bound below the Win32 unlimited sentinel (255).
         unsafe {
             owned(CreateNamedPipeW(
                 name.as_ptr(),
-                3 | OVERLAPPED | if first { FIRST_INSTANCE } else { 0 },
+                mode,
                 REJECT_REMOTE,
-                super::MAX_INSTANCES,
-                super::BUFFER as u32,
-                super::BUFFER as u32,
+                instances,
+                capacity,
+                capacity,
                 0,
                 &attributes,
             ))
@@ -107,17 +137,36 @@ impl Security {
 }
 
 pub(super) fn client(name: &[u16]) -> io::Result<std::os::windows::io::OwnedHandle> {
+    connect(name, 0xc000_0000, OVERLAPPED)
+}
+
+pub(super) fn helper_client(
+    name: &[u16],
+    worker_reads: bool,
+) -> io::Result<std::os::windows::io::OwnedHandle> {
+    connect(
+        name,
+        if worker_reads {
+            0x4000_0000
+        } else {
+            0x8000_0000
+        },
+        0,
+    )
+}
+
+fn connect(name: &[u16], access: u32, flags: u32) -> io::Result<std::os::windows::io::OwnedHandle> {
     // SAFETY: validated local name, no inheritance, OPEN_EXISTING. Explicit
     // SECURITY_SQOS_PRESENT | SECURITY_IDENTIFICATION prevents impersonation by
     // the server. No WaitNamedPipe or filesystem/network fallback is used.
     let handle = unsafe {
         owned(CreateFileW(
             name.as_ptr(),
-            0xc000_0000, // GENERIC_READ | GENERIC_WRITE
+            access,
             0,
             null(),
             3,
-            OVERLAPPED | 0x0011_0000,
+            flags | 0x0011_0000,
             null_mut(),
         ))?
     };

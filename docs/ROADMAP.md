@@ -277,14 +277,15 @@ The remaining configuration work is:
   connects independent cleanup to the paired client without TCP or another speech
   hop. Its startup cost and remaining platform qualification remain explicit.
   [Windows native testing](benchmarks/2026-11-10-windows-guard-qualification.md)
-  found job-accounting zero can precede helper process-handle completion. Retain
-  the transport work and keep Windows guarded startup unavailable. The bounded
+  found job-accounting zero can precede helper process-handle completion. The bounded
   [creation-handoff experiment](benchmarks/2026-11-10-guard-handoff-and-preparation.md)
   establishes actual-handle completion for Flite and concurrent creation.
   [ADR 0019](adr/0019-windows-native-creation-ownership.md) accepts the creation
   boundary; its [Rust components](benchmarks/2026-11-10-windows-owned-creation.md)
-  pass native tests behind the Windows startup gate. Complete integrated speech,
-  recovery and performance checks before enabling explicit guarded eSpeak/Flite.
+  pass native tests. The [integrated Windows prototype](benchmarks/2026-11-10-windows-creation-integration.md)
+  now enables explicit guarded eSpeak/Flite, with actual process completion,
+  independent recovery and direct speech pipes. Qualify everyday engines and
+  listening before broader adoption; ordinary reload remains independent.
   Concurrent client bridge preparation now reduces operation time
   independently, without establishing a smaller source gap.
   The [plan](plans/lightweight-preference-reload.md) tracks remaining acoustic/platform

@@ -1,0 +1,90 @@
+{
+  "espeak-False": {
+    "samples": 320,
+    "source_median": 3.5561315000000002,
+    "source_p95": 6.352189,
+    "source_max": 13.010335,
+    "protocol_median": 1.2369080000000001,
+    "two_ready_median": 896.210115,
+    "block_median_range": [
+      3.0936874999999997,
+      3.9431279999999997
+    ],
+    "interaction": {
+      "stop": {
+        "cancellation_ms": 2.195935,
+        "replacement_source_ms": 5.568792999999999
+      },
+      "replace": {
+        "cancellation_ms": 6.643000499999999,
+        "replacement_source_ms": 8.1337195
+      }
+    }
+  },
+  "espeak-True": {
+    "samples": 320,
+    "source_median": 3.6466434999999997,
+    "source_p95": 6.400653,
+    "source_max": 13.883063,
+    "protocol_median": 1.0920860000000001,
+    "two_ready_median": 1497.3115965,
+    "block_median_range": [
+      3.2984755000000003,
+      3.928452
+    ],
+    "interaction": {
+      "stop": {
+        "cancellation_ms": 2.2298525,
+        "replacement_source_ms": 5.029967
+      },
+      "replace": {
+        "cancellation_ms": 6.104941500000001,
+        "replacement_source_ms": 7.3352515
+      }
+    }
+  },
+  "flite-False": {
+    "samples": 320,
+    "source_median": 6.564906499999999,
+    "source_p95": 11.671429,
+    "source_max": 17.531116,
+    "protocol_median": 1.1677724999999999,
+    "two_ready_median": 995.616948,
+    "block_median_range": [
+      5.8483295,
+      7.634031
+    ],
+    "interaction": {
+      "stop": {
+        "cancellation_ms": 1.5693540000000001,
+        "replacement_source_ms": 10.5636195
+      },
+      "replace": {
+        "cancellation_ms": 65.15582599999999,
+        "replacement_source_ms": 75.671456
+      }
+    }
+  },
+  "flite-True": {
+    "samples": 320,
+    "source_median": 6.246365000000001,
+    "source_p95": 10.551252,
+    "source_max": 14.466982,
+    "protocol_median": 1.2140675,
+    "two_ready_median": 1625.6379084999999,
+    "block_median_range": [
+      5.962097,
+      6.9235895
+    ],
+    "interaction": {
+      "stop": {
+        "cancellation_ms": 1.471645,
+        "replacement_source_ms": 10.0576595
+      },
+      "replace": {
+        "cancellation_ms": 79.57093900000001,
+        "replacement_source_ms": 91.04208600000001
+      }
+    }
+  }
+}

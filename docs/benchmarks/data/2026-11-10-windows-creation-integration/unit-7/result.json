@@ -1,0 +1,36 @@
+{
+  "tests_sha256": "ae108e8df9d703b129b4df70282a870cfd34466574eca7895c4e15d685ba5bd2",
+  "runtime_sha256": "b5a2d3905e280d157a3c24e5b85436db600610eb9c18bb0114fa0eaf4d90dbbc",
+  "runs": [
+    {
+      "command": [
+        "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-creation-rust-20261110-check4/tests-7.exe",
+        "native_guard::os::pipe::tests",
+        "--nocapture",
+        "--test-threads=1",
+        "--include-ignored"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-creation-rust-20261110-check4/tests-7.exe",
+        "native_guard::windows_owned::tests",
+        "--nocapture",
+        "--test-threads=1",
+        "--include-ignored"
+      ],
+      "exit": 0
+    },
+    {
+      "command": [
+        "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-creation-rust-20261110-check4/tests-7.exe",
+        "native_guard::helper_client::tests",
+        "--nocapture",
+        "--test-threads=1",
+        "--include-ignored"
+      ],
+      "exit": 0
+    }
+  ]
+}

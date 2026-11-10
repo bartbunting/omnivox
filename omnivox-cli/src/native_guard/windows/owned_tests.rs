@@ -83,7 +83,7 @@ fn pending_creation_keeps_retirement_unconfirmed_and_control_responsive() {
     let mut native = empty();
     let (release, wait) = std::sync::mpsc::sync_channel(1);
     native.pending = Some(
-        Pending::start(move || {
+        Pending::start(None, move || {
             wait.recv_timeout(TIMEOUT)?;
             anyhow::bail!("fixture creation cancelled")
         })
@@ -183,4 +183,41 @@ fn unaccounted_job_member_never_becomes_a_retirement_receipt() {
         .unwrap()
         .contains("accounting differs"));
     // Drop still emits no proof and remains bounded by its shutdown deadline.
+}
+
+#[test]
+#[ignore = "requires explicit private native runtime and Flite helper"]
+fn failed_helper_launch_preserves_the_worker_and_creation_link() {
+    let (mut native, mut client) = fixture();
+    let mut config = native.plan.helper.as_ref().unwrap().config.clone();
+    config.program = std::env::temp_dir().join(format!(
+        "omnivox-absent-{}.exe",
+        omnivox_tts::voice_library::local::new_uuid().unwrap()
+    ));
+    native.plan.helper = Some(Helper::capture(config).unwrap());
+    for id in [1, 2] {
+        let mut request = create(&native);
+        request.request_id = id;
+        send(&mut client, &request);
+        until(&mut native, |n| n.pending.is_some());
+        until(&mut native, |n| n.pending.is_none());
+        let channel = native.channel.as_mut().unwrap();
+        let deadline = Instant::now() + TIMEOUT;
+        while matches!(
+            channel.wait_for(),
+            crate::native_guard::wire::WaitFor::Write
+        ) {
+            assert!(Instant::now() < deadline);
+            channel.poll_as::<helper_wire::Request>().unwrap();
+            std::thread::sleep(TICK);
+        }
+        let mut reader = std::io::BufReader::new(&mut client);
+        let reply = crate::native_guard::wire::read_reply(&mut reader).unwrap();
+        assert_eq!(reply["state"], "rejected");
+        assert_eq!(reply["request_id"], id);
+        assert!(reply["handles"].is_null());
+        assert!(!native.closing && !native.retired && native.error.is_none());
+        assert!(!native.worker.as_ref().unwrap().ended().unwrap());
+        assert_eq!(native.total, 1);
+    }
 }

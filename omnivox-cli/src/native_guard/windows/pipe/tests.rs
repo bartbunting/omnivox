@@ -2,6 +2,26 @@ use super::*;
 use std::time::Duration;
 
 const BUDGET: Duration = Duration::from_secs(5);
+
+#[test]
+fn helper_stdio_supports_sync_native_and_async_rust_ends() {
+    let (mut helper_input, worker_input) = helper_stdio(false).unwrap();
+    let (mut helper_output, worker_output) = helper_stdio(true).unwrap();
+    let helper = std::thread::spawn(move || {
+        let mut input = Vec::new();
+        helper_input.read_to_end(&mut input).unwrap();
+        assert_eq!(input, vec![42; 256 * 1024]);
+        helper_output.write_all(&input).unwrap();
+    });
+    let mut input = std::process::ChildStdin::from(OwnedHandle::from(worker_input));
+    let mut output = std::process::ChildStdout::from(OwnedHandle::from(worker_output));
+    input.write_all(&vec![42; 256 * 1024]).unwrap();
+    drop(input);
+    let mut echoed = Vec::new();
+    output.read_to_end(&mut echoed).unwrap();
+    assert_eq!(echoed, vec![42; 256 * 1024]);
+    helper.join().unwrap();
+}
 fn until(mut poll: impl FnMut() -> bool) {
     let deadline = Instant::now() + BUDGET;
     while !poll() {

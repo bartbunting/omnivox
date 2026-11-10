@@ -83,17 +83,11 @@ pub fn run(args: &[String]) -> Result<()> {
 }
 
 fn check_guard_platform(guarded: bool) -> Result<()> {
-    // The Windows transport is retained for native qualification, but an empty
-    // job was observed before a helper's retained process handle signalled.
-    // Reject before opening management state or creating native ownership.
-    #[cfg(windows)]
+    // Windows additionally checks the explicit eSpeak/Flite profile before
+    // creating a guard. Ordinary startup keeps its existing engine coverage.
     anyhow::ensure!(
-        !guarded,
-        "Windows guarded startup is unavailable: descendant retirement is not qualified"
-    );
-    anyhow::ensure!(
-        !guarded || cfg!(target_os = "linux"),
-        "guarded owners are currently qualified only on Linux"
+        !guarded || cfg!(any(target_os = "linux", windows)),
+        "guarded owners are currently implemented only on Linux and Windows"
     );
     Ok(())
 }

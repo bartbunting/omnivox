@@ -41,30 +41,67 @@ fn request(
 }
 #[test]
 #[ignore = "requires explicit private native runtime"]
-fn guarded_owners_reject_before_accessing_management_state() {
-    let root =
-        std::env::temp_dir().join(format!("omnivox-guard-gate-{}", local::new_uuid().unwrap()));
+fn unsupported_guarded_profiles_fail_before_native_creation() {
+    use std::process::{Command, Stdio};
+    let root = std::env::temp_dir().join(format!(
+        "omnivox-guard-scope-{}",
+        local::new_uuid().unwrap()
+    ));
     std::fs::create_dir(&root).unwrap();
-    let config = root.join("config.json");
-    std::fs::write(&config, b"{broken preferences").unwrap();
-    let voices = root.join("voices");
-    for mode in ["--voice-library-owner", "--emergency-owner"] {
-        let output = std::process::Command::new(executable())
-            .args([mode, "--guarded"])
-            .env("OMNIVOX_CONFIG_DIR", &root)
-            .env("OMNIVOX_VOICE_ROOT", &voices)
-            .output()
-            .unwrap();
-        assert!(!output.status.success());
-        assert!(output.stdout.is_empty());
-        assert!(String::from_utf8_lossy(&output.stderr)
-            .contains("descendant retirement is not qualified"));
-        assert!(!voices.exists(), "rejected startup opened management state");
-        assert_eq!(std::fs::read(&config).unwrap(), b"{broken preferences");
+    let mut overrides = serde_json::Map::new();
+    for engine in [
+        "macos",
+        "piper",
+        "rhvoice",
+        "rutts",
+        "tgspeechbox",
+        "eloquence",
+        "dectalk",
+        "mbrola",
+        "flite",
+    ] {
+        overrides.insert(engine.into(), serde_json::json!({"enabled": false}));
     }
-    std::fs::remove_file(config).unwrap();
-    std::fs::remove_dir(root).unwrap();
+    overrides.insert("winrt".into(), serde_json::json!({"enabled": true}));
+    let config =
+        serde_json::to_vec(&serde_json::json!({"schema":4, "engine_overrides":overrides})).unwrap();
+    std::fs::write(root.join("config.json"), &config).unwrap();
+    let mut owner = Command::new(executable())
+        .args(["--voice-library-owner", "--guarded"])
+        .env("OMNIVOX_CONFIG_DIR", &root)
+        .env("OMNIVOX_VOICE_ROOT", root.join("voices"))
+        .env("OMNIVOX_ENGINE", "espeak")
+        .env("OMNIVOX_AUDIO_OUTPUT", "null")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .unwrap();
+    owner
+        .stdin
+        .take()
+        .unwrap()
+        .write_all(b"OMNIVOX-LOCAL {\"command\":\"describe\",\"request_id\":1}\n")
+        .unwrap();
+    let output = owner.wait_with_output().unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let line = String::from_utf8(output.stdout).unwrap();
+    let reply: serde_json::Value =
+        serde_json::from_str(line.trim().strip_prefix("OMNIVOX-LOCAL ").unwrap()).unwrap();
+    assert!(reply["guard"].is_null());
+    assert_eq!(reply["prepared"], false);
+    assert!(reply["startup_error"]
+        .as_str()
+        .unwrap()
+        .contains("unsupported engine: winrt"));
+    assert_eq!(std::fs::read(root.join("config.json")).unwrap(), config);
+    std::fs::remove_dir_all(root).unwrap();
 }
+
 #[test]
 #[ignore = "requires explicit private native runtime"]
 fn partial_bootstrap_expires_without_native_speech() {

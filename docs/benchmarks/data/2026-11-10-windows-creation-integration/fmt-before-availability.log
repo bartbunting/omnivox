@@ -1,0 +1,221 @@
+cargo fmt --all -- --check
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/helper_client.rs:156:
+                 let deadline = Instant::now() + TIMEOUT;
+                 let request = loop {
+                     assert!(Instant::now() < deadline);
+-                    if let Some(request) = channel.poll_as::<wire::Request>().unwrap() { break request; }
++                    if let Some(request) = channel.poll_as::<wire::Request>().unwrap() {
++                        break request;
++                    }
+                     std::thread::sleep(Duration::from_millis(1));
+                 };
+                 assert_eq!(request.request_id, expected);
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/helper_client.rs:163:
+-                channel.reply(&wire::Reply { request_id: expected, state: "rejected".into(),
+-                    handles: None, error: Some("helper unavailable".into()) }).unwrap();
++                channel
++                    .reply(&wire::Reply {
++                        request_id: expected,
++                        state: "rejected".into(),
++                        handles: None,
++                        error: Some("helper unavailable".into()),
++                    })
++                    .unwrap();
+                 while matches!(channel.wait_for(), WaitFor::Write) {
+                     assert!(Instant::now() < deadline);
+                     channel.poll_as::<wire::Request>().unwrap();
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/helper_client.rs:169:
+                 }
+             }
+         });
+-        let mut client = Client { connection: BufReader::new(os::Blocking::from_handle(client).unwrap()),
+-            sequence: 0, synchronized: true };
++        let mut client = Client {
++            connection: BufReader::new(os::Blocking::from_handle(client).unwrap()),
++            sequence: 0,
++            synchronized: true,
++        };
+         for _ in 0..2 {
+             assert!(client.launch("flite", "test".into()).is_err());
+             assert!(client.synchronized);
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned.rs:39:
+     deadline: Instant,
+ }
+ impl Pending {
+-    fn start(request: Option<u64>, work: impl FnOnce() -> Result<Product> + Send + 'static) -> Result<Self> {
++    fn start(
++        request: Option<u64>,
++        work: impl FnOnce() -> Result<Product> + Send + 'static,
++    ) -> Result<Self> {
+         let done = Arc::new(native::Event::new()?);
+         let notify = Arc::clone(&done);
+         let thread = std::thread::Builder::new()
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned.rs:347:
+         // handle transfer occurred. Refuse this helper, preserving existing
+         // speech. Unexpected job activity is still an ownership failure.
+         let counts = self.job.counts()?;
+-        anyhow::ensure!(self.helper.is_none() && self.offer.is_none()
+-            && counts.total == self.total && counts.active <= 1,
+-            "failed helper creation changed native ownership");
+-        self.channel.as_mut().context("missing native creation channel")?.reply(&helper_wire::Reply {
+-            request_id: id, state: "rejected".into(), handles: None, error: Some(error.to_string())
+-        })
++        anyhow::ensure!(
++            self.helper.is_none()
++                && self.offer.is_none()
++                && counts.total == self.total
++                && counts.active <= 1,
++            "failed helper creation changed native ownership"
++        );
++        self.channel
++            .as_mut()
++            .context("missing native creation channel")?
++            .reply(&helper_wire::Reply {
++                request_id: id,
++                state: "rejected".into(),
++                handles: None,
++                error: Some(error.to_string()),
++            })
+     }
+     fn create_helper(&self, helper: super::windows_plan::Helper, id: u64) -> Result<Pending> {
+         let job = Arc::clone(&self.job);
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned.rs:363:
+             let (reader, output) = native::speech_pipe()?;
+             let mut command = Command::new(&helper.config.program);
+             helper.config.environment.apply(&mut command);
+-            command.args(&helper.config.arguments).current_dir(directory);
+-            let child = creation::spawn(&command, job.handle(),
+-                [input.as_handle(), output.as_handle(), error.as_handle()], None)?;
+-            Ok(Product::Helper { child, input: writer, output: reader, id })
++            command
++                .args(&helper.config.arguments)
++                .current_dir(directory);
++            let child = creation::spawn(
++                &command,
++                job.handle(),
++                [input.as_handle(), output.as_handle(), error.as_handle()],
++                None,
++            )?;
++            Ok(Product::Helper {
++                child,
++                input: writer,
++                output: reader,
++                id,
++            })
+         })
+     }
+     pub fn readiness(
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned_tests.rs:190:
+ fn failed_helper_launch_preserves_the_worker_and_creation_link() {
+     let (mut native, mut client) = fixture();
+     let mut config = native.plan.helper.as_ref().unwrap().config.clone();
+-    config.program = std::env::temp_dir().join(format!("omnivox-absent-{}.exe",
+-        omnivox_tts::voice_library::local::new_uuid().unwrap()));
++    config.program = std::env::temp_dir().join(format!(
++        "omnivox-absent-{}.exe",
++        omnivox_tts::voice_library::local::new_uuid().unwrap()
++    ));
+     native.plan.helper = Some(Helper::capture(config).unwrap());
+     for id in [1, 2] {
+-        let mut request = create(&native); request.request_id = id;
++        let mut request = create(&native);
++        request.request_id = id;
+         send(&mut client, &request);
+         until(&mut native, |n| n.pending.is_some());
+         until(&mut native, |n| n.pending.is_none());
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned_tests.rs:201:
+         let channel = native.channel.as_mut().unwrap();
+         let deadline = Instant::now() + TIMEOUT;
+-        while matches!(channel.wait_for(), crate::native_guard::wire::WaitFor::Write) {
++        while matches!(
++            channel.wait_for(),
++            crate::native_guard::wire::WaitFor::Write
++        ) {
+             assert!(Instant::now() < deadline);
+             channel.poll_as::<helper_wire::Request>().unwrap();
+             std::thread::sleep(TICK);
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned_tests.rs:207:
+         }
+         let mut reader = std::io::BufReader::new(&mut client);
+         let reply = crate::native_guard::wire::read_reply(&mut reader).unwrap();
+-        assert_eq!(reply["state"], "rejected"); assert_eq!(reply["request_id"], id);
++        assert_eq!(reply["state"], "rejected");
++        assert_eq!(reply["request_id"], id);
+         assert!(reply["handles"].is_null());
+         assert!(!native.closing && !native.retired && native.error.is_none());
+         assert!(!native.worker.as_ref().unwrap().ended().unwrap());
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/tests.rs:43:
+ #[ignore = "requires explicit private native runtime"]
+ fn unsupported_guarded_profiles_fail_before_native_creation() {
+     use std::process::{Command, Stdio};
+-    let root = std::env::temp_dir().join(format!("omnivox-guard-scope-{}", local::new_uuid().unwrap()));
++    let root = std::env::temp_dir().join(format!(
++        "omnivox-guard-scope-{}",
++        local::new_uuid().unwrap()
++    ));
+     std::fs::create_dir(&root).unwrap();
+     let mut overrides = serde_json::Map::new();
+-    for engine in ["macos", "piper", "rhvoice", "rutts", "tgspeechbox", "eloquence", "dectalk", "mbrola", "flite"] {
++    for engine in [
++        "macos",
++        "piper",
++        "rhvoice",
++        "rutts",
++        "tgspeechbox",
++        "eloquence",
++        "dectalk",
++        "mbrola",
++        "flite",
++    ] {
+         overrides.insert(engine.into(), serde_json::json!({"enabled": false}));
+     }
+     overrides.insert("winrt".into(), serde_json::json!({"enabled": true}));
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/tests.rs:53:
+-    let config = serde_json::to_vec(&serde_json::json!({"schema":4, "engine_overrides":overrides})).unwrap();
++    let config =
++        serde_json::to_vec(&serde_json::json!({"schema":4, "engine_overrides":overrides})).unwrap();
+     std::fs::write(root.join("config.json"), &config).unwrap();
+-    let mut owner = Command::new(executable()).args(["--voice-library-owner", "--guarded"])
+-        .env("OMNIVOX_CONFIG_DIR", &root).env("OMNIVOX_VOICE_ROOT", root.join("voices"))
+-        .env("OMNIVOX_ENGINE", "espeak").env("OMNIVOX_AUDIO_OUTPUT", "null")
+-        .stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::piped()).spawn().unwrap();
+-    owner.stdin.take().unwrap().write_all(b"OMNIVOX-LOCAL {\"command\":\"describe\",\"request_id\":1}\n").unwrap();
++    let mut owner = Command::new(executable())
++        .args(["--voice-library-owner", "--guarded"])
++        .env("OMNIVOX_CONFIG_DIR", &root)
++        .env("OMNIVOX_VOICE_ROOT", root.join("voices"))
++        .env("OMNIVOX_ENGINE", "espeak")
++        .env("OMNIVOX_AUDIO_OUTPUT", "null")
++        .stdin(Stdio::piped())
++        .stdout(Stdio::piped())
++        .stderr(Stdio::piped())
++        .spawn()
++        .unwrap();
++    owner
++        .stdin
++        .take()
++        .unwrap()
++        .write_all(b"OMNIVOX-LOCAL {\"command\":\"describe\",\"request_id\":1}\n")
++        .unwrap();
+     let output = owner.wait_with_output().unwrap();
+-    assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stderr));
++    assert!(
++        output.status.success(),
++        "{}",
++        String::from_utf8_lossy(&output.stderr)
++    );
+     let line = String::from_utf8(output.stdout).unwrap();
+-    let reply: serde_json::Value = serde_json::from_str(line.trim().strip_prefix("OMNIVOX-LOCAL ").unwrap()).unwrap();
++    let reply: serde_json::Value =
++        serde_json::from_str(line.trim().strip_prefix("OMNIVOX-LOCAL ").unwrap()).unwrap();
+     assert!(reply["guard"].is_null());
+     assert_eq!(reply["prepared"], false);
+-    assert!(reply["startup_error"].as_str().unwrap().contains("unsupported engine: winrt"));
++    assert!(reply["startup_error"]
++        .as_str()
++        .unwrap()
++        .contains("unsupported engine: winrt"));
+     assert_eq!(std::fs::read(root.join("config.json")).unwrap(), config);
+     std::fs::remove_dir_all(root).unwrap();
+ }
+make: *** [Makefile:158: fmt-check] Error 1

@@ -1,0 +1,54 @@
+Repository: /home/bart/src/omnivox-lightweight-reload
+Paired client: /home/bart/src/emacsvox-lightweight-reload
+Source base and exact patches: source-base.txt, source-integration-*.patch
+Payload identities, data path and native staging: runtime-2/3/4.json, payload-2/3/4/
+
+Build and static/native unit checks:
+  make fmt-check
+  sh target/guard-rust/fixtures/check-native.sh
+  make windows-omnivox-dev (full private build; windows-stage-2.log)
+  make windows-omnivox-main-dev (accepted CLI-only changes; windows-stage-3/4.log)
+Both staging commands run from the paired client with:
+  OMNIVOX_DIR=/home/bart/src/omnivox-lightweight-reload
+  OMNIVOX_RELEASE_DIR=/home/bart/src/emacsvox-lightweight-reload/dist/lightweight-release
+  OMNIVOX_RELEASE_IMAGE=emacsvox-omnivox-windows-gnu:lightweight-20261110
+The release wrapper stages under Windows Temp, never the installed cache.
+Exact native unit command arrays and executable hashes: unit-*/result.json,
+  integration-unit-*/result.json. Native fault command arrays: native-integration-*/exit.json.
+
+Matched timings (run sequentially, with no compilation/native fault tests):
+  Set OMNIVOX_TEST_WINDOWS_DATA to runtime-4.json data.
+  python3 fixtures/latency.py EXECUTABLE NEW_WINDOWS_TEMP_OUTPUT
+  python3 fixtures/interaction.py EXECUTABLE NEW_WINDOWS_TEMP_OUTPUT
+  python3 fixtures/interaction-repeated.py EXECUTABLE NEW_WINDOWS_TEMP_OUTPUT
+Use the executable named by runtime-3.json for the initial 16 KiB attempts,
+  runtime-4.json for capacity/final attempts. Defaults: 4 x 80 character requests
+  per engine/path; 20 Stop and 20 replacement requests per engine/path;
+  repeated fixture: four alternating blocks of 20 Flite replacements per path.
+Medians pool raw samples; empirical p95 is sorted sample[floor(.95*(n-1))].
+
+Compiled client:
+  Set OMNIVOX_TEST_BYTECODE=1 and OMNIVOX_TEST_WINDOWS_DATA as above.
+  python3 fixtures/client.py EXECUTABLE NEW_WINDOWS_TEMP_OUTPUT
+  python3 fixtures/client.py EXECUTABLE NEW_WINDOWS_TEMP_OUTPUT --availability
+Initial batch SIGPIPE attempt used fixtures/client-initial.py;
+  subsequent fixtures/client.py sets restore_signals=False for interactive parity.
+
+Private full profile:
+  python3 listening/start.py --batch-check --engine flite
+  python3 listening/start.py --batch-check --engine espeak
+Both final runs use the checked runtime.json (runtime-4).
+
+Host workspace checks from repository, pinned Rust 1.97.1:
+  CARGO_TARGET_DIR=/home/bart/tmp/ovlw-check
+  OMNIVOX_PIPER_INPUTS_DIR=/home/bart/src/omnivox/target/piper-inputs/1.7.0/x86_64-unknown-linux-gnu
+  cargo +1.97.1 test --locked --workspace
+  cargo +1.97.1 clippy --locked --workspace --all-targets --features omnivox-cli/piper -- -D warnings
+
+Failed native fixture versions:
+  native1/2: fixtures/native-initial.ps1
+  native3: fixtures/native-helper-first.ps1
+  native4: fixtures/native-control-initial.ps1
+  native5/6: fixtures/native.ps1
+Initial listening reload assertion: listening/startup-batch1.el.
+Successful profile fixtures: listening/startup.el.

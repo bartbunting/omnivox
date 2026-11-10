@@ -1,0 +1,9 @@
+PASS owner-killed
+PASS owner-paused
+PASS blocked-input
+PASS blocked-output
+PASS helper-survives-worker
+PASS bridge-disconnected
+PASS helper-killed
+PASS held-status
+PASS guard-lost

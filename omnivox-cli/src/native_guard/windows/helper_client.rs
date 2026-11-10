@@ -12,6 +12,7 @@ use std::time::{Duration, Instant};
 struct Client {
     connection: BufReader<os::Blocking>,
     sequence: u64,
+    synchronized: bool,
 }
 static CLIENT: OnceLock<Mutex<Option<Client>>> = OnceLock::new();
 
@@ -22,6 +23,7 @@ pub(crate) fn install(argument: &str) -> anyhow::Result<()> {
     let client = Client {
         connection: BufReader::new(os::Blocking::from_handle(handle)?),
         sequence: 0,
+        synchronized: true,
     };
     anyhow::ensure!(
         CLIENT.set(Mutex::new(Some(client))).is_ok(),
@@ -59,7 +61,7 @@ fn launch(
         .as_mut()
         .ok_or_else(|| io::Error::other("native helper ownership is unavailable"))?;
     let result = client.launch(engine, identity);
-    if result.is_err() {
+    if result.is_err() && !client.synchronized {
         // No reconnect or blind creation retry: an undelivered offer can contain
         // handles already installed in this process. The guard retires the worker
         // on link failure to close those actual handles, not guessed integers.
@@ -75,19 +77,16 @@ impl Client {
         serde_json::to_writer(self.connection.get_mut(), request).map_err(io::Error::other)?;
         self.connection.get_mut().write_all(b"\n")
     }
-    fn receive(&mut self, id: u64, expected: &str) -> io::Result<wire::Reply> {
+    fn receive(&mut self, id: u64) -> io::Result<wire::Reply> {
         let value = super::wire::read_reply(&mut self.connection).map_err(io::Error::other)?;
         let reply: wire::Reply = serde_json::from_value(value).map_err(io::Error::other)?;
-        if reply.request_id != id || reply.state != expected || reply.error.is_some() {
-            return Err(io::Error::other(
-                reply
-                    .error
-                    .unwrap_or_else(|| "uncorrelated native helper response".into()),
-            ));
+        if reply.request_id != id {
+            return Err(io::Error::other("uncorrelated native helper response"));
         }
         Ok(reply)
     }
     fn launch(&mut self, engine: &str, identity: String) -> io::Result<Child> {
+        self.synchronized = false;
         self.sequence = self
             .sequence
             .checked_add(1)
@@ -99,7 +98,18 @@ impl Client {
             engine: engine.into(),
             launch: identity,
         })?;
-        let reply = self.receive(id, "offered")?;
+        let reply = self.receive(id)?;
+        if reply.state == "rejected" && reply.handles.is_none() {
+            if let Some(error) = &reply.error {
+                // A correlated rejection transferred nothing. Keep this same
+                // channel usable for future recovery; existing speech continues.
+                self.synchronized = true;
+                return Err(io::Error::other(error.clone()));
+            }
+        }
+        if reply.state != "offered" || reply.error.is_some() {
+            return Err(io::Error::other("invalid native helper offer"));
+        }
         let values = reply
             .handles
             .ok_or_else(|| io::Error::other("missing native helper handles"))?;
@@ -123,10 +133,59 @@ impl Client {
             engine: String::new(),
             launch: String::new(),
         })?;
-        let reply = self.receive(id, "started")?;
-        if reply.handles.is_some() {
-            return Err(io::Error::other("duplicate native handle offer"));
+        let reply = self.receive(id)?;
+        if reply.state != "started" || reply.error.is_some() || reply.handles.is_some() {
+            return Err(io::Error::other("invalid native helper start confirmation"));
         }
+        self.synchronized = true;
         Ok(child)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::native_guard::wire::{Channel, WaitFor};
+
+    #[test]
+    fn correlated_rejection_keeps_the_creation_link_usable() {
+        let (server, client) = os::channel_pair().unwrap();
+        let thread = std::thread::spawn(move || {
+            let mut channel = Channel::new(server);
+            for expected in [1, 2] {
+                let deadline = Instant::now() + TIMEOUT;
+                let request = loop {
+                    assert!(Instant::now() < deadline);
+                    if let Some(request) = channel.poll_as::<wire::Request>().unwrap() {
+                        break request;
+                    }
+                    std::thread::sleep(Duration::from_millis(1));
+                };
+                assert_eq!(request.request_id, expected);
+                channel
+                    .reply(&wire::Reply {
+                        request_id: expected,
+                        state: "rejected".into(),
+                        handles: None,
+                        error: Some("helper unavailable".into()),
+                    })
+                    .unwrap();
+                while matches!(channel.wait_for(), WaitFor::Write) {
+                    assert!(Instant::now() < deadline);
+                    channel.poll_as::<wire::Request>().unwrap();
+                    std::thread::sleep(Duration::from_millis(1));
+                }
+            }
+        });
+        let mut client = Client {
+            connection: BufReader::new(os::Blocking::from_handle(client).unwrap()),
+            sequence: 0,
+            synchronized: true,
+        };
+        for _ in 0..2 {
+            assert!(client.launch("flite", "test".into()).is_err());
+            assert!(client.synchronized);
+        }
+        thread.join().unwrap();
     }
 }

@@ -1,0 +1,16 @@
+{
+  "tests_sha256": "3c498b3720cf418a64f796bb5ca222df1361693b787c19d384a41630b5e0627e",
+  "runtime_sha256": "ea7d33d13c7777cfda1c8989731d10cc8b3ecc5d25feb56caae4343eb64f508c",
+  "runs": [
+    {
+      "command": [
+        "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-creation-rust-20261110-check4/tests-8.exe",
+        "native_guard::os::tests",
+        "--nocapture",
+        "--test-threads=1",
+        "--include-ignored"
+      ],
+      "exit": 0
+    }
+  ]
+}

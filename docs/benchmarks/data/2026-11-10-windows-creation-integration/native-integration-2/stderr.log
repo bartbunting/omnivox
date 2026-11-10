@@ -1,0 +1,8 @@
+Exception calling "Read" with "1" argument(s): "Native control EOF"
+At \\wsl.localhost\Ubuntu-26.04\home\bart\src\omnivox-lightweight-reload\target\guard-rust\fixtures\native.ps1:81 
+char:32
++ ... $p) {return ($p.Read(8000) -replace '^OMNIVOX-LOCAL ','')|ConvertFrom ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : EndOfStreamException
+ 

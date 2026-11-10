@@ -31,15 +31,14 @@ loss and blocked forwarding with a surviving guard, including compiled-client
 minimal recovery. Guard loss remains blocked. Integrated Linux partial-transfer
 and status-backpressure checks pass. The
 [Windows transport investigation](benchmarks/2026-11-10-windows-guard-qualification.md)
-passes native pipe and several recovery checks but fails strict descendant
-completion; Windows guarded startup is unavailable pending that proof. The
-[bounded handoff experiment](benchmarks/2026-11-10-guard-handoff-and-preparation.md)
-passes 132 native cases with actual Flite handles. The
-[Rust creation implementation](benchmarks/2026-11-10-windows-owned-creation.md)
-now passes native component checks, with guarded product startup still gated
-until integrated speech/recovery qualification. Concurrent client bridge
-preparation is implemented and measured separately. Windows
-qualification, acoustic timing and native macOS remain in the
+found that job accounting could precede actual helper completion. The bounded
+[handoff experiment](benchmarks/2026-11-10-guard-handoff-and-preparation.md) and
+[Rust components](benchmarks/2026-11-10-windows-owned-creation.md) led to
+[integrated guarded eSpeak/Flite](benchmarks/2026-11-10-windows-creation-integration.md):
+actual process ownership, native failure checks and compiled-client recovery now
+pass. It remains opt-in; other engines use ordinary launch and lightweight reload.
+Concurrent client bridge preparation is implemented separately. Everyday-engine
+coverage, acoustic/listening acceptance and native macOS remain in the
 [plan](plans/lightweight-preference-reload.md). This branch is not published or
 deployed to installed speech.
 

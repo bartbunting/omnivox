@@ -1,0 +1,16 @@
+{"engine": "espeak", "guarded": false, "repeat": 0, "two_ready_ms": 924.827845, "source_median_ms": 3.365755, "protocol_median_ms": 0.9201954999999999}
+{"engine": "espeak", "guarded": true, "repeat": 0, "two_ready_ms": 1513.014714, "source_median_ms": 3.2502329999999997, "protocol_median_ms": 0.9944725}
+{"engine": "espeak", "guarded": true, "repeat": 1, "two_ready_ms": 1474.134548, "source_median_ms": 2.987788, "protocol_median_ms": 0.9644889999999999}
+{"engine": "espeak", "guarded": false, "repeat": 1, "two_ready_ms": 778.149591, "source_median_ms": 3.0858559999999997, "protocol_median_ms": 0.933064}
+{"engine": "espeak", "guarded": false, "repeat": 2, "two_ready_ms": 794.621113, "source_median_ms": 2.9938805000000004, "protocol_median_ms": 0.9177035}
+{"engine": "espeak", "guarded": true, "repeat": 2, "two_ready_ms": 1409.087731, "source_median_ms": 2.839696, "protocol_median_ms": 0.947361}
+{"engine": "espeak", "guarded": true, "repeat": 3, "two_ready_ms": 1400.253716, "source_median_ms": 3.2062074999999997, "protocol_median_ms": 1.0012805}
+{"engine": "espeak", "guarded": false, "repeat": 3, "two_ready_ms": 873.508061, "source_median_ms": 3.631983, "protocol_median_ms": 1.306673}
+{"engine": "flite", "guarded": false, "repeat": 0, "two_ready_ms": 865.446634, "source_median_ms": 5.798553, "protocol_median_ms": 0.8815235}
+{"engine": "flite", "guarded": true, "repeat": 0, "two_ready_ms": 1475.516168, "source_median_ms": 5.5597635, "protocol_median_ms": 0.9975395}
+{"engine": "flite", "guarded": true, "repeat": 1, "two_ready_ms": 1546.036118, "source_median_ms": 6.0182975, "protocol_median_ms": 1.1238190000000001}
+{"engine": "flite", "guarded": false, "repeat": 1, "two_ready_ms": 930.595776, "source_median_ms": 5.266185, "protocol_median_ms": 1.2387774999999999}
+{"engine": "flite", "guarded": false, "repeat": 2, "two_ready_ms": 881.373887, "source_median_ms": 5.0547835, "protocol_median_ms": 0.9733035000000001}
+{"engine": "flite", "guarded": true, "repeat": 2, "two_ready_ms": 1453.192156, "source_median_ms": 6.1086245, "protocol_median_ms": 1.1583454999999998}
+{"engine": "flite", "guarded": true, "repeat": 3, "two_ready_ms": 1513.428298, "source_median_ms": 5.3511655000000005, "protocol_median_ms": 0.9121475}
+{"engine": "flite", "guarded": false, "repeat": 3, "two_ready_ms": 930.359833, "source_median_ms": 5.5185534999999994, "protocol_median_ms": 1.2271554999999998}
