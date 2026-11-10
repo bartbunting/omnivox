@@ -83,7 +83,7 @@ pub fn run(args: &[String]) -> Result<()> {
 }
 
 fn check_guard_platform(guarded: bool) -> Result<()> {
-    // Windows additionally checks the explicit eSpeak/Flite profile before
+    // Windows additionally checks the supported engine profile before
     // creating a guard. Ordinary startup keeps its existing engine coverage.
     anyhow::ensure!(
         !guarded || cfg!(any(target_os = "linux", windows)),
@@ -479,7 +479,7 @@ impl Worker {
     fn start_guarded(&mut self, startup: &Startup) -> Result<()> {
         #[cfg(any(target_os = "linux", windows))]
         if let NativeOwner::Guarded(peer) = &mut self.native {
-            peer.start()?;
+            crate::emergency::timed("guard-worker-start", || peer.start())?;
             return self.send_startup(startup);
         }
         let _ = startup;
@@ -665,13 +665,14 @@ fn owner(
                     .context("missing shared engine startup digest")?,
             )?
         } else {
-            Startup::capture(host)?
+            crate::emergency::timed("capture-startup", || Startup::capture(host))?
         };
         if let Some(path) = std::env::var_os("OMNIVOX_OWNED_LIBRARY") {
             startup.candidate(Path::new(&path))?;
         }
-        prepare_engines(&mut startup)?;
-        (path, digest) = startup.save(host, &worker_id)?;
+        crate::emergency::timed("prepare-engine-snapshot", || prepare_engines(&mut startup))?;
+        (path, digest) =
+            crate::emergency::timed("save-startup", || startup.save(host, &worker_id))?;
         configuration = startup.configuration.clone();
         activation_id = startup
             .engines

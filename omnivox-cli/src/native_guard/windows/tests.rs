@@ -62,7 +62,7 @@ fn unsupported_guarded_profiles_fail_before_native_creation() {
     ] {
         overrides.insert(engine.into(), serde_json::json!({"enabled": false}));
     }
-    overrides.insert("winrt".into(), serde_json::json!({"enabled": true}));
+    overrides.insert("mbrola".into(), serde_json::json!({"enabled": true}));
     let config =
         serde_json::to_vec(&serde_json::json!({"schema":4, "engine_overrides":overrides})).unwrap();
     std::fs::write(root.join("config.json"), &config).unwrap();
@@ -97,7 +97,7 @@ fn unsupported_guarded_profiles_fail_before_native_creation() {
     assert!(reply["startup_error"]
         .as_str()
         .unwrap()
-        .contains("unsupported engine: winrt"));
+        .contains("does not yet support this engine: mbrola"));
     assert_eq!(std::fs::read(root.join("config.json")).unwrap(), config);
     std::fs::remove_dir_all(root).unwrap();
 }

@@ -30,6 +30,7 @@ enum Product {
         input: File,
         output: File,
         id: u64,
+        slot: usize,
     },
 }
 struct Pending {
@@ -65,11 +66,17 @@ impl Pending {
         })
     }
 }
+#[derive(Clone, Copy)]
+struct Offer {
+    id: u64,
+    slot: usize,
+    deadline: Instant,
+}
 pub(super) struct Native {
     // The job outlives every pending create, including a blocked kernel call.
     job: Arc<Job>,
     worker: Option<Created>,
-    helper: Option<Created>,
+    helpers: Vec<Option<Created>>,
     pending: Option<Pending>,
     channel: Option<Channel<os::Control>>,
     plan: Plan,
@@ -78,7 +85,7 @@ pub(super) struct Native {
     total: u32,
     job_stopping: bool,
     sequence: u64,
-    offer: Option<(u64, Instant)>,
+    offer: Option<Offer>,
     pub started: bool,
     pub closing: bool,
     pub retired: bool,
@@ -92,7 +99,7 @@ impl Native {
         let [input, output, error] = pipes;
         let error_output = error.try_clone()?;
         let pending = Pending::start(None, move || {
-            startup.verify()?;
+            crate::emergency::timed("guard-worker-verify", || startup.verify())?;
             let (channel, worker_channel) = os::channel_pair()?;
             let mut command = Command::new(&startup.executable.path);
             startup.environment.apply(&mut command);
@@ -101,18 +108,20 @@ impl Native {
                 .current_dir(&startup.working_directory)
                 .env_remove("OMNIVOX_REMOTE_WORKER")
                 .env("OMNIVOX_OWNED_WORKER", "1");
-            let child = creation::spawn(
-                &command,
-                pending_job.handle(),
-                [input.as_handle(), output.as_handle(), error.as_handle()],
-                Some(worker_channel.as_handle()),
-            )?;
+            let child = crate::emergency::timed("guard-worker-create", || {
+                creation::spawn(
+                    &command,
+                    pending_job.handle(),
+                    [input.as_handle(), output.as_handle(), error.as_handle()],
+                    Some(worker_channel.as_handle()),
+                )
+            })?;
             Ok(Product::Worker { child, channel })
         })?;
         Ok(Self {
             job,
             worker: None,
-            helper: None,
+            helpers: (0..plan.helpers.len()).map(|_| None).collect(),
             pending: Some(pending),
             channel: None,
             plan,
@@ -152,7 +161,7 @@ impl Native {
             .is_some_and(|p| Instant::now() >= p.deadline)
             || self
                 .offer
-                .is_some_and(|(_, deadline)| Instant::now() >= deadline)
+                .is_some_and(|offer| Instant::now() >= offer.deadline)
         {
             self.fail(anyhow::anyhow!("native creation or handoff timed out"));
         }
@@ -169,7 +178,11 @@ impl Native {
                 // Stop known audio owners immediately, while suspended creation
                 // finishes independently. TerminateJobObject must not race the
                 // atomic job assignment inside an unfinished CreateProcess.
-                for child in [&mut self.worker, &mut self.helper].into_iter().flatten() {
+                for child in self
+                    .worker
+                    .iter_mut()
+                    .chain(self.helpers.iter_mut().flatten())
+                {
                     child.terminate()?;
                 }
             } else if !self.job_stopping {
@@ -189,13 +202,11 @@ impl Native {
                 .map(Created::ended)
                 .transpose()?
                 .unwrap_or(true);
-            let helper_done = self
-                .helper
-                .as_ref()
-                .map(Created::ended)
-                .transpose()?
-                .unwrap_or(true);
-            if self.pending.is_none() && worker_done && helper_done && self.channel.is_none() {
+            let mut helpers_done = true;
+            for child in self.helpers.iter().flatten() {
+                helpers_done &= child.ended()?;
+            }
+            if self.pending.is_none() && worker_done && helpers_done && self.channel.is_none() {
                 let counts = self.job.counts()?;
                 // Counts detect unaccounted creation; they never replace handle completion.
                 if counts.total == self.total && counts.active == 0 {
@@ -247,8 +258,9 @@ impl Native {
                 input,
                 output,
                 id,
+                slot,
             } => {
-                self.helper = Some(child);
+                self.helpers[slot] = Some(child);
                 if !self.closing {
                     let target = self
                         .worker
@@ -256,13 +268,17 @@ impl Native {
                         .context("missing native receiving worker")?
                         .process
                         .as_handle();
-                    let helper = self.helper.as_ref().unwrap();
+                    let helper = self.helpers[slot].as_ref().unwrap();
                     // Only wait/query/cancel authority. No helper child-creation authority.
                     let process =
                         creation::transfer(helper.process.as_handle(), target, Some(0x10_1001))?;
                     let input = creation::transfer(input.as_handle(), target, None)?;
                     let output = creation::transfer(output.as_handle(), target, None)?;
-                    self.offer = Some((id, Instant::now() + TIMEOUT));
+                    self.offer = Some(Offer {
+                        id,
+                        slot,
+                        deadline: Instant::now() + TIMEOUT,
+                    });
                     self.channel
                         .as_mut()
                         .context("missing native creation channel")?
@@ -278,15 +294,19 @@ impl Native {
         Ok(())
     }
     fn requests(&mut self) -> Result<()> {
-        if self
-            .helper
-            .as_ref()
-            .map(Created::ended)
-            .transpose()?
-            .unwrap_or(false)
-        {
-            anyhow::ensure!(self.offer.is_none(), "unacknowledged helper ended");
-            self.helper.take();
+        for (slot, helper) in self.helpers.iter_mut().enumerate() {
+            if helper
+                .as_ref()
+                .map(Created::ended)
+                .transpose()?
+                .unwrap_or(false)
+            {
+                anyhow::ensure!(
+                    self.offer.is_none_or(|offer| offer.slot != slot),
+                    "unacknowledged helper ended"
+                );
+                helper.take();
+            }
         }
         let Some(channel) = &mut self.channel else {
             return Ok(());
@@ -303,33 +323,34 @@ impl Native {
                     request.request_id > self.sequence
                         && self.pending.is_none()
                         && self.offer.is_none()
-                        && self.helper.is_none()
                         && self.total < u32::MAX,
                     "native creation is busy or obsolete"
                 );
-                let helper = self
+                let slot = self
                     .plan
-                    .helper
-                    .as_ref()
-                    .filter(|h| {
+                    .helpers
+                    .iter()
+                    .position(|h| {
                         h.config.engine_id == request.engine && h.identity == request.launch
                     })
-                    .context("native helper launch differs from retained snapshot")?
-                    .clone();
+                    .context("native helper launch differs from retained snapshot")?;
+                anyhow::ensure!(self.helpers[slot].is_none(), "native helper is still owned");
+                let helper = self.plan.helpers[slot].clone();
                 self.sequence = request.request_id;
-                match self.create_helper(helper, request.request_id) {
+                match self.create_helper(helper, request.request_id, slot) {
                     Ok(pending) => self.pending = Some(pending),
                     Err(error) => self.reject(request.request_id, error)?,
                 }
             }
             "acknowledge" => {
                 anyhow::ensure!(
-                    self.offer.is_some_and(|(id, _)| id == request.request_id)
+                    self.offer
+                        .is_some_and(|offer| offer.id == request.request_id)
                         && request.engine.is_empty()
                         && request.launch.is_empty(),
                     "obsolete native helper acknowledgement"
                 );
-                self.helper
+                self.helpers[self.offer.unwrap().slot]
                     .as_mut()
                     .context("missing offered helper")?
                     .release()?;
@@ -351,10 +372,9 @@ impl Native {
         // speech. Unexpected job activity is still an ownership failure.
         let counts = self.job.counts()?;
         anyhow::ensure!(
-            self.helper.is_none()
-                && self.offer.is_none()
+            self.offer.is_none()
                 && counts.total == self.total
-                && counts.active <= 1,
+                && counts.active as usize <= 1 + self.helpers.iter().flatten().count(),
             "failed helper creation changed native ownership"
         );
         self.channel
@@ -367,7 +387,12 @@ impl Native {
                 error: Some(error.to_string()),
             })
     }
-    fn create_helper(&self, helper: super::windows_plan::Helper, id: u64) -> Result<Pending> {
+    fn create_helper(
+        &self,
+        helper: super::windows_plan::Helper,
+        id: u64,
+        slot: usize,
+    ) -> Result<Pending> {
         let job = Arc::clone(&self.job);
         let directory = self.directory.clone();
         let error = self.error_output.try_clone()?;
@@ -390,6 +415,7 @@ impl Native {
                 input: writer,
                 output: reader,
                 id,
+                slot,
             })
         })
     }
@@ -413,7 +439,7 @@ impl Native {
                 readiness::earlier(deadline, pending.deadline);
             }
         }
-        for child in [&self.worker, &self.helper].into_iter().flatten() {
+        for child in self.worker.iter().chain(self.helpers.iter().flatten()) {
             if !child.ended()? {
                 events.push(child.process.as_raw_handle());
             }
@@ -424,8 +450,8 @@ impl Native {
             }
         }
         if !self.closing {
-            if let Some((_, expiry)) = self.offer {
-                readiness::earlier(deadline, expiry);
+            if let Some(offer) = self.offer {
+                readiness::earlier(deadline, offer.deadline);
             }
         }
         Ok(false)

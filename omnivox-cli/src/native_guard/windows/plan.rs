@@ -15,8 +15,11 @@ pub(super) struct Helper {
 }
 #[derive(Clone)]
 pub(super) struct Plan {
-    pub helper: Option<Helper>,
+    pub helpers: Vec<Helper>,
 }
+
+// Below the native wait-set limit, including control I/O and the worker.
+pub(super) const MAX_HELPERS: usize = 8;
 
 impl Plan {
     pub fn validate(startup: &Startup) -> Result<()> {
@@ -30,9 +33,18 @@ impl Plan {
             .filter(|entry| entry.enabled)
         {
             anyhow::ensure!(
-                matches!(entry.engine_id.as_str(), "espeak" | "flite")
-                    && entry.origin != EngineOrigin::ExternalHelper,
-                "Windows guarded startup currently supports explicit eSpeak/Flite configurations; unsupported engine: {}",
+                matches!(
+                    entry.engine_id.as_str(),
+                    "espeak"
+                        | "winrt"
+                        | "flite"
+                        | "rutts"
+                        | "tgspeechbox"
+                        | "eloquence"
+                        | "dectalk"
+                        | "rhvoice"
+                ) && entry.origin != EngineOrigin::ExternalHelper,
+                "Windows guarded startup does not yet support this engine: {}",
                 entry.engine_id
             );
         }
@@ -40,17 +52,21 @@ impl Plan {
     }
     pub fn prepare(startup: &Startup) -> Result<Self> {
         Self::validate(startup)?;
-        let helper = startup
+        let helpers = startup
             .engines
             .as_ref()
             .unwrap()
             .resolved()
-            .registration("flite")
+            .registrations()
             .filter(|entry| entry.enabled && entry.unavailable.is_none())
-            .and_then(|entry| entry.helper.clone())
+            .filter_map(|entry| entry.helper.clone())
             .map(Helper::capture)
-            .transpose()?;
-        Ok(Self { helper })
+            .collect::<Result<Vec<_>>>()?;
+        anyhow::ensure!(
+            helpers.len() <= MAX_HELPERS,
+            "guard helper capacity exceeded"
+        );
+        Ok(Self { helpers })
     }
 }
 

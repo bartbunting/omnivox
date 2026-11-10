@@ -15,10 +15,12 @@ fn empty() -> Native {
     Native {
         job: Arc::new(Job::new().unwrap()),
         worker: None,
-        helper: None,
+        helpers: Vec::new(),
         pending: None,
         channel: None,
-        plan: Plan { helper: None },
+        plan: Plan {
+            helpers: Vec::new(),
+        },
         directory: std::env::temp_dir(),
         error_output: null(),
         total: 0,
@@ -60,7 +62,11 @@ fn fixture() -> (Native, os::Blocking) {
     native.total = 1;
     let program =
         std::env::var("OMNIVOX_TEST_GUARD_HELPER").expect("private Flite helper required");
-    native.plan.helper = Some(Helper::capture(HelperEngineConfig::new("flite", program)).unwrap());
+    native
+        .plan
+        .helpers
+        .push(Helper::capture(HelperEngineConfig::new("flite", program)).unwrap());
+    native.helpers.push(None);
     let (server, client) = os::channel_pair().unwrap();
     native.channel = Some(Channel::new(server));
     (native, os::Blocking::from_handle(client).unwrap())
@@ -74,8 +80,140 @@ fn create(native: &Native) -> helper_wire::Request {
         request_id: 1,
         command: "create".into(),
         engine: "flite".into(),
-        launch: native.plan.helper.as_ref().unwrap().identity.clone(),
+        launch: native.plan.helpers.first().unwrap().identity.clone(),
     }
+}
+
+fn reply(native: &mut Native, client: &mut os::Blocking) -> serde_json::Value {
+    let channel = native.channel.as_mut().unwrap();
+    let deadline = Instant::now() + TIMEOUT;
+    while matches!(
+        channel.wait_for(),
+        crate::native_guard::wire::WaitFor::Write
+    ) {
+        assert!(Instant::now() < deadline);
+        channel.poll_as::<helper_wire::Request>().unwrap();
+        std::thread::sleep(TICK);
+    }
+    crate::native_guard::wire::read_reply(&mut std::io::BufReader::new(client)).unwrap()
+}
+
+fn second_slot(native: &mut Native, absent: bool) {
+    // These are ownership tests: two independent instances of the fixture
+    // helper, not qualification of a second engine's native protocol.
+    let mut config = native.plan.helpers[0].config.clone();
+    config.engine_id = "second-fixture".into();
+    if absent {
+        config.program = std::env::temp_dir().join(format!(
+            "omnivox-absent-{}.exe",
+            omnivox_tts::voice_library::local::new_uuid().unwrap()
+        ));
+    }
+    native.plan.helpers.push(Helper::capture(config).unwrap());
+    native.helpers.push(None);
+}
+
+fn request_slot(native: &Native, id: u64, slot: usize) -> helper_wire::Request {
+    helper_wire::Request {
+        request_id: id,
+        command: "create".into(),
+        engine: native.plan.helpers[slot].config.engine_id.clone(),
+        launch: native.plan.helpers[slot].identity.clone(),
+    }
+}
+
+fn start_slot(native: &mut Native, client: &mut os::Blocking, id: u64, slot: usize) {
+    send(client, &request_slot(native, id, slot));
+    until(native, |n| n.offer.is_some());
+    assert_eq!(reply(native, client)["state"], "offered");
+    send(
+        client,
+        &helper_wire::Request {
+            request_id: id,
+            command: "acknowledge".into(),
+            engine: String::new(),
+            launch: String::new(),
+        },
+    );
+    until(native, |n| n.offer.is_none());
+    assert_eq!(reply(native, client)["state"], "started");
+}
+
+#[test]
+#[ignore = "requires explicit private native runtime and Flite helper"]
+fn independent_helpers_recover_and_retire_by_actual_handle() {
+    let (mut native, mut client) = fixture();
+    second_slot(&mut native, false);
+    start_slot(&mut native, &mut client, 1, 0);
+    start_slot(&mut native, &mut client, 2, 1);
+    let first = native.helpers[0]
+        .as_ref()
+        .unwrap()
+        .process
+        .try_clone()
+        .unwrap();
+    let second = native.helpers[1]
+        .as_ref()
+        .unwrap()
+        .process
+        .try_clone()
+        .unwrap();
+    native.helpers[0].as_mut().unwrap().terminate().unwrap();
+    until(&mut native, |n| n.helpers[0].is_none());
+    assert!(native::signalled(first.as_handle()).unwrap());
+    assert!(!native::signalled(second.as_handle()).unwrap());
+    assert!(!native.worker.as_ref().unwrap().ended().unwrap());
+    start_slot(&mut native, &mut client, 3, 0);
+    let replacement = native.helpers[0]
+        .as_ref()
+        .unwrap()
+        .process
+        .try_clone()
+        .unwrap();
+    assert_eq!(native.total, 4);
+    native.closing = true;
+    until(&mut native, |n| n.retired);
+    for process in [second, replacement] {
+        assert!(native::signalled(process.as_handle()).unwrap());
+    }
+}
+
+#[test]
+#[ignore = "requires explicit private native runtime and Flite helper"]
+fn second_helper_rejection_preserves_existing_speech_processes() {
+    let (mut native, mut client) = fixture();
+    second_slot(&mut native, true);
+    start_slot(&mut native, &mut client, 1, 0);
+    send(&mut client, &request_slot(&native, 2, 1));
+    until(&mut native, |n| n.pending.is_some());
+    until(&mut native, |n| n.pending.is_none());
+    assert_eq!(reply(&mut native, &mut client)["state"], "rejected");
+    assert!(!native.closing && native.error.is_none());
+    assert!(!native.helpers[0].as_ref().unwrap().ended().unwrap());
+    assert!(!native.worker.as_ref().unwrap().ended().unwrap());
+    assert_eq!(native.total, 2);
+}
+
+#[test]
+#[ignore = "requires explicit private native runtime and Flite helper"]
+fn occupied_helper_slot_rejects_new_identity_without_losing_handles() {
+    let (mut native, mut client) = fixture();
+    second_slot(&mut native, false);
+    start_slot(&mut native, &mut client, 1, 0);
+    start_slot(&mut native, &mut client, 2, 1);
+    let handles: Vec<_> = native
+        .helpers
+        .iter()
+        .flatten()
+        .map(|h| h.process.try_clone().unwrap())
+        .collect();
+    send(&mut client, &request_slot(&native, 3, 0));
+    until(&mut native, |n| n.retired);
+    assert!(native.error.as_deref().unwrap().contains("still owned"));
+    assert_eq!(native.total, 3);
+    assert!(handles
+        .iter()
+        .all(|h| native::signalled(h.as_handle()).unwrap()));
 }
 
 #[test]
@@ -111,12 +249,17 @@ fn lost_offer_or_ack_retires_the_receiver_and_actual_helper() {
         send(&mut client, &create(&native));
         until(&mut native, |n| n.offer.is_some());
         let worker = native.worker.as_ref().unwrap().process.try_clone().unwrap();
-        let helper = native.helper.as_ref().unwrap().process.try_clone().unwrap();
+        let helper = native.helpers[0]
+            .as_ref()
+            .unwrap()
+            .process
+            .try_clone()
+            .unwrap();
         assert!(!native::signalled(helper.as_handle()).unwrap());
         if lose_link {
             drop(client);
         } else {
-            native.offer.as_mut().unwrap().1 = Instant::now();
+            native.offer.as_mut().unwrap().deadline = Instant::now();
         }
         until(&mut native, |n| n.retired);
         assert!(native::signalled(worker.as_handle()).unwrap());
@@ -140,7 +283,7 @@ fn worker_loss_during_creation_cannot_release_a_late_helper() {
     }
     until(&mut native, |n| n.retired);
     assert!(native.offer.is_none());
-    if let Some(helper) = &native.helper {
+    if let Some(helper) = &native.helpers[0] {
         assert!(helper.ended().unwrap());
     }
 }
@@ -189,12 +332,12 @@ fn unaccounted_job_member_never_becomes_a_retirement_receipt() {
 #[ignore = "requires explicit private native runtime and Flite helper"]
 fn failed_helper_launch_preserves_the_worker_and_creation_link() {
     let (mut native, mut client) = fixture();
-    let mut config = native.plan.helper.as_ref().unwrap().config.clone();
+    let mut config = native.plan.helpers.first().unwrap().config.clone();
     config.program = std::env::temp_dir().join(format!(
         "omnivox-absent-{}.exe",
         omnivox_tts::voice_library::local::new_uuid().unwrap()
     ));
-    native.plan.helper = Some(Helper::capture(config).unwrap());
+    native.plan.helpers[0] = Helper::capture(config).unwrap();
     for id in [1, 2] {
         let mut request = create(&native);
         request.request_id = id;

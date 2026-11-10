@@ -7,6 +7,7 @@ use std::process::Command;
 unsafe extern "system" {
     fn ResumeThread(thread: RawHandle) -> u32;
     fn CompareStringOrdinal(a: *const u16, na: i32, b: *const u16, nb: i32, ignore: i32) -> i32;
+    fn GetFullPathNameW(path: *const u16, size: u32, output: *mut u16, part: *mut *mut u16) -> u32;
 }
 
 pub(crate) const WORKER_MODE: &str = "--native-helper-worker";
@@ -87,6 +88,50 @@ fn wide(value: &OsStr) -> io::Result<Vec<u16>> {
     Ok(text)
 }
 
+// Like Rust's ordinary Command, give CreateProcess a non-verbatim application
+// name when Win32 resolves it identically. .NET Framework otherwise rejects its
+// own configuration path. Keep the retained identity and argv unchanged. This
+// is a bounded lexical OS check, not executable discovery or another disk scan.
+fn application_path(program: &Path) -> io::Result<Vec<u16>> {
+    use std::path::{Component, Prefix};
+    let original = wide(program.as_os_str())?;
+    if original.len() > 260 {
+        return Ok(original);
+    }
+    let ordinary = match program.components().next() {
+        Some(Component::Prefix(p)) => match p.kind() {
+            Prefix::VerbatimDisk(_) => original[4..].to_vec(),
+            Prefix::VerbatimUNC(_, _) => {
+                let mut path = vec![b'\\' as u16; 2];
+                path.extend_from_slice(&original[8..]);
+                path
+            }
+            _ => return Ok(original),
+        },
+        _ => return Ok(original),
+    };
+    let mut normalized = vec![0; 260];
+    // SAFETY: NUL-terminated input and a live output allocation of the supplied
+    // size. No returned file-part pointer is requested or retained.
+    let length = unsafe {
+        GetFullPathNameW(
+            ordinary.as_ptr(),
+            normalized.len() as u32,
+            normalized.as_mut_ptr(),
+            std::ptr::null_mut(),
+        )
+    } as usize;
+    if length > 0
+        && length < normalized.len()
+        && normalized[..length] == ordinary[..ordinary.len() - 1]
+    {
+        normalized.truncate(length + 1);
+        Ok(normalized)
+    } else {
+        Ok(original)
+    }
+}
+
 // CRT argument quoting, including empty arguments and trailing backslashes.
 fn argument(value: &OsStr, output: &mut Vec<u16>) -> io::Result<()> {
     output.push(b'"' as u16);
@@ -160,7 +205,7 @@ pub(crate) fn spawn(
     if !program.is_absolute() {
         return Err(io::ErrorKind::InvalidInput.into());
     }
-    let application = wide(program.as_os_str())?;
+    let application = application_path(program)?;
     let directory = command
         .get_current_dir()
         .map(|p| wide(p.as_os_str()))
@@ -287,6 +332,39 @@ pub(crate) fn spawn(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn application_names_preserve_verbatim_semantics_and_native_units() {
+        for (input, expected) in [
+            (r"\\?\C:\speech\helper.exe", r"C:\speech\helper.exe"),
+            (
+                r"\\?\UNC\server\share\helper.exe",
+                r"\\server\share\helper.exe",
+            ),
+            (
+                r"\\?\C:\speech\..\helper.exe",
+                r"\\?\C:\speech\..\helper.exe",
+            ),
+            (r"\\?\C:\speech\helper.exe.", r"\\?\C:\speech\helper.exe."),
+        ] {
+            assert_eq!(
+                application_path(Path::new(input)).unwrap(),
+                wide(OsStr::new(expected)).unwrap()
+            );
+        }
+        use std::os::windows::ffi::OsStringExt;
+        let mut path: Vec<_> = r"\\?\C:\speech\".encode_utf16().collect();
+        path.push(0xd800);
+        path.extend(".exe".encode_utf16());
+        let native = std::ffi::OsString::from_wide(&path);
+        let mut expected = path[4..].to_vec();
+        expected.push(0);
+        assert_eq!(application_path(Path::new(&native)).unwrap(), expected);
+        let long = format!(r"\\?\C:\{}\helper.exe", "x".repeat(260));
+        assert_eq!(
+            application_path(Path::new(&long)).unwrap(),
+            wide(OsStr::new(&long)).unwrap()
+        );
+    }
     #[test]
     fn quoted_native_arguments_keep_empty_quotes_and_trailing_slashes() {
         for (source, expected) in [

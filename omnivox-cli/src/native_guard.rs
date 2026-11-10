@@ -100,7 +100,7 @@ impl Peer {
     pub fn prepare(startup: &Startup, worker: &str) -> Result<(Self, Io<File>, Io<File>)> {
         #[cfg(windows)]
         windows_plan::Plan::validate(startup)?;
-        startup.verify()?;
+        crate::emergency::timed("guard-verify-startup", || startup.verify())?;
         let bootstrap = serde_json::to_vec(&Bootstrap {
             worker: worker.into(),
             startup: startup.clone(),
@@ -115,12 +115,12 @@ impl Peer {
             input,
             output,
             completion,
-        } = os::launch(&startup.executable.path)?;
+        } = crate::emergency::timed("guard-launch", || os::launch(&startup.executable.path))?;
         os::timeouts(&mut control, Some(TIMEOUT))?;
         control.write_all(&(bootstrap.len() as u32).to_be_bytes())?;
         control.write_all(&bootstrap)?;
         let mut control = BufReader::new(control);
-        let hello = wire::read_reply(&mut control)?;
+        let hello = crate::emergency::timed("guard-ready", || wire::read_reply(&mut control))?;
         anyhow::ensure!(
             hello["type"] == "guard_ready",
             "native guard did not prepare"

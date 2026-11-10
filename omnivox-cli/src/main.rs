@@ -244,13 +244,15 @@ fn main() -> Result<()> {
         {
             info!("Initializing macOS TTS engine (ObjC bridge)");
         }
-        create_engines(
-            &cli.engine,
-            cli.piper_model.as_deref(),
-            cli.voice_library.as_deref(),
-            cli.config_dir.as_deref(),
-            Arc::clone(&gen_counter),
-        )?
+        emergency::timed("initialize-engines", || {
+            create_engines(
+                &cli.engine,
+                cli.piper_model.as_deref(),
+                cli.voice_library.as_deref(),
+                cli.config_dir.as_deref(),
+                Arc::clone(&gen_counter),
+            )
+        })?
     };
     let audio_backend = audio_backend_override.unwrap_or(created_engines.audio.backend);
     let engine = created_engines.preferred;
