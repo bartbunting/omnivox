@@ -22,6 +22,7 @@ Proposed records do not override accepted decisions.
 | [0012: TGSpeechBox default distribution](0012-tgspeechbox-default-distribution.md) | Accepted | Default bundled helper, retained isolation and native platform qualification; partially supersedes 0001. |
 | [0017: Independent host preference reload](0017-independent-host-preference-reload.md) | Accepted for implementation | Independent ordinary-worker preferences, coherent requests and separate native lifetime/asset safety. |
 | [0018: Minimal owned emergency speech](0018-minimal-emergency-speech.md) | Accepted for implementation | Explicit bundled speech independent of management storage, with verified native retirement and retained asset claims. |
+| [0019: Windows native creation ownership](0019-windows-native-creation-ownership.md) | Accepted for implementation | Guard-created workers/helpers, retained process completion and direct helper pipes; starts with explicit eSpeak/Flite qualification. |
 
 This maintenance-based branch retains the earlier 0011 text and does not contain
 the session implementation. Accepted session records 0011 and 0013–0016 at

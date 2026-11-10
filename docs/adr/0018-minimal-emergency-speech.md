@@ -11,6 +11,8 @@
   [0015](../benchmarks/data/2026-11-10-lightweight-reload/0015-windows-session-cleanup-guard.txt)
   and [0016](../benchmarks/data/2026-11-10-lightweight-reload/0016-session-managed-voice-activation.txt).
   Their native cleanup and managed-asset exclusion requirements remain in force.
+- Extended by: [0019](0019-windows-native-creation-ownership.md) for Windows
+  guard-owned native creation and actual descendant process completion.
 
 ## Context
 

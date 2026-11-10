@@ -237,11 +237,11 @@ it does not establish acoustic or tail non-regression. Both
 old lanes continue source speech during repeated preparation and preference
 reload. Preserve the existing steady-speech baseline evidence.
 
-Next, decide the bounded Rust creation interface and compatibility scope: one
+Next, implement [ADR 0019](../adr/0019-windows-native-creation-ownership.md)'s bounded
+Rust creation interface and compatibility scope: one
 actual Flite helper first, direct PCM pipes, verified launch inputs, actual process
 handles and cancellation through failed transfers. Resolve child-creating helpers
-before broader enablement; do not silently exclude them. Follow the ADR approval
-workflow for a durable ownership change. Keep Windows guarded startup unavailable
+before broader enablement; do not silently exclude them. Keep Windows guarded startup unavailable
 until native proof is integrated and qualified. Preserve ordinary preference
 reload independently. Native macOS and acoustic/listening checks remain separate
 gates; the guard is not enabled by default.
