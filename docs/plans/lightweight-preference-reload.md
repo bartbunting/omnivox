@@ -254,31 +254,38 @@ time. Console-free .NET helper builds and compatible executable-path handling
 preserve child restrictions without changing helper protocols. The client also
 overlaps bridge startup with ordinary owner preparation. The report separates
 startup spans, reload responsiveness and source availability from acoustic onset.
-The expanded functional matrix passes, but the longer Flite replacement comparison
-shows 71 ms guarded versus 33 ms ordinary source latency. Before broader adoption,
-vary interruption phase with identical text/chunking and compare a minimal
-eSpeak/Flite profile with the eight-engine profile. Correlate queue wait, native
-synthesis and source events; investigate the difference without relaxing
-cancellation, ownership or coherent request settings. WinRT's character timing
-also requires more evidence before declaring performance parity.
+The [replacement and handover follow-up](../benchmarks/2026-11-10-replacement-and-handover.md)
+resolves the measured Flite and foreground blockers with two small changes.
+Flite asks for cancellation promptly while retaining its native slot until actual
+completion; 480 Windows replacements during reload complete in approximately
+14–18 ms median across phases, with cooperative helper reuse. Other engines retain
+their existing cancellation policy. The expanded character comparison passes the
+proposed +5 ms guarded p95 criterion for all eight engines, including 640 WinRT
+samples per path; this is a workload result, not an acoustic or universal tail bound.
+
+The compiled client prepares foreground voices before retiring old foreground,
+then configures notification independently. Matched median main source gap falls
+from 1,473 to 79 ms; a two-second notification delay leaves a 58 ms main gap.
+Full restart still takes about 3–4 seconds with eight engines. Preparation failure
+preserves old speech. Managed activation and native cleanup boundaries are unchanged.
+The new private profile passes reload, restart, retained recovery, minimal emergency
+speech and return to saved settings with all eight engines.
 
 Next slices:
 
-1. Use the isolated listening profile to assess real character navigation,
-   replacement, notifications, settings reload and restart on the private build.
-   Source markers and null output do not establish audible acceptance.
-2. Qualify the remaining engines and platforms: Windows Piper needs its model and
+1. Use the [isolated listening profile](../benchmarks/data/2026-11-10-replacement-and-handover/listening/start.py)
+   to assess character navigation, replacement, simultaneous notifications,
+   reload and restart on real output. Source markers and null output do not
+   establish listening acceptance or physical-device recovery.
+2. Qualify remaining engines and platforms: Windows Piper needs its model and
    companion; MBROLA and external wrappers need supported child creation and
-   native qualification. Do not silently exclude engines or replace ordinary launch.
-3. Test foreground configuration before retiring the old main, independently of
-   notification startup. The continuous source probe found a 1.4–1.6 second
-   foreground handover gap with eight engines even after bridge startup overlap;
-   the client waits for notification initialization before final voice setup.
-   Preserve old speech on preparation failure and test a deliberately slow or
-   failed notification lane. Compare first usable foreground speech, source gap
-   and total operation time separately. Keep optional discovery out of first
-   usable speech where supported without weakening ownership or request coherence.
-   Qualify native macOS separately; no automatic installed deployment.
+   native qualification. Preserve their ordinary launch paths. Qualify native
+   macOS separately; no automatic installed deployment.
+3. Measure optional discovery and preparation costs before changing startup
+   further. Foreground availability now survives the longer notification startup;
+   reducing total operation time is a separate objective. Any further engine's
+   cancellation exception needs its own replacement, native retention and failure
+   evidence. Keep preference reload independent and avoid a new coordination layer.
 
 Preserve ordinary preference reload independently. Loss of all cleanup authority,
 reboot reconciliation and broader asset-management recovery remain distinct work.

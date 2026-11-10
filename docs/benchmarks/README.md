@@ -17,6 +17,7 @@ acceptance on every platform.
 
 | Concern | Retained comparison / reproduction source | Measurement boundary |
 | --- | --- | --- |
+| Replacement and foreground handover | [Prompt Flite cancellation and prepared foreground](2026-11-10-replacement-and-handover.md) | Phase-controlled replacement, eight-engine reload response, continuous source gaps, slow notification startup and fresh compiled recovery profiles. |
 | Windows multiple engines and startup | [Eight-engine ownership and client preparation](2026-11-10-windows-multi-engine.md) | Six retained helpers, independent recovery, matched speech during reload, compiled client startup and continuous source handover probes. |
 | Windows creation integration | [Opt-in eSpeak/Flite prototype](2026-11-10-windows-creation-integration.md) | Native failures, helper fallback/recovery, compiled client, pipe correction and matched reload/interaction timing. |
 | Windows native creation | [Rust guard creation components](2026-11-10-windows-owned-creation.md) | Actual process handles, interrupted handoffs and pending creation; product entry remains gated pending integration. |

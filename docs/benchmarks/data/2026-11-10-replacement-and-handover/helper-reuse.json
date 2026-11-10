@@ -1,0 +1,98 @@
+[
+  {
+    "profile": "0-full-False",
+    "lane": "main",
+    "flite_starts": 1,
+    "watchdog": 0
+  },
+  {
+    "profile": "0-full-False",
+    "lane": "notify",
+    "flite_starts": 1,
+    "watchdog": 0
+  },
+  {
+    "profile": "0-full-True",
+    "lane": "main",
+    "flite_starts": 1,
+    "watchdog": 0
+  },
+  {
+    "profile": "0-full-True",
+    "lane": "notify",
+    "flite_starts": 1,
+    "watchdog": 0
+  },
+  {
+    "profile": "0-minimal-False",
+    "lane": "main",
+    "flite_starts": 1,
+    "watchdog": 0
+  },
+  {
+    "profile": "0-minimal-False",
+    "lane": "notify",
+    "flite_starts": 1,
+    "watchdog": 0
+  },
+  {
+    "profile": "0-minimal-True",
+    "lane": "main",
+    "flite_starts": 1,
+    "watchdog": 0
+  },
+  {
+    "profile": "0-minimal-True",
+    "lane": "notify",
+    "flite_starts": 1,
+    "watchdog": 0
+  },
+  {
+    "profile": "1-full-False",
+    "lane": "main",
+    "flite_starts": 1,
+    "watchdog": 0
+  },
+  {
+    "profile": "1-full-False",
+    "lane": "notify",
+    "flite_starts": 1,
+    "watchdog": 0
+  },
+  {
+    "profile": "1-full-True",
+    "lane": "main",
+    "flite_starts": 1,
+    "watchdog": 0
+  },
+  {
+    "profile": "1-full-True",
+    "lane": "notify",
+    "flite_starts": 1,
+    "watchdog": 0
+  },
+  {
+    "profile": "1-minimal-False",
+    "lane": "main",
+    "flite_starts": 1,
+    "watchdog": 0
+  },
+  {
+    "profile": "1-minimal-False",
+    "lane": "notify",
+    "flite_starts": 1,
+    "watchdog": 0
+  },
+  {
+    "profile": "1-minimal-True",
+    "lane": "main",
+    "flite_starts": 1,
+    "watchdog": 0
+  },
+  {
+    "profile": "1-minimal-True",
+    "lane": "notify",
+    "flite_starts": 1,
+    "watchdog": 0
+  }
+]

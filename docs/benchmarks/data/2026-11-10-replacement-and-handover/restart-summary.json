@@ -1,0 +1,292 @@
+{
+  "baseline": {
+    "raw": [
+      {
+        "operation_ms": 2827.4765014648438,
+        "file": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-performance-20261110-restart-0-baseline/restart-availability.json",
+        "trial": 0,
+        "requests": 217,
+        "main_gap_ms": 1337.8942012786865,
+        "main_new_before_end_ms": -75.55270195007324,
+        "notification_gap_ms": 111.7699146270752,
+        "notification_new_before_end_ms": -102.22411155700684
+      },
+      {
+        "operation_ms": 3204.6401500701904,
+        "file": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-performance-20261110-restart-0-baseline/restart-availability.json",
+        "trial": 1,
+        "requests": 243,
+        "main_gap_ms": 1358.1039905548096,
+        "main_new_before_end_ms": -72.33119010925293,
+        "notification_gap_ms": 88.98401260375977,
+        "notification_new_before_end_ms": -79.83613014221191
+      },
+      {
+        "operation_ms": 3719.2764282226562,
+        "file": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-performance-20261110-restart-0-baseline/restart-availability.json",
+        "trial": 2,
+        "requests": 277,
+        "main_gap_ms": 1483.0524921417236,
+        "main_new_before_end_ms": -77.66127586364746,
+        "notification_gap_ms": 87.19587326049805,
+        "notification_new_before_end_ms": -81.58707618713379
+      },
+      {
+        "operation_ms": 4056.92720413208,
+        "file": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-performance-20261110-restart-0-baseline/restart-availability.json",
+        "trial": 3,
+        "requests": 294,
+        "main_gap_ms": 1737.6112937927246,
+        "main_new_before_end_ms": -93.3387279510498,
+        "notification_gap_ms": 129.92167472839355,
+        "notification_new_before_end_ms": -109.07578468322754
+      },
+      {
+        "operation_ms": 3115.7026290893555,
+        "file": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-performance-20261110-restart-3-baseline/restart-availability.json",
+        "trial": 0,
+        "requests": 227,
+        "main_gap_ms": 1463.303804397583,
+        "main_new_before_end_ms": -86.85636520385742,
+        "notification_gap_ms": 116.41550064086914,
+        "notification_new_before_end_ms": -90.34180641174316
+      },
+      {
+        "operation_ms": 3456.648111343384,
+        "file": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-performance-20261110-restart-3-baseline/restart-availability.json",
+        "trial": 1,
+        "requests": 260,
+        "main_gap_ms": 1447.9126930236816,
+        "main_new_before_end_ms": -80.22618293762207,
+        "notification_gap_ms": 102.29015350341797,
+        "notification_new_before_end_ms": -85.69550514221191
+      },
+      {
+        "operation_ms": 3853.0917167663574,
+        "file": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-performance-20261110-restart-3-baseline/restart-availability.json",
+        "trial": 2,
+        "requests": 284,
+        "main_gap_ms": 1560.4422092437744,
+        "main_new_before_end_ms": -97.97096252441406,
+        "notification_gap_ms": 109.30156707763672,
+        "notification_new_before_end_ms": -98.14262390136719
+      },
+      {
+        "operation_ms": 4636.14296913147,
+        "file": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-performance-20261110-restart-3-baseline/restart-availability.json",
+        "trial": 3,
+        "requests": 311,
+        "main_gap_ms": 2085.089921951294,
+        "main_new_before_end_ms": -67.26646423339844,
+        "notification_gap_ms": 114.89272117614746,
+        "notification_new_before_end_ms": -91.60256385803223
+      }
+    ],
+    "summary": {
+      "operation_ms": {
+        "n": 8,
+        "median": 3587.96226978302,
+        "minimum": 2827.4765014648438,
+        "maximum": 4636.14296913147
+      },
+      "main_gap_ms": {
+        "n": 8,
+        "median": 1473.1781482696533,
+        "minimum": 1337.8942012786865,
+        "maximum": 2085.089921951294
+      },
+      "notification_gap_ms": {
+        "n": 8,
+        "median": 110.53574085235596,
+        "minimum": 87.19587326049805,
+        "maximum": 129.92167472839355
+      },
+      "main_new_before_end_ms": {
+        "n": 8,
+        "median": -78.94372940063477,
+        "minimum": -97.97096252441406,
+        "maximum": -67.26646423339844
+      }
+    }
+  },
+  "candidate": {
+    "raw": [
+      {
+        "operation_ms": 3083.0981731414795,
+        "file": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-performance-20261110-restart-1-candidate/restart-availability.json",
+        "trial": 0,
+        "requests": 273,
+        "main_gap_ms": 61.23065948486328,
+        "main_new_before_end_ms": 1182.6236248016357,
+        "notification_gap_ms": 108.97159576416016,
+        "notification_new_before_end_ms": -93.79839897155762
+      },
+      {
+        "operation_ms": 3531.6574573516846,
+        "file": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-performance-20261110-restart-1-candidate/restart-availability.json",
+        "trial": 1,
+        "requests": 310,
+        "main_gap_ms": 88.72795104980469,
+        "main_new_before_end_ms": 1356.42671585083,
+        "notification_gap_ms": 83.50229263305664,
+        "notification_new_before_end_ms": -64.76426124572754
+      },
+      {
+        "operation_ms": 3956.3534259796143,
+        "file": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-performance-20261110-restart-1-candidate/restart-availability.json",
+        "trial": 2,
+        "requests": 338,
+        "main_gap_ms": 69.08607482910156,
+        "main_new_before_end_ms": 1523.1614112854004,
+        "notification_gap_ms": 87.72039413452148,
+        "notification_new_before_end_ms": -72.5102424621582
+      },
+      {
+        "operation_ms": 4316.517353057861,
+        "file": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-performance-20261110-restart-1-candidate/restart-availability.json",
+        "trial": 3,
+        "requests": 367,
+        "main_gap_ms": 66.61868095397949,
+        "main_new_before_end_ms": 1584.7702026367188,
+        "notification_gap_ms": 112.45894432067871,
+        "notification_new_before_end_ms": -108.84547233581543
+      },
+      {
+        "operation_ms": 2913.7425422668457,
+        "file": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-performance-20261110-restart-2-candidate/restart-availability.json",
+        "trial": 0,
+        "requests": 264,
+        "main_gap_ms": 94.38109397888184,
+        "main_new_before_end_ms": 1206.3100337982178,
+        "notification_gap_ms": 84.92922782897949,
+        "notification_new_before_end_ms": -62.28137016296387
+      },
+      {
+        "operation_ms": 3351.5679836273193,
+        "file": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-performance-20261110-restart-2-candidate/restart-availability.json",
+        "trial": 1,
+        "requests": 294,
+        "main_gap_ms": 54.11934852600098,
+        "main_new_before_end_ms": 1319.7851181030273,
+        "notification_gap_ms": 109.19570922851562,
+        "notification_new_before_end_ms": -101.13286972045898
+      },
+      {
+        "operation_ms": 4315.136909484863,
+        "file": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-performance-20261110-restart-2-candidate/restart-availability.json",
+        "trial": 2,
+        "requests": 351,
+        "main_gap_ms": 112.86354064941406,
+        "main_new_before_end_ms": 1588.7908935546875,
+        "notification_gap_ms": 135.37883758544922,
+        "notification_new_before_end_ms": -119.18830871582031
+      },
+      {
+        "operation_ms": 4749.546766281128,
+        "file": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-performance-20261110-restart-2-candidate/restart-availability.json",
+        "trial": 3,
+        "requests": 368,
+        "main_gap_ms": 110.36252975463867,
+        "main_new_before_end_ms": 1923.1562614440918,
+        "notification_gap_ms": 95.8704948425293,
+        "notification_new_before_end_ms": -93.75405311584473
+      }
+    ],
+    "summary": {
+      "operation_ms": {
+        "n": 8,
+        "median": 3744.0054416656494,
+        "minimum": 2913.7425422668457,
+        "maximum": 4749.546766281128
+      },
+      "main_gap_ms": {
+        "n": 8,
+        "median": 78.90701293945312,
+        "minimum": 54.11934852600098,
+        "maximum": 112.86354064941406
+      },
+      "notification_gap_ms": {
+        "n": 8,
+        "median": 102.42104530334473,
+        "minimum": 83.50229263305664,
+        "maximum": 135.37883758544922
+      },
+      "main_new_before_end_ms": {
+        "n": 8,
+        "median": 1439.7940635681152,
+        "minimum": 1182.6236248016357,
+        "maximum": 1923.1562614440918
+      }
+    }
+  },
+  "slow-notification": {
+    "raw": [
+      {
+        "operation_ms": 4954.3776512146,
+        "file": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-performance-20261110-restart-4-slow-notification/restart-availability.json",
+        "trial": 0,
+        "requests": 407,
+        "main_gap_ms": 53.67422103881836,
+        "main_new_before_end_ms": 3075.9830474853516,
+        "notification_gap_ms": 90.32130241394043,
+        "notification_new_before_end_ms": -72.2055435180664
+      },
+      {
+        "operation_ms": 5690.659999847412,
+        "file": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-performance-20261110-restart-4-slow-notification/restart-availability.json",
+        "trial": 1,
+        "requests": 464,
+        "main_gap_ms": 58.50863456726074,
+        "main_new_before_end_ms": 3431.4732551574707,
+        "notification_gap_ms": 73.46415519714355,
+        "notification_new_before_end_ms": -71.46096229553223
+      },
+      {
+        "operation_ms": 5756.53338432312,
+        "file": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-performance-20261110-restart-4-slow-notification/restart-availability.json",
+        "trial": 2,
+        "requests": 470,
+        "main_gap_ms": 92.27728843688965,
+        "main_new_before_end_ms": 3450.955390930176,
+        "notification_gap_ms": 104.35128211975098,
+        "notification_new_before_end_ms": -90.16966819763184
+      },
+      {
+        "operation_ms": 7054.044961929321,
+        "file": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-performance-20261110-restart-4-slow-notification/restart-availability.json",
+        "trial": 3,
+        "requests": 533,
+        "main_gap_ms": 56.94437026977539,
+        "main_new_before_end_ms": 4228.887319564819,
+        "notification_gap_ms": 128.20124626159668,
+        "notification_new_before_end_ms": -78.98759841918945
+      }
+    ],
+    "summary": {
+      "operation_ms": {
+        "n": 4,
+        "median": 5723.596692085266,
+        "minimum": 4954.3776512146,
+        "maximum": 7054.044961929321
+      },
+      "main_gap_ms": {
+        "n": 4,
+        "median": 57.726502418518066,
+        "minimum": 53.67422103881836,
+        "maximum": 92.27728843688965
+      },
+      "notification_gap_ms": {
+        "n": 4,
+        "median": 97.3362922668457,
+        "minimum": 73.46415519714355,
+        "maximum": 128.20124626159668
+      },
+      "main_new_before_end_ms": {
+        "n": 4,
+        "median": 3441.2143230438232,
+        "minimum": 3075.9830474853516,
+        "maximum": 4228.887319564819
+      }
+    }
+  }
+}

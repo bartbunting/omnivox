@@ -1,0 +1,50 @@
+[
+  {
+    "file": "OmnivoxEloquenceHelper32.exe",
+    "same": true,
+    "baseline": "325c3876f21459c473c5d40f95c9c705fa2d6b312742583da5eac8fcd42de1c3",
+    "candidate": "325c3876f21459c473c5d40f95c9c705fa2d6b312742583da5eac8fcd42de1c3"
+  },
+  {
+    "file": "libstdc++-6.dll",
+    "same": true,
+    "baseline": "38f844a00cb9f8864c5c4967859b4e53f6d9936659a1cdbbbb5f869886150203",
+    "candidate": "38f844a00cb9f8864c5c4967859b4e53f6d9936659a1cdbbbb5f869886150203"
+  },
+  {
+    "file": "OmnivoxDectalkHelper32.exe",
+    "same": true,
+    "baseline": "fa19e09f591d1551e2d74ae5e34e78b9413c0aba1a4282a663e1b12806ca98b3",
+    "candidate": "fa19e09f591d1551e2d74ae5e34e78b9413c0aba1a4282a663e1b12806ca98b3"
+  },
+  {
+    "file": "libgcc_s_seh-1.dll",
+    "same": true,
+    "baseline": "273073618002c7c3736535b74619a2a84725f349e3d618926b0434657bf156c7",
+    "candidate": "273073618002c7c3736535b74619a2a84725f349e3d618926b0434657bf156c7"
+  },
+  {
+    "file": "tgspeechbox/omnivox-tgspeechbox-helper.exe",
+    "same": true,
+    "baseline": "d37fca19b2567ebf8a7500776d65d8a6dd7cc885f9b35a746a4f8b1741b97ef9",
+    "candidate": "d37fca19b2567ebf8a7500776d65d8a6dd7cc885f9b35a746a4f8b1741b97ef9"
+  },
+  {
+    "file": "rutts/omnivox-rutts-helper.exe",
+    "same": true,
+    "baseline": "c611f3f496cbb4742391ce3d488dca62f85663710cee89eab2a33c6db3241b57",
+    "candidate": "c611f3f496cbb4742391ce3d488dca62f85663710cee89eab2a33c6db3241b57"
+  },
+  {
+    "file": "rhvoice/omnivox-rhvoice-helper.exe",
+    "same": true,
+    "baseline": "2c58ab215ce8fbea9d34214db63640e2c801ba84e38cba1f1dadcb05499dc133",
+    "candidate": "2c58ab215ce8fbea9d34214db63640e2c801ba84e38cba1f1dadcb05499dc133"
+  },
+  {
+    "file": "flite/omnivox-flite-helper.exe",
+    "same": true,
+    "baseline": "9b5c0ebb1ab3a3e8a9fdf1ddec921143956b436363d18d3063a6453c6bbcc3db",
+    "candidate": "9b5c0ebb1ab3a3e8a9fdf1ddec921143956b436363d18d3063a6453c6bbcc3db"
+  }
+]

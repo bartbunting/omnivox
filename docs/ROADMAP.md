@@ -290,8 +290,9 @@ The remaining configuration work is:
   Qualify the remaining engines and listening before broader adoption;
   ordinary reload remains independent. Concurrent control-bridge preparation
   now also applies to ordinary startup; source-gap and operation-time evidence
-  remain distinct. Resolve the measured Flite replacement penalty and foreground
-  handover delay before broader adoption.
+  remain distinct. The [replacement and handover follow-up](benchmarks/2026-11-10-replacement-and-handover.md)
+  resolves the measured Flite replacement penalty and foreground
+  handover delay; real-output listening remains before broader adoption.
   The [plan](plans/lightweight-preference-reload.md) tracks remaining acoustic/platform
   qualification and recovery hardening.
 - **Retained session work:** preserve the accepted session experiment at
