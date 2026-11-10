@@ -246,18 +246,39 @@ launch rejection preserves the worker; uncertain transfer still retires it.
 The integrated report separates ordinary response, source timing and startup cost,
 including the smaller helper-pipe capacity found and corrected during comparison.
 
+The [Windows multi-engine slice](../benchmarks/2026-11-10-windows-multi-engine.md)
+extends qualification to WinRT, RuTTS, TGSpeechBox, Eloquence, DECtalk and RHVoice.
+Each of six concurrently initialized helpers can fail and recover independently.
+The guard uses at most eight retained helper slots and one creation/handoff at a
+time. Console-free .NET helper builds and compatible executable-path handling
+preserve child restrictions without changing helper protocols. The client also
+overlaps bridge startup with ordinary owner preparation. The report separates
+startup spans, reload responsiveness and source availability from acoustic onset.
+The expanded functional matrix passes, but the longer Flite replacement comparison
+shows 71 ms guarded versus 33 ms ordinary source latency. Before broader adoption,
+vary interruption phase with identical text/chunking and compare a minimal
+eSpeak/Flite profile with the eight-engine profile. Correlate queue wait, native
+synthesis and source events; investigate the difference without relaxing
+cancellation, ownership or coherent request settings. WinRT's character timing
+also requires more evidence before declaring performance parity.
+
 Next slices:
 
 1. Use the isolated listening profile to assess real character navigation,
    replacement, notifications, settings reload and restart on the private build.
    Source markers and null output do not establish audible acceptance.
-2. Qualify the actual everyday Windows engines, including concurrent helper
-   initialization and their cancellation/recovery behavior. Generalize the bounded
-   retained helper set only as needed. Resolve child-creating helpers explicitly;
-   do not silently exclude them or replace the ordinary path.
-3. Measure startup/recovery costs separately from speech blackout. Keep optional
-   discovery out of first usable speech where supported. Qualify native macOS
-   separately, then prepare a broader prototype; no automatic installed deployment.
+2. Qualify the remaining engines and platforms: Windows Piper needs its model and
+   companion; MBROLA and external wrappers need supported child creation and
+   native qualification. Do not silently exclude engines or replace ordinary launch.
+3. Test foreground configuration before retiring the old main, independently of
+   notification startup. The continuous source probe found a 1.4–1.6 second
+   foreground handover gap with eight engines even after bridge startup overlap;
+   the client waits for notification initialization before final voice setup.
+   Preserve old speech on preparation failure and test a deliberately slow or
+   failed notification lane. Compare first usable foreground speech, source gap
+   and total operation time separately. Keep optional discovery out of first
+   usable speech where supported without weakening ownership or request coherence.
+   Qualify native macOS separately; no automatic installed deployment.
 
 Preserve ordinary preference reload independently. Loss of all cleanup authority,
 reboot reconciliation and broader asset-management recovery remain distinct work.

@@ -36,9 +36,14 @@ found that job accounting could precede actual helper completion. The bounded
 [Rust components](benchmarks/2026-11-10-windows-owned-creation.md) led to
 [integrated guarded eSpeak/Flite](benchmarks/2026-11-10-windows-creation-integration.md):
 actual process ownership, native failure checks and compiled-client recovery now
-pass. It remains opt-in; other engines use ordinary launch and lightweight reload.
-Concurrent client bridge preparation is implemented separately. Everyday-engine
-coverage, acoustic/listening acceptance and native macOS remain in the
+pass. The [multi-engine follow-up](benchmarks/2026-11-10-windows-multi-engine.md)
+extends Windows x64 coverage to WinRT, RuTTS, TGSpeechBox, Eloquence, DECtalk and
+RHVoice, including six independently retained helpers in each worker.
+It remains opt-in; unsupported engines use ordinary launch and lightweight reload.
+Concurrent client bridge preparation now also applies to ordinary startup.
+The expanded timing probes leave a Flite replacement penalty and a foreground
+handover gap unresolved; functional engine coverage is not performance acceptance.
+Remaining engine coverage, acoustic/listening acceptance and native macOS remain in the
 [plan](plans/lightweight-preference-reload.md). This branch is not published or
 deployed to installed speech.
 

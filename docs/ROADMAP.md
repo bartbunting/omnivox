@@ -283,11 +283,15 @@ The remaining configuration work is:
   [ADR 0019](adr/0019-windows-native-creation-ownership.md) accepts the creation
   boundary; its [Rust components](benchmarks/2026-11-10-windows-owned-creation.md)
   pass native tests. The [integrated Windows prototype](benchmarks/2026-11-10-windows-creation-integration.md)
-  now enables explicit guarded eSpeak/Flite, with actual process completion,
-  independent recovery and direct speech pipes. Qualify everyday engines and
-  listening before broader adoption; ordinary reload remains independent.
-  Concurrent client bridge preparation now reduces operation time
-  independently, without establishing a smaller source gap.
+  established explicit guarded eSpeak/Flite, with actual process completion,
+  independent recovery and direct speech pipes. The
+  [multi-engine follow-up](benchmarks/2026-11-10-windows-multi-engine.md) adds
+  WinRT, RuTTS, TGSpeechBox, Eloquence, DECtalk and RHVoice on Windows x64.
+  Qualify the remaining engines and listening before broader adoption;
+  ordinary reload remains independent. Concurrent control-bridge preparation
+  now also applies to ordinary startup; source-gap and operation-time evidence
+  remain distinct. Resolve the measured Flite replacement penalty and foreground
+  handover delay before broader adoption.
   The [plan](plans/lightweight-preference-reload.md) tracks remaining acoustic/platform
   qualification and recovery hardening.
 - **Retained session work:** preserve the accepted session experiment at

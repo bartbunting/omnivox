@@ -1,0 +1,8 @@
+{
+  "executable": "0e1d2b1e7bed15bcea8c45188eafa55c542aa315bc1fa676da3f4b6a070baca8",
+  "staging_source_commit": "5a892fac5ffa17a362940dbff45c3c3bd5035fa4",
+  "staging_patch_sha256": "1adc2f45f7c7dc2bdd94010acada41527944c432174a9240eadad38e224b3384",
+  "implementation_commit": "dce3f3b98d28c59d3cd591cfd9d85c6f56ad3910",
+  "matching_executable_source": true,
+  "client_commit": "d44a2c9a4af69f8c2373592c6c866464082323f3"
+}

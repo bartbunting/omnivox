@@ -1,0 +1,114 @@
+[
+  {
+    "engine": "flite",
+    "guarded": false,
+    "mode": "replace",
+    "metric": "replacement_source_ms",
+    "n": 160,
+    "median_ms": 33.3068555,
+    "block_medians": [
+      26.243830000000003,
+      32.91538250000001,
+      33.232254999999995,
+      38.1648
+    ]
+  },
+  {
+    "engine": "flite",
+    "guarded": true,
+    "mode": "replace",
+    "metric": "replacement_source_ms",
+    "n": 160,
+    "median_ms": 71.419261,
+    "block_medians": [
+      77.19843850000001,
+      31.42387,
+      77.9451255,
+      73.2915865
+    ]
+  },
+  {
+    "engine": "dectalk",
+    "guarded": false,
+    "mode": "replace",
+    "metric": "replacement_source_ms",
+    "n": 160,
+    "median_ms": 125.18499750000001,
+    "block_medians": [
+      94.8052285,
+      131.9816415,
+      139.82804149999998,
+      152.4998545
+    ]
+  },
+  {
+    "engine": "dectalk",
+    "guarded": true,
+    "mode": "replace",
+    "metric": "replacement_source_ms",
+    "n": 160,
+    "median_ms": 126.83281350000001,
+    "block_medians": [
+      161.944906,
+      116.328321,
+      115.3463095,
+      135.5176935
+    ]
+  },
+  {
+    "engine": "rutts",
+    "guarded": false,
+    "mode": "replace",
+    "metric": "replacement_source_ms",
+    "n": 160,
+    "median_ms": 10.085242000000001,
+    "block_medians": [
+      9.324258,
+      10.725466,
+      11.501024000000001,
+      9.116695499999999
+    ]
+  },
+  {
+    "engine": "rutts",
+    "guarded": true,
+    "mode": "replace",
+    "metric": "replacement_source_ms",
+    "n": 160,
+    "median_ms": 11.593987,
+    "block_medians": [
+      14.3883665,
+      10.016426500000001,
+      12.442594,
+      11.201044
+    ]
+  },
+  {
+    "engine": "eloquence",
+    "guarded": false,
+    "mode": "stop",
+    "metric": "cancellation_ms",
+    "n": 160,
+    "median_ms": 2.285899,
+    "block_medians": [
+      2.124995,
+      2.2687305,
+      2.592161,
+      2.0788245
+    ]
+  },
+  {
+    "engine": "eloquence",
+    "guarded": true,
+    "mode": "stop",
+    "metric": "cancellation_ms",
+    "n": 160,
+    "median_ms": 2.2520045,
+    "block_medians": [
+      1.922205,
+      2.4894,
+      2.437682,
+      2.695001
+    ]
+  }
+]

@@ -17,6 +17,7 @@ acceptance on every platform.
 
 | Concern | Retained comparison / reproduction source | Measurement boundary |
 | --- | --- | --- |
+| Windows multiple engines and startup | [Eight-engine ownership and client preparation](2026-11-10-windows-multi-engine.md) | Six retained helpers, independent recovery, matched speech during reload, compiled client startup and continuous source handover probes. |
 | Windows creation integration | [Opt-in eSpeak/Flite prototype](2026-11-10-windows-creation-integration.md) | Native failures, helper fallback/recovery, compiled client, pipe correction and matched reload/interaction timing. |
 | Windows native creation | [Rust guard creation components](2026-11-10-windows-owned-creation.md) | Actual process handles, interrupted handoffs and pending creation; product entry remains gated pending integration. |
 | Lightweight preference reload | [Independent punctuation investigation](2026-11-10-lightweight-reload.md) | Release/maintenance/candidate source-start comparisons, active reload overlap, native helpers, source Emacs, failure checks and platform limits. Private prototype; no acoustic or public-release claim. |

@@ -28,6 +28,12 @@ passes a checksum-pinned Roslyn compiler and .NET 4.0 reference assemblies
 through `OMNIVOX_CSC` and `OMNIVOX_REFERENCE_DIR`; it does not maintain a
 second copy of the helper source.
 
+The executables use the Windows GUI subsystem to avoid console-host creation;
+they create no application window and keep the same redirected stdin/stdout
+protocol. This permits guard-owned startup with child creation restricted.
+Guarded engine qualification is recorded separately in the
+[Windows multi-engine report](../docs/benchmarks/2026-11-10-windows-multi-engine.md).
+
 Run the source-contract checks without Windows or either proprietary runtime:
 
 ```sh

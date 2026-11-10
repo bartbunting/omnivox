@@ -73,8 +73,13 @@ creates suspended processes; the guard releases helpers after acknowledged direc
 pipe transfer. Speech and PCM bypass the guard. Confirmed launch rejection
 preserves the worker and creation channel; uncertain transfer requires retirement.
 [Integrated eSpeak/Flite qualification](benchmarks/2026-11-10-windows-creation-integration.md)
-records failure checks, client recovery and performance limits. Other enabled
-engines reject guarded preparation and remain available through ordinary launch.
+established the initial scope. The [multi-engine follow-up](benchmarks/2026-11-10-windows-multi-engine.md)
+adds WinRT, RuTTS, TGSpeechBox, Eloquence, DECtalk and RHVoice on Windows x64.
+The guard retains a bounded set of helper handles; creation and handoff remain
+serialized, while native initialization can overlap. Other enabled engines
+reject guarded preparation and remain available through ordinary launch.
+The client overlaps control-bridge startup with ordinary owner preparation as
+well as emergency preparation; descriptor validation still precedes attachment.
 The earlier [job-accounting counterexample](benchmarks/2026-11-10-windows-guard-qualification.md)
 is retained; actual process-handle completion now precedes native cleanup proof.
 The local management

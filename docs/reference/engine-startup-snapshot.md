@@ -358,11 +358,12 @@ logging setup so damaged settings cannot obstruct cleanup.
 
 ### Windows qualification gate
 
-Windows `--guarded` startup is opt-in and limited to explicit eSpeak/Flite
-profiles. Ordinary unguarded speech and independent preference reload remain
-available for other engines. Unsupported guarded profiles fail preparation before
+Windows `--guarded` startup is opt-in. Qualified Windows x64 profiles may enable
+eSpeak, WinRT, Flite, RuTTS, TGSpeechBox, Eloquence, DECtalk and RHVoice, subject
+to their usual runtime/data requirements. Ordinary unguarded speech and independent
+preference reload remain available for other engines. Unsupported guarded profiles fail preparation before
 native creation; they do not silently disable engines or replace working speech.
-The [integrated qualification](../benchmarks/2026-11-10-windows-creation-integration.md)
+The [multi-engine qualification](../benchmarks/2026-11-10-windows-multi-engine.md)
 records the tested private payload, failures, performance and remaining limits.
 
 The earlier [job-accounting counterexample](../benchmarks/2026-11-10-windows-guard-qualification.md)
@@ -378,18 +379,28 @@ native cancellation remain. Speech does not pass through this control channel.
 ### Windows creation candidate
 
 Under [ADR 0019](../adr/0019-windows-native-creation-ownership.md), the Windows
-guard creates its worker and Flite helper itself. The [component evidence](../benchmarks/2026-11-10-windows-owned-creation.md)
+guard creates its worker and each supported helper itself. The [component evidence](../benchmarks/2026-11-10-windows-owned-creation.md)
 records the earlier milestone; integrated qualification is separate.
 
-Preparation accepts only explicit eSpeak/Flite registration snapshots. It rejects
-other enabled engines and external registrations without silently disabling them.
-Creation uses one bounded background task, with at most one worker and one helper
-retained concurrently. Each starts suspended, atomically assigned to the guard's
+Preparation accepts only the supported engine registration snapshots listed above.
+It rejects other enabled engines and external registrations without silently
+disabling them.
+Creation uses one bounded background task, with at most one worker and eight helper
+slots. Each slot is bound to one retained registration; a replacement requires
+actual completion of its previous helper. Other live helpers remain independent.
+Each process starts suspended, atomically assigned to the guard's
 private kill-on-close job, with restricted child creation and explicit inherited
 handles. Root verification remains immediately before creation. Helper invocation
 matching preserves native program/argument/environment values; it supplements
 existing payload, managed-asset and helper-protocol checks without adding a disk
 scan to guard preparation or speech admission.
+
+Eloquence and DECtalk use console-free executable builds with unchanged stdio
+protocols. The native launcher removes a verbatim drive/UNC prefix only within
+the ordinary Windows path-length bound and when `GetFullPathNameW` leaves the
+remaining path unchanged. Otherwise it retains the original native path. Launch
+identity, executable checks, arguments and environment remain unchanged; this
+compatibility step performs no file discovery and preserves native UTF-16 units.
 
 The worker inherits one private duplex creation channel. Frames are bounded to
 8 KiB. A `create` request contains positive, increasing `request_id`, `engine`

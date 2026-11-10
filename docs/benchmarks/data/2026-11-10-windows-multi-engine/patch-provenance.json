@@ -1,0 +1,37 @@
+[
+  {
+    "runtime": "runtime-1.json",
+    "patch": "source-1.patch",
+    "base": "10e02abcff95e095df1d69db0c7e52848b438503",
+    "sha256": "a20aee86db4e049f73563b2911e59e2c607bfe7448627eb686fed179670dd137",
+    "matched": true
+  },
+  {
+    "runtime": "runtime-2.json",
+    "patch": "source-2.patch",
+    "base": "10e02abcff95e095df1d69db0c7e52848b438503",
+    "sha256": "3b8113898dbc03ff1f2a4c3fc78cf171a05e5f54e70f0a669e09ae032db81914",
+    "matched": true
+  },
+  {
+    "runtime": "runtime-full.json",
+    "patch": "source-full.patch",
+    "base": "10e02abcff95e095df1d69db0c7e52848b438503",
+    "sha256": "bdd6ca4dd6db2ecac84fb7099a9f525bf1a22c47495845cbbfe77a57a8f35313",
+    "matched": true
+  },
+  {
+    "runtime": "runtime-full2.json",
+    "patch": "source-full2.patch",
+    "base": "5a892fac5ffa17a362940dbff45c3c3bd5035fa4",
+    "sha256": "1855a6658b5bcd783d34784d59f629fa2e660d3111a4c7548d91283350ed1a41",
+    "matched": true
+  },
+  {
+    "runtime": "runtime-path.json",
+    "patch": "source-path.patch",
+    "base": "5a892fac5ffa17a362940dbff45c3c3bd5035fa4",
+    "sha256": "1adc2f45f7c7dc2bdd94010acada41527944c432174a9240eadad38e224b3384",
+    "matched": true
+  }
+]
