@@ -79,6 +79,13 @@ impl<S: Read + Write> Channel<S> {
         Ok(())
     }
     pub fn poll(&mut self) -> Result<Option<Request>> {
+        let request = self.poll_as::<Request>()?;
+        if let Some(request) = &request {
+            anyhow::ensure!(request.request_id > 0, "missing guard request identity");
+        }
+        Ok(request)
+    }
+    pub fn poll_as<T: serde::de::DeserializeOwned>(&mut self) -> Result<Option<T>> {
         if self.closed {
             return Ok(None);
         }
@@ -130,8 +137,7 @@ impl<S: Read + Write> Channel<S> {
             } else {
                 Some(Instant::now())
             };
-            let request: Request = serde_json::from_slice(&line)?;
-            anyhow::ensure!(request.request_id > 0, "missing guard request identity");
+            let request = serde_json::from_slice(&line)?;
             return Ok(Some(request));
         }
         Ok(None)

@@ -34,9 +34,11 @@ and status-backpressure checks pass. The
 passes native pipe and several recovery checks but fails strict descendant
 completion; Windows guarded startup is unavailable pending that proof. The
 [bounded handoff experiment](benchmarks/2026-11-10-guard-handoff-and-preparation.md)
-passes 132 native cases with actual Flite handles, but its creation boundary is
-not integrated into product Rust. Concurrent client bridge preparation is
-implemented and measured separately. Windows
+passes 132 native cases with actual Flite handles. The
+[Rust creation implementation](benchmarks/2026-11-10-windows-owned-creation.md)
+now passes native component checks, with guarded product startup still gated
+until integrated speech/recovery qualification. Concurrent client bridge
+preparation is implemented and measured separately. Windows
 qualification, acoustic timing and native macOS remain in the
 [plan](plans/lightweight-preference-reload.md). This branch is not published or
 deployed to installed speech.

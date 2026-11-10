@@ -1,6 +1,12 @@
 //! Opt-in native cleanup authority, independent of local speech forwarding.
 //! Native lifetime and local control use platform-specific handles. Speech
 //! retains the ordinary anonymous-pipe path and never passes through the guard.
+#[cfg(windows)]
+#[path = "native_guard/windows/helper_client.rs"]
+mod helper_client;
+#[cfg(windows)]
+#[path = "native_guard/windows/helper_wire.rs"]
+mod helper_wire;
 #[cfg(target_os = "linux")]
 #[path = "native_guard/linux.rs"]
 mod os;
@@ -12,7 +18,15 @@ mod readiness;
 #[cfg(windows)]
 #[path = "native_guard/windows/readiness.rs"]
 mod readiness;
+#[cfg(windows)]
+#[path = "native_guard/windows/owned.rs"]
+mod windows_owned;
+#[cfg(windows)]
+#[path = "native_guard/windows/plan.rs"]
+mod windows_plan;
 mod wire;
+#[cfg(windows)]
+use windows_owned::Native;
 
 use crate::voice_validation::owned::platform;
 use anyhow::{Context, Result};
@@ -21,6 +35,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::fs::File;
 use std::io::{self, BufReader, Read, Write};
+#[cfg(target_os = "linux")]
 use std::process::{Child, Command, Stdio};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -30,6 +45,21 @@ pub const MODE: &str = "--native-cleanup-guard";
 pub const CLIENT: &str = "--native-guard-control";
 const MAX_BOOTSTRAP: usize = 32 * 1024 * 1024;
 const TICK: Duration = Duration::from_millis(5);
+
+#[cfg(windows)]
+pub fn worker_arguments(mut args: Vec<String>) -> Result<Vec<String>> {
+    if args
+        .first()
+        .is_some_and(|arg| arg == os::native::creation::WORKER_MODE)
+    {
+        let handle = args
+            .get(1)
+            .context("missing private helper creation channel")?;
+        helper_client::install(handle)?;
+        args.drain(..2);
+    }
+    Ok(args)
+}
 
 #[derive(Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -68,6 +98,8 @@ pub struct Peer {
 
 impl Peer {
     pub fn prepare(startup: &Startup, worker: &str) -> Result<(Self, Io<File>, Io<File>)> {
+        #[cfg(windows)]
+        windows_plan::Plan::validate(startup)?;
         startup.verify()?;
         let bootstrap = serde_json::to_vec(&Bootstrap {
             worker: worker.into(),
@@ -146,7 +178,18 @@ impl Peer {
         Ok(reply)
     }
     pub fn start(&mut self) -> Result<()> {
-        let reply = self.request("start")?;
+        let deadline = Instant::now() + TIMEOUT;
+        let mut reply = self.request("start")?;
+        while reply["started"] != true && reply["tree_retired"] != true {
+            anyhow::ensure!(
+                reply["native_error"].is_null(),
+                "native start failed: {}",
+                reply["native_error"]
+            );
+            anyhow::ensure!(Instant::now() < deadline, "guard native start unconfirmed");
+            std::thread::sleep(TICK);
+            reply = self.request("status")?;
+        }
         anyhow::ensure!(
             reply["started"] == true && reply["tree_retired"] == false,
             "guard did not establish native ownership"
@@ -183,12 +226,14 @@ impl Peer {
     }
 }
 
+#[cfg(target_os = "linux")]
 struct Native {
     child: Child,
     tree: platform::Tree,
     assigned: bool,
     retired: bool,
 }
+#[cfg(target_os = "linux")]
 impl Native {
     fn poll(&mut self) -> Result<()> {
         if self.retired {
@@ -209,6 +254,7 @@ impl Native {
         Ok(())
     }
 }
+#[cfg(target_os = "linux")]
 impl Drop for Native {
     fn drop(&mut self) {
         let deadline = Instant::now() + TIMEOUT;
@@ -224,6 +270,8 @@ struct Driver {
     native: Option<Native>,
     pipes: Option<[File; 3]>,
     startup: Option<Startup>,
+    #[cfg(windows)]
+    plan: Option<windows_plan::Plan>,
     parent: os::Parent,
     completion: os::Completion,
     endpoint: GuardEndpoint,
@@ -242,6 +290,8 @@ impl Driver {
     fn retire(&mut self) {
         self.closing = true;
         self.startup.take();
+        #[cfg(windows)]
+        self.plan.take();
         self.pipes.take();
     }
     fn start(&mut self) -> Result<()> {
@@ -255,36 +305,47 @@ impl Driver {
         }
         self.attempted = true;
         let startup = self.startup.take().context("missing guard startup")?;
-        startup.verify()?;
         anyhow::ensure!(
             !os::ended(&self.parent)?,
             "forwarding owner ended before native start"
         );
         let [input, output, error] = self.pipes.take().context("guard pipes already consumed")?;
-        let tree = platform::Tree::for_speech()?;
-        let mut command = Command::new(&startup.executable.path);
-        command
-            .args(&startup.arguments)
-            .current_dir(&startup.working_directory);
-        startup.environment.apply(&mut command);
-        command
-            .env_remove("OMNIVOX_REMOTE_WORKER")
-            .env("OMNIVOX_OWNED_WORKER", "1")
-            .stdin(Stdio::from(input))
-            .stdout(Stdio::from(output))
-            .stderr(Stdio::from(error));
-        platform::configure_speech(&mut command);
-        let child = command.spawn()?;
-        drop(command);
-        self.native = Some(Native {
-            child,
-            tree,
-            assigned: false,
-            retired: false,
-        });
-        let native = self.native.as_mut().unwrap();
-        native.tree.assign(&native.child)?;
-        native.assigned = true;
+        #[cfg(windows)]
+        {
+            self.native = Some(Native::start(
+                startup,
+                [input, output, error],
+                self.plan.take().context("missing native creation plan")?,
+            )?);
+        }
+        #[cfg(target_os = "linux")]
+        {
+            startup.verify()?;
+            let tree = platform::Tree::for_speech()?;
+            let mut command = Command::new(&startup.executable.path);
+            command
+                .args(&startup.arguments)
+                .current_dir(&startup.working_directory);
+            startup.environment.apply(&mut command);
+            command
+                .env_remove("OMNIVOX_REMOTE_WORKER")
+                .env("OMNIVOX_OWNED_WORKER", "1")
+                .stdin(Stdio::from(input))
+                .stdout(Stdio::from(output))
+                .stderr(Stdio::from(error));
+            platform::configure_speech(&mut command);
+            let child = command.spawn()?;
+            drop(command);
+            self.native = Some(Native {
+                child,
+                tree,
+                assigned: false,
+                retired: false,
+            });
+            let native = self.native.as_mut().unwrap();
+            native.tree.assign(&native.child)?;
+            native.assigned = true;
+        }
         // The actual owner still has to write the validated owned START frame.
         Ok(())
     }
@@ -295,6 +356,14 @@ impl Driver {
         if !self.io_retired {
             self.io_retired = os::completed(&mut self.completion, &self.parent)?;
         }
+        #[cfg(windows)]
+        if let Some(native) = &mut self.native {
+            native.poll(self.closing)?;
+            if native.closing {
+                self.retire();
+            }
+        }
+        #[cfg(target_os = "linux")]
         if self.closing {
             if let Some(native) = &mut self.native {
                 native.poll()?;
@@ -303,9 +372,20 @@ impl Driver {
         Ok(())
     }
     fn reply(&self, id: u64, error: Option<String>) -> Value {
+        #[cfg(windows)]
+        let started = self.native.as_ref().is_some_and(|native| native.started);
+        #[cfg(target_os = "linux")]
+        let started = self.native.is_some();
+        #[cfg(windows)]
+        let native_error = self
+            .native
+            .as_ref()
+            .and_then(|native| native.error.as_deref());
+        #[cfg(target_os = "linux")]
+        let native_error: Option<&str> = None;
         json!({"type":"guard_status","request_id":id,"guard":self.endpoint.guard,"worker":self.endpoint.worker,
-            "attempted":self.attempted,"started":self.native.is_some(),"tree_retired":self.tree_retired(),
-            "io_retired":self.io_retired,"error":error})
+            "attempted":self.attempted,"started":started,"tree_retired":self.tree_retired(),
+            "io_retired":self.io_retired,"error":error,"native_error":native_error})
     }
     fn command(&mut self, request: &Request, parent: bool) -> Value {
         let result: Result<()> = (|| {
@@ -367,6 +447,8 @@ pub fn run(arguments: &[String]) -> Result<()> {
     let mut bytes = vec![0; length];
     control.read_exact(&mut bytes)?;
     let bootstrap: Bootstrap = serde_json::from_slice(&bytes)?;
+    #[cfg(windows)]
+    let plan = windows_plan::Plan::prepare(&bootstrap.startup)?;
     platform::initialize()?;
     let guard = local::new_uuid()?;
     let listener = os::Listener::bind(&guard)?;
@@ -390,6 +472,8 @@ pub fn run(arguments: &[String]) -> Result<()> {
         native: None,
         pipes: Some([input, output, error]),
         startup: Some(bootstrap.startup),
+        #[cfg(windows)]
+        plan: Some(plan),
         parent,
         completion,
         endpoint,

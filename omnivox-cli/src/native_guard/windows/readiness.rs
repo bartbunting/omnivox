@@ -14,6 +14,11 @@ pub(super) fn wait(
 ) -> io::Result<()> {
     let mut events = Vec::with_capacity(10);
     let mut deadline = (driver.closing && !driver.tree_retired()).then(|| Instant::now() + TICK);
+    if let Some(native) = &driver.native {
+        if native.readiness(&mut events, &mut deadline)? {
+            return Ok(());
+        }
+    }
     if !driver.closing || !driver.io_retired {
         events.push(driver.parent.as_raw_handle());
     }
@@ -37,10 +42,10 @@ pub(super) fn wait(
     } // A new listener must issue accept on this thread.
     os::native::wait(&events, os::millis(deadline))
 }
-fn earlier(deadline: &mut Option<Instant>, candidate: Instant) {
+pub(super) fn earlier(deadline: &mut Option<Instant>, candidate: Instant) {
     *deadline = Some(deadline.map_or(candidate, |old| old.min(candidate)));
 }
-fn channel(
+pub(super) fn channel(
     channel: &Channel<Control>,
     events: &mut Vec<RawHandle>,
     deadline: &mut Option<Instant>,

@@ -18,6 +18,9 @@ pub mod host_preferences;
 pub mod logical_voices;
 pub mod macos;
 pub mod marker_protocol;
+#[cfg(windows)]
+#[doc(hidden)]
+pub mod native_helper;
 pub mod native_parameters;
 pub mod native_synthesis;
 #[cfg(feature = "piper")]

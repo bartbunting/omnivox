@@ -30,6 +30,12 @@ pub struct Blocking {
     timeout: Option<Duration>,
 }
 impl Blocking {
+    pub(super) fn from_handle(handle: OwnedHandle) -> io::Result<Self> {
+        Ok(Self {
+            stream: Control::new(handle)?,
+            timeout: Some(TIMEOUT),
+        })
+    }
     fn retry<T>(
         &mut self,
         writing: bool,
@@ -162,6 +168,19 @@ fn connect(address: &str) -> io::Result<Control> {
         }
         std::thread::sleep(super::TICK);
     }
+}
+
+pub(super) fn channel_pair() -> io::Result<(Control, OwnedHandle)> {
+    let id = local::new_uuid().map_err(io::Error::other)?;
+    let mut listener = Listener::bind(&id)?;
+    let client = connect(listener.address())?;
+    let server = loop {
+        if let Some(stream) = listener.accept()? {
+            break stream;
+        }
+        std::thread::sleep(super::TICK);
+    };
+    Ok((server, client.into_handle()?))
 }
 pub(super) fn millis(deadline: Option<Instant>) -> u32 {
     deadline.map_or(u32::MAX, |d| {

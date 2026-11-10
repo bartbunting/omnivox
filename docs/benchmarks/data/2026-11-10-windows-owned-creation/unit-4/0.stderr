@@ -1,0 +1,4 @@
+
+thread 'native_guard::windows_owned::tests::worker_loss_during_creation_cannot_release_a_late_helper' (36096) panicked at omnivox-cli/src/native_guard/windows/owned_tests.rs:36:9:
+native test deadline: Some("Access is denied. (os error 5)")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

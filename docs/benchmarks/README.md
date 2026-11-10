@@ -17,6 +17,7 @@ acceptance on every platform.
 
 | Concern | Retained comparison / reproduction source | Measurement boundary |
 | --- | --- | --- |
+| Windows native creation | [Rust guard creation components](2026-11-10-windows-owned-creation.md) | Actual process handles, interrupted handoffs and pending creation; product entry remains gated pending integration. |
 | Lightweight preference reload | [Independent punctuation investigation](2026-11-10-lightweight-reload.md) | Release/maintenance/candidate source-start comparisons, active reload overlap, native helpers, source Emacs, failure checks and platform limits. Private prototype; no acoustic or public-release claim. |
 | Resident preference delivery | [Owned-worker punctuation reload](2026-11-10-resident-reload.md) | Negotiated stdio control, resident preparation, independent Emacsvox results and matched release/native qualification. |
 | Complete host preference reload | [Capital pitch, chunking and saved defaults](2026-11-10-host-preferences.md) | Same bounded path, coherent requests, preserved client choices and 8,192 matched requests. |

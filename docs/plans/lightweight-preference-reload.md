@@ -226,9 +226,9 @@ The [bounded Flite handoff](../benchmarks/2026-11-10-guard-handoff-and-preparati
 now passes 132 native cases, including worker death during handoff and concurrent
 creation. It retains actual process handles before execution and requires their
 completion. The result supports a Windows creation service but does not qualify
-the current product guard. Retained ADR 0015's completion criterion and the
-compatibility of child-creating helpers need explicit review before adopting that
-boundary. No accepted decision has been rewritten.
+the current product guard. [ADR 0019](../adr/0019-windows-native-creation-ownership.md)
+now accepts the narrower creation boundary and refines the retained completion
+criterion. Child-creating helpers remain outside its initial qualification scope.
 
 Concurrent owner/control-bridge preparation is implemented independently in the
 client. Matched Windows emergency-call medians fall from 876 to 696 ms. A focused
@@ -237,11 +237,13 @@ it does not establish acoustic or tail non-regression. Both
 old lanes continue source speech during repeated preparation and preference
 reload. Preserve the existing steady-speech baseline evidence.
 
-Next, implement [ADR 0019](../adr/0019-windows-native-creation-ownership.md)'s bounded
-Rust creation interface and compatibility scope: one
-actual Flite helper first, direct PCM pipes, verified launch inputs, actual process
-handles and cancellation through failed transfers. Resolve child-creating helpers
-before broader enablement; do not silently exclude them. Keep Windows guarded startup unavailable
-until native proof is integrated and qualified. Preserve ordinary preference
+The [Rust creation components](../benchmarks/2026-11-10-windows-owned-creation.md)
+now pass native tests behind the Windows startup gate. Next, qualify integrated
+eSpeak/Flite speech, interruption, owner/helper failure, compiled-client recovery
+and matched response/source timing during reload. Preserve working speech on
+confirmed helper-launch failures; uncertain transfers still require native
+retirement. Resolve child-creating helpers before broader enablement; do not
+silently exclude them. Keep Windows guarded startup unavailable until native
+proof is integrated and qualified. Preserve ordinary preference
 reload independently. Native macOS and acoustic/listening checks remain separate
 gates; the guard is not enabled by default.

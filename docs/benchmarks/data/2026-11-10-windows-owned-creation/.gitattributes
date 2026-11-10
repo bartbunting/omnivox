@@ -1,0 +1,3 @@
+# Preserve raw output and source snapshots, including CRLF and trailing spaces.
+# Normal source and documentation whitespace checks apply outside this pack.
+** -text -whitespace

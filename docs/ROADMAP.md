@@ -280,9 +280,12 @@ The remaining configuration work is:
   found job-accounting zero can precede helper process-handle completion. Retain
   the transport work and keep Windows guarded startup unavailable. The bounded
   [creation-handoff experiment](benchmarks/2026-11-10-guard-handoff-and-preparation.md)
-  establishes actual-handle completion for Flite and concurrent creation; it
-  requires a reviewed helper-creation and compatibility boundary before product
-  integration. Concurrent client bridge preparation now reduces operation time
+  establishes actual-handle completion for Flite and concurrent creation.
+  [ADR 0019](adr/0019-windows-native-creation-ownership.md) accepts the creation
+  boundary; its [Rust components](benchmarks/2026-11-10-windows-owned-creation.md)
+  pass native tests behind the Windows startup gate. Complete integrated speech,
+  recovery and performance checks before enabling explicit guarded eSpeak/Flite.
+  Concurrent client bridge preparation now reduces operation time
   independently, without establishing a smaller source gap.
   The [plan](plans/lightweight-preference-reload.md) tracks remaining acoustic/platform
   qualification and recovery hardening.

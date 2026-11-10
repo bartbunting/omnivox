@@ -1,0 +1,15 @@
+
+running 5 tests
+test native_guard::windows_owned::tests::changed_identity_and_duplicate_creation_fail_without_unbounded_children ... ok
+test native_guard::windows_owned::tests::lost_offer_or_ack_retires_the_receiver_and_actual_helper ... ok
+test native_guard::windows_owned::tests::pending_creation_keeps_retirement_unconfirmed_and_control_responsive ... ok
+test native_guard::windows_owned::tests::unaccounted_job_member_never_becomes_a_retirement_receipt ... ok
+test native_guard::windows_owned::tests::worker_loss_during_creation_cannot_release_a_late_helper ... FAILED
+
+failures:
+
+failures:
+    native_guard::windows_owned::tests::worker_loss_during_creation_cannot_release_a_late_helper
+
+test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 378 filtered out; finished in 18.86s
+

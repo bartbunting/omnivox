@@ -72,6 +72,10 @@ opening management state. Native testing observed empty job accounting before a
 helper process handle signalled completion; the
 [qualification report](benchmarks/2026-11-10-windows-guard-qualification.md)
 records the counterexample, successful transport checks and remaining proof work.
+The [Rust creation candidate](benchmarks/2026-11-10-windows-owned-creation.md)
+now retains actual worker/helper handles before execution, creates them outside
+the control loop and hands direct helper pipes to the worker. Its component
+checks pass; integrated qualification still gates Windows guarded startup.
 The local management
 service coordinates installation and Apply; it is separate from speech admission.
 See [local activation](guides/voice-management.md#local-provider).

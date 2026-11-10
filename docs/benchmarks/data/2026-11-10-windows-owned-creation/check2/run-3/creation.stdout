@@ -1,0 +1,6 @@
+
+running 1 test
+test native_guard::os::native::creation::tests::quoted_native_arguments_keep_empty_quotes_and_trailing_slashes ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 382 filtered out; finished in 0.01s
+

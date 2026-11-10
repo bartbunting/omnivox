@@ -1,0 +1,1572 @@
+cargo fmt --all -- --check
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/creation.rs:17:
+ }
+ impl Created {
+     pub fn release(&mut self) -> io::Result<()> {
+-        let thread = self.thread.as_ref().ok_or_else(|| io::Error::other("native gate already released"))?;
++        let thread = self
++            .thread
++            .as_ref()
++            .ok_or_else(|| io::Error::other("native gate already released"))?;
+         // SAFETY: this is the actual retained primary thread created suspended.
+         if unsafe { ResumeThread(thread.as_raw_handle()) } != 1 {
+-            return Err(io::Error::other("native gate did not have exactly one suspension"));
++            return Err(io::Error::other(
++                "native gate did not have exactly one suspension",
++            ));
+         }
+         self.thread.take();
+         Ok(())
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/creation.rs:29:
+         signalled(self.process.as_handle())
+     }
+     pub fn terminate(&self) -> io::Result<()> {
+-        if self.ended()? { return Ok(()); }
++        if self.ended()? {
++            return Ok(());
++        }
+         match terminate(self.process.as_handle()) {
+             Ok(()) => Ok(()),
+             Err(_) if self.ended()? => Ok(()),
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/creation.rs:40:
+ 
+ /// Duplicate only into the actual retained receiving process. A returned number
+ /// belongs to that process, never this one. Lost delivery requires its retirement.
+-pub(crate) fn transfer(source: BorrowedHandle<'_>, target: BorrowedHandle<'_>, access: Option<u32>) -> io::Result<usize> {
++pub(crate) fn transfer(
++    source: BorrowedHandle<'_>,
++    target: BorrowedHandle<'_>,
++    access: Option<u32>,
++) -> io::Result<usize> {
+     let mut output = std::ptr::null_mut();
+     // SAFETY: both source and target are live owned objects. The target is never
+     // reopened from a PID. Non-inheritable copies cannot leak into helpers.
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/creation.rs:47:
+-    if unsafe { DuplicateHandle(GetCurrentProcess(), source.as_raw_handle(), target.as_raw_handle(), &mut output,
+-        access.unwrap_or(0), 0, if access.is_none() { 2 } else { 0 }) } == 0 {
++    if unsafe {
++        DuplicateHandle(
++            GetCurrentProcess(),
++            source.as_raw_handle(),
++            target.as_raw_handle(),
++            &mut output,
++            access.unwrap_or(0),
++            0,
++            if access.is_none() { 2 } else { 0 },
++        )
++    } == 0
++    {
+         return Err(io::Error::last_os_error());
+     }
+     Ok(output as usize)
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/creation.rs:53:
+ 
+ fn wide(value: &OsStr) -> io::Result<Vec<u16>> {
+     let mut text: Vec<_> = value.encode_wide().collect();
+-    if text.contains(&0) { return Err(io::ErrorKind::InvalidInput.into()); }
++    if text.contains(&0) {
++        return Err(io::ErrorKind::InvalidInput.into());
++    }
+     text.push(0);
+     Ok(text)
+ }
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/creation.rs:63:
+     output.push(b'"' as u16);
+     let mut slashes = 0;
+     for unit in value.encode_wide() {
+-        if unit == 0 { return Err(io::ErrorKind::InvalidInput.into()); }
+-        if unit == b'\\' as u16 { slashes += 1; continue; }
+-        output.extend(std::iter::repeat_n(b'\\' as u16, if unit == b'"' as u16 { slashes * 2 + 1 } else { slashes }));
++        if unit == 0 {
++            return Err(io::ErrorKind::InvalidInput.into());
++        }
++        if unit == b'\\' as u16 {
++            slashes += 1;
++            continue;
++        }
++        output.extend(std::iter::repeat_n(
++            b'\\' as u16,
++            if unit == b'"' as u16 {
++                slashes * 2 + 1
++            } else {
++                slashes
++            },
++        ));
+         output.push(unit);
+         slashes = 0;
+     }
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/creation.rs:80:
+         let Some(value) = value else { continue };
+         let mut key = wide(key)?;
+         key.pop();
+-        if key.is_empty() || key.len() > 32767 || key.contains(&(b'=' as u16)) { return Err(io::ErrorKind::InvalidInput.into()); }
++        if key.is_empty() || key.len() > 32767 || key.contains(&(b'=' as u16)) {
++            return Err(io::ErrorKind::InvalidInput.into());
++        }
+         let value = wide(value)?;
+         entries.push((key, value));
+     }
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/creation.rs:87:
+     entries.sort_by(|(a, _), (b, _)| {
+         // SAFETY: complete live UTF-16 slices, including native unpaired units.
+         // Snapshot bounds fit i32. CSTR_LESS/EQUAL/GREATER are 1/2/3.
+-        let order = unsafe { CompareStringOrdinal(a.as_ptr(), a.len() as i32, b.as_ptr(), b.len() as i32, 1) };
++        let order = unsafe {
++            CompareStringOrdinal(a.as_ptr(), a.len() as i32, b.as_ptr(), b.len() as i32, 1)
++        };
+         order.cmp(&2)
+     });
+     let mut output = Vec::new();
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/creation.rs:94:
+     for (key, value) in entries {
+-        output.extend(key); output.push(b'=' as u16); output.extend(value);
++        output.extend(key);
++        output.push(b'=' as u16);
++        output.extend(value);
+     }
+     output.push(0);
+-    if output.len() == 1 { output.push(0); }
++    if output.len() == 1 {
++        output.push(0);
++    }
+     Ok(output)
+ }
+ 
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/creation.rs:102:
+ /// COMMAND must contain the complete retained environment. It is not inherited
+ /// implicitly. The worker-only extra channel is passed ahead of ordinary argv.
+-pub(crate) fn spawn(command: &Command, job: BorrowedHandle<'_>, stdio: [BorrowedHandle<'_>; 3], worker_channel: Option<BorrowedHandle<'_>>) -> io::Result<Created> {
++pub(crate) fn spawn(
++    command: &Command,
++    job: BorrowedHandle<'_>,
++    stdio: [BorrowedHandle<'_>; 3],
++    worker_channel: Option<BorrowedHandle<'_>>,
++) -> io::Result<Created> {
+     let program = Path::new(command.get_program());
+-    if !program.is_absolute() { return Err(io::ErrorKind::InvalidInput.into()); }
++    if !program.is_absolute() {
++        return Err(io::ErrorKind::InvalidInput.into());
++    }
+     let application = wide(program.as_os_str())?;
+-    let directory = command.get_current_dir().map(|p| wide(p.as_os_str())).transpose()?;
++    let directory = command
++        .get_current_dir()
++        .map(|p| wide(p.as_os_str()))
++        .transpose()?;
+     let environment = environment(command)?;
+     let mut copies = Vec::with_capacity(4);
+     for handle in stdio.into_iter().chain(worker_channel) {
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/creation.rs:112:
+         // SAFETY: every source remains borrowed for the duration of CreateProcess.
+-        copies.push(duplicate(unsafe { GetCurrentProcess() }, handle.as_raw_handle(), 0, true, true)?);
++        copies.push(duplicate(
++            unsafe { GetCurrentProcess() },
++            handle.as_raw_handle(),
++            0,
++            true,
++            true,
++        )?);
+     }
+     let handles: Vec<_> = copies.iter().map(AsRawHandle::as_raw_handle).collect();
+     let mut args = Vec::new();
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/creation.rs:117:
+     argument(program.as_os_str(), &mut args)?;
+     if let Some(channel) = handles.get(3) {
+-        args.push(b' ' as u16); argument(OsStr::new(WORKER_MODE), &mut args)?;
+-        args.push(b' ' as u16); argument(OsStr::new(&(*channel as usize).to_string()), &mut args)?;
++        args.push(b' ' as u16);
++        argument(OsStr::new(WORKER_MODE), &mut args)?;
++        args.push(b' ' as u16);
++        argument(OsStr::new(&(*channel as usize).to_string()), &mut args)?;
+     }
+-    for value in command.get_args() { args.push(b' ' as u16); argument(value, &mut args)?; }
++    for value in command.get_args() {
++        args.push(b' ' as u16);
++        argument(value, &mut args)?;
++    }
+     args.push(0);
+-    if args.len() > 32767 { return Err(io::ErrorKind::InvalidInput.into()); }
++    if args.len() > 32767 {
++        return Err(io::ErrorKind::InvalidInput.into());
++    }
+     let mut bytes = 0;
+     // SAFETY: documented sizing call followed by a suitably aligned allocation.
+-    unsafe { InitializeProcThreadAttributeList(std::ptr::null_mut(), 3, 0, &mut bytes); }
+-    if bytes == 0 { return Err(io::Error::last_os_error()); }
++    unsafe {
++        InitializeProcThreadAttributeList(std::ptr::null_mut(), 3, 0, &mut bytes);
++    }
++    if bytes == 0 {
++        return Err(io::Error::last_os_error());
++    }
+     let mut buffer = vec![0usize; bytes.div_ceil(size_of::<usize>())];
+-    if unsafe { InitializeProcThreadAttributeList(buffer.as_mut_ptr().cast(), 3, 0, &mut bytes) } == 0 { return Err(io::Error::last_os_error()); }
++    if unsafe { InitializeProcThreadAttributeList(buffer.as_mut_ptr().cast(), 3, 0, &mut bytes) }
++        == 0
++    {
++        return Err(io::Error::last_os_error());
++    }
+     let mut attrs = Attributes(buffer);
+     let job = job.as_raw_handle();
+     let restricted = 1_u32;
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/creation.rs:134:
+     for (kind, value, size) in [
+-        (0x20002, handles.as_ptr().cast(), size_of_val(handles.as_slice())),
+-        (0x2000d, (&job as *const RawHandle).cast(), size_of::<RawHandle>()),
+-        (0x2000e, (&restricted as *const u32).cast(), size_of::<u32>()),
++        (
++            0x20002,
++            handles.as_ptr().cast(),
++            size_of_val(handles.as_slice()),
++        ),
++        (
++            0x2000d,
++            (&job as *const RawHandle).cast(),
++            size_of::<RawHandle>(),
++        ),
++        (
++            0x2000e,
++            (&restricted as *const u32).cast(),
++            size_of::<u32>(),
++        ),
+     ] {
+         // SAFETY: HANDLE_LIST, JOB_LIST and CHILD_PROCESS_POLICY point into live
+         // exact-sized values retained through creation. Job ownership is atomic.
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/creation.rs:141:
+-        if unsafe { UpdateProcThreadAttribute(attrs.0.as_mut_ptr().cast(), 0, kind, value, size, std::ptr::null_mut(), std::ptr::null_mut()) } == 0 { return Err(io::Error::last_os_error()); }
++        if unsafe {
++            UpdateProcThreadAttribute(
++                attrs.0.as_mut_ptr().cast(),
++                0,
++                kind,
++                value,
++                size,
++                std::ptr::null_mut(),
++                std::ptr::null_mut(),
++            )
++        } == 0
++        {
++            return Err(io::Error::last_os_error());
++        }
+     }
+-    let mut startup = StartupEx { startup: Startup { size: size_of::<StartupEx>() as u32, flags: 0x100,
+-        input: handles[0], output: handles[1], error: handles[2], ..Default::default() }, attributes: attrs.0.as_mut_ptr().cast() };
++    let mut startup = StartupEx {
++        startup: Startup {
++            size: size_of::<StartupEx>() as u32,
++            flags: 0x100,
++            input: handles[0],
++            output: handles[1],
++            error: handles[2],
++            ..Default::default()
++        },
++        attributes: attrs.0.as_mut_ptr().cast(),
++    };
+     let mut info = ProcessInformation::default();
+     // SAFETY: explicit inherited handles, native terminated strings, complete
+     // Unicode environment. SUSPENDED | DETACHED_PROCESS | EXTENDED | UNICODE.
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/creation.rs:148:
+-    if unsafe { CreateProcessW(application.as_ptr(), args.as_mut_ptr(), std::ptr::null(), std::ptr::null(), 1, 0x0008_040c,
+-        environment.as_ptr().cast(), directory.as_ref().map_or(std::ptr::null(), |d| d.as_ptr()), &mut startup, &mut info) } == 0 { return Err(io::Error::last_os_error()); }
++    if unsafe {
++        CreateProcessW(
++            application.as_ptr(),
++            args.as_mut_ptr(),
++            std::ptr::null(),
++            std::ptr::null(),
++            1,
++            0x0008_040c,
++            environment.as_ptr().cast(),
++            directory.as_ref().map_or(std::ptr::null(), |d| d.as_ptr()),
++            &mut startup,
++            &mut info,
++        )
++    } == 0
++    {
++        return Err(io::Error::last_os_error());
++    }
+     // SAFETY: successful creation returns two fresh distinct owned handles.
+-    Ok(Created { process: unsafe { OwnedHandle::from_raw_handle(info.process) }, thread: Some(unsafe { OwnedHandle::from_raw_handle(info.thread) }) })
++    Ok(Created {
++        process: unsafe { OwnedHandle::from_raw_handle(info.process) },
++        thread: Some(unsafe { OwnedHandle::from_raw_handle(info.thread) }),
++    })
+ }
+ 
+ #[cfg(test)]
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/creation.rs:156:
+     use super::*;
+     #[test]
+     fn quoted_native_arguments_keep_empty_quotes_and_trailing_slashes() {
+-        for (source, expected) in [("", "\"\""), ("a b", "\"a b\""), ("a\\", "\"a\\\\\""), ("a\"b", "\"a\\\"b\"")] {
+-            let mut output = Vec::new(); argument(OsStr::new(source), &mut output).unwrap();
++        for (source, expected) in [
++            ("", "\"\""),
++            ("a b", "\"a b\""),
++            ("a\\", "\"a\\\\\""),
++            ("a\"b", "\"a\\\"b\""),
++        ] {
++            let mut output = Vec::new();
++            argument(OsStr::new(source), &mut output).unwrap();
+             assert_eq!(String::from_utf16(&output).unwrap(), expected);
+         }
+         assert!(argument(OsStr::new("a\0b"), &mut Vec::new()).is_err());
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/helper_client.rs:9:
+ use std::sync::{Mutex, OnceLock, TryLockError};
+ use std::time::{Duration, Instant};
+ 
+-struct Client { connection: BufReader<os::Blocking>, sequence: u64 }
++struct Client {
++    connection: BufReader<os::Blocking>,
++    sequence: u64,
++}
+ static CLIENT: OnceLock<Mutex<Option<Client>>> = OnceLock::new();
+ 
+ pub(crate) fn install(argument: &str) -> anyhow::Result<()> {
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/helper_client.rs:16:
+     // Validation duplicates the inherited object first, exactly as guard bootstrap.
+     // This entry runs before files, engine threads or possible handle reuse.
+     let handle = os::native::receive_one(argument)?;
+-    let client = Client { connection: BufReader::new(os::Blocking::from_handle(handle)?), sequence: 0 };
+-    anyhow::ensure!(CLIENT.set(Mutex::new(Some(client))).is_ok(), "duplicate native helper client");
++    let client = Client {
++        connection: BufReader::new(os::Blocking::from_handle(handle)?),
++        sequence: 0,
++    };
++    anyhow::ensure!(
++        CLIENT.set(Mutex::new(Some(client))).is_ok(),
++        "duplicate native helper client"
++    );
+     omnivox_tts::native_helper::install(launch)?;
+     Ok(())
+ }
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/helper_client.rs:24:
+ 
+-fn launch(engine: &str, program: &Path, arguments: &[OsString], environment: &LaunchEnvironment) -> io::Result<Child> {
++fn launch(
++    engine: &str,
++    program: &Path,
++    arguments: &[OsString],
++    environment: &LaunchEnvironment,
++) -> io::Result<Child> {
+     let identity = wire::identity(engine, program, arguments, environment)?;
+     let deadline = Instant::now() + TIMEOUT;
+-    let mutex = CLIENT.get().ok_or_else(|| io::Error::other("native helper channel unavailable"))?;
++    let mutex = CLIENT
++        .get()
++        .ok_or_else(|| io::Error::other("native helper channel unavailable"))?;
+     let mut state = loop {
+         match mutex.try_lock() {
+             Ok(state) => break state,
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/helper_client.rs:32:
+-            Err(TryLockError::WouldBlock) if Instant::now() < deadline => std::thread::sleep(Duration::from_millis(1)),
+-            _ => return Err(io::Error::other("native helper creation channel busy or unavailable")),
++            Err(TryLockError::WouldBlock) if Instant::now() < deadline => {
++                std::thread::sleep(Duration::from_millis(1))
++            }
++            _ => {
++                return Err(io::Error::other(
++                    "native helper creation channel busy or unavailable",
++                ))
++            }
+         }
+     };
+-    let client = state.as_mut().ok_or_else(|| io::Error::other("native helper ownership is unavailable"))?;
++    let client = state
++        .as_mut()
++        .ok_or_else(|| io::Error::other("native helper ownership is unavailable"))?;
+     let result = client.launch(engine, identity);
+     if result.is_err() {
+         // No reconnect or blind creation retry: an undelivered offer can contain
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/helper_client.rs:55:
+         let value = super::wire::read_reply(&mut self.connection).map_err(io::Error::other)?;
+         let reply: wire::Reply = serde_json::from_value(value).map_err(io::Error::other)?;
+         if reply.request_id != id || reply.state != expected || reply.error.is_some() {
+-            return Err(io::Error::other(reply.error.unwrap_or_else(|| "uncorrelated native helper response".into())));
++            return Err(io::Error::other(
++                reply
++                    .error
++                    .unwrap_or_else(|| "uncorrelated native helper response".into()),
++            ));
+         }
+         Ok(reply)
+     }
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/helper_client.rs:62:
+     fn launch(&mut self, engine: &str, identity: String) -> io::Result<Child> {
+-        self.sequence = self.sequence.checked_add(1).ok_or_else(|| io::Error::other("native helper sequence exhausted"))?;
++        self.sequence = self
++            .sequence
++            .checked_add(1)
++            .ok_or_else(|| io::Error::other("native helper sequence exhausted"))?;
+         let id = self.sequence;
+-        self.send(&wire::Request { request_id: id, command: "create".into(), engine: engine.into(), launch: identity })?;
++        self.send(&wire::Request {
++            request_id: id,
++            command: "create".into(),
++            engine: engine.into(),
++            launch: identity,
++        })?;
+         let reply = self.receive(id, "offered")?;
+-        let values = reply.handles.ok_or_else(|| io::Error::other("missing native helper handles"))?;
+-        if values.iter().any(|v| *v == 0 || *v == usize::MAX) || values[0] == values[1] || values[0] == values[2] || values[1] == values[2] {
++        let values = reply
++            .handles
++            .ok_or_else(|| io::Error::other("missing native helper handles"))?;
++        if values.iter().any(|v| *v == 0 || *v == usize::MAX)
++            || values[0] == values[1]
++            || values[0] == values[2]
++            || values[1] == values[2]
++        {
+             return Err(io::Error::other("invalid native helper handoff"));
+         }
+         // SAFETY: one correlated offer on the exclusively inherited guard link
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/helper_client.rs:72:
+         // transfers three distinct fresh handles once. There is no replay or
+         // reconnection. The guard retains each actual process and targets this
+         // actual worker handle when duplicating them.
+-        let [process, input, output] = values.map(|value| unsafe { OwnedHandle::from_raw_handle(value as _) });
++        let [process, input, output] =
++            values.map(|value| unsafe { OwnedHandle::from_raw_handle(value as _) });
+         let child = Child::guarded(process, input, output)?;
+-        self.send(&wire::Request { request_id: id, command: "acknowledge".into(), engine: String::new(), launch: String::new() })?;
++        self.send(&wire::Request {
++            request_id: id,
++            command: "acknowledge".into(),
++            engine: String::new(),
++            launch: String::new(),
++        })?;
+         let reply = self.receive(id, "started")?;
+-        if reply.handles.is_some() { return Err(io::Error::other("duplicate native handle offer")); }
++        if reply.handles.is_some() {
++            return Err(io::Error::other("duplicate native handle offer"));
++        }
+         Ok(child)
+     }
+ }
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/helper_wire.rs:4:
+ use sha2::{Digest, Sha256};
+ use std::ffi::OsString;
+ use std::io;
+-use std::path::Path;
+ use std::os::windows::ffi::OsStrExt;
++use std::path::Path;
+ 
+ #[derive(Serialize, Deserialize)]
+ #[serde(deny_unknown_fields)]
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/helper_wire.rs:26:
+     pub error: Option<String>,
+ }
+ 
+-pub(super) fn identity(engine: &str, program: &Path, args: &[OsString], environment: &LaunchEnvironment) -> io::Result<String> {
++pub(super) fn identity(
++    engine: &str,
++    program: &Path,
++    args: &[OsString],
++    environment: &LaunchEnvironment,
++) -> io::Result<String> {
+     let program: Vec<u16> = program.as_os_str().encode_wide().collect();
+     let args: Vec<Vec<u16>> = args.iter().map(|arg| arg.encode_wide().collect()).collect();
+-    let bytes = serde_json::to_vec(&(engine, program, args, environment)).map_err(io::Error::other)?;
+-    if bytes.len() > 32 * 1024 * 1024 { return Err(io::Error::other("helper launch exceeds private bound")); }
+-    Ok(Sha256::digest(bytes).iter().map(|byte| format!("{byte:02x}")).collect())
++    let bytes =
++        serde_json::to_vec(&(engine, program, args, environment)).map_err(io::Error::other)?;
++    if bytes.len() > 32 * 1024 * 1024 {
++        return Err(io::Error::other("helper launch exceeds private bound"));
++    }
++    Ok(Sha256::digest(bytes)
++        .iter()
++        .map(|byte| format!("{byte:02x}"))
++        .collect())
+ }
+ 
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned.rs:1:
+ //! One bounded creation task; the control loop always retains retirement authority.
+-use super::{helper_wire, os, readiness, windows_plan::Plan, wire::{Channel, TIMEOUT}, TICK};
+-use os::native::{self, creation::{self, Created}};
++use super::{
++    helper_wire, os, readiness,
++    windows_plan::Plan,
++    wire::{Channel, TIMEOUT},
++    TICK,
++};
+ use crate::remote_windows::Job;
+ use anyhow::{Context, Result};
+ use omnivox_tts::voice_library::local::Startup;
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned.rs:7:
++use os::native::{
++    self,
++    creation::{self, Created},
++};
+ use std::fs::File;
+ use std::io;
+ use std::os::windows::io::{AsHandle, AsRawHandle, RawHandle};
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned.rs:13:
+ use std::time::Instant;
+ 
+ enum Product {
+-    Worker { child: Created, channel: os::Control },
+-    Helper { child: Created, input: File, output: File, id: u64 },
++    Worker {
++        child: Created,
++        channel: os::Control,
++    },
++    Helper {
++        child: Created,
++        input: File,
++        output: File,
++        id: u64,
++    },
+ }
+ struct Pending {
+     thread: JoinHandle<Result<Product>>,
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned.rs:25:
+     fn start(work: impl FnOnce() -> Result<Product> + Send + 'static) -> Result<Self> {
+         let done = Arc::new(native::Event::new()?);
+         let notify = Arc::clone(&done);
+-        let thread = std::thread::Builder::new().name("native-creation".into()).spawn(move || {
+-            struct Notify(Arc<native::Event>);
+-            impl Drop for Notify { fn drop(&mut self) { let _ = self.0.signal(); } }
+-            let _notify = Notify(notify);
+-            work()
+-        })?;
+-        Ok(Self { thread, done, deadline: Instant::now() + TIMEOUT })
++        let thread = std::thread::Builder::new()
++            .name("native-creation".into())
++            .spawn(move || {
++                struct Notify(Arc<native::Event>);
++                impl Drop for Notify {
++                    fn drop(&mut self) {
++                        let _ = self.0.signal();
++                    }
++                }
++                let _notify = Notify(notify);
++                work()
++            })?;
++        Ok(Self {
++            thread,
++            done,
++            deadline: Instant::now() + TIMEOUT,
++        })
+     }
+ }
+ pub(super) struct Native {
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned.rs:64:
+             let (channel, worker_channel) = os::channel_pair()?;
+             let mut command = Command::new(&startup.executable.path);
+             startup.environment.apply(&mut command);
+-            command.args(&startup.arguments).current_dir(&startup.working_directory)
+-                .env_remove("OMNIVOX_REMOTE_WORKER").env("OMNIVOX_OWNED_WORKER", "1");
+-            let child = creation::spawn(&command, pending_job.handle(),
+-                [input.as_handle(), output.as_handle(), error.as_handle()], Some(worker_channel.as_handle()))?;
++            command
++                .args(&startup.arguments)
++                .current_dir(&startup.working_directory)
++                .env_remove("OMNIVOX_REMOTE_WORKER")
++                .env("OMNIVOX_OWNED_WORKER", "1");
++            let child = creation::spawn(
++                &command,
++                pending_job.handle(),
++                [input.as_handle(), output.as_handle(), error.as_handle()],
++                Some(worker_channel.as_handle()),
++            )?;
+             Ok(Product::Worker { child, channel })
+         })?;
+-        Ok(Self { job, worker: None, helper: None, pending: Some(pending), channel: None,
+-            plan, directory, error_output, total: 0, sequence: 0, offer: None,
+-            started: false, closing: false, retired: false, error: None })
++        Ok(Self {
++            job,
++            worker: None,
++            helper: None,
++            pending: Some(pending),
++            channel: None,
++            plan,
++            directory,
++            error_output,
++            total: 0,
++            sequence: 0,
++            offer: None,
++            started: false,
++            closing: false,
++            retired: false,
++            error: None,
++        })
+     }
+     fn fail(&mut self, error: anyhow::Error) {
+         self.error.get_or_insert_with(|| error.to_string());
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned.rs:80:
+     }
+     pub fn poll(&mut self, closing: bool) -> Result<()> {
+         self.closing |= closing;
+-        if self.retired { return Ok(()); }
+-        if self.worker.as_ref().map(Created::ended).transpose()?.unwrap_or(false) {
++        if self.retired {
++            return Ok(());
++        }
++        if self
++            .worker
++            .as_ref()
++            .map(Created::ended)
++            .transpose()?
++            .unwrap_or(false)
++        {
+             self.closing = true;
+         }
+-        if self.pending.as_ref().is_some_and(|p| Instant::now() >= p.deadline)
+-            || self.offer.is_some_and(|(_, deadline)| Instant::now() >= deadline) {
++        if self
++            .pending
++            .as_ref()
++            .is_some_and(|p| Instant::now() >= p.deadline)
++            || self
++                .offer
++                .is_some_and(|(_, deadline)| Instant::now() >= deadline)
++        {
+             self.fail(anyhow::anyhow!("native creation or handoff timed out"));
+         }
+-        if let Err(error) = self.complete() { self.fail(error); }
++        if let Err(error) = self.complete() {
++            self.fail(error);
++        }
+         if !self.closing {
+-            if let Err(error) = self.requests() { self.fail(error); }
++            if let Err(error) = self.requests() {
++                self.fail(error);
++            }
+         }
+         if self.closing {
+             self.job.terminate_checked()?;
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned.rs:97:
+-            for child in [&self.worker, &self.helper].into_iter().flatten() { child.terminate()?; }
++            for child in [&self.worker, &self.helper].into_iter().flatten() {
++                child.terminate()?;
++            }
+             // Termination happens before any cancellation that could retain I/O.
+             if let Some(channel) = &mut self.channel {
+                 channel.closed = true;
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned.rs:101:
+-                if os::close(&mut channel.stream)? { self.channel.take(); }
++                if os::close(&mut channel.stream)? {
++                    self.channel.take();
++                }
+             }
+-            let worker_done = self.worker.as_ref().map(Created::ended).transpose()?.unwrap_or(true);
+-            let helper_done = self.helper.as_ref().map(Created::ended).transpose()?.unwrap_or(true);
++            let worker_done = self
++                .worker
++                .as_ref()
++                .map(Created::ended)
++                .transpose()?
++                .unwrap_or(true);
++            let helper_done = self
++                .helper
++                .as_ref()
++                .map(Created::ended)
++                .transpose()?
++                .unwrap_or(true);
+             if self.pending.is_none() && worker_done && helper_done && self.channel.is_none() {
+                 let counts = self.job.counts()?;
+                 // Counts detect unaccounted creation; they never replace handle completion.
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned.rs:108:
+-                if counts.total == self.total && counts.active == 0 { self.retired = true; }
+-                else { self.error.get_or_insert_with(|| "native job accounting differs from retained creation".into()); }
++                if counts.total == self.total && counts.active == 0 {
++                    self.retired = true;
++                } else {
++                    self.error.get_or_insert_with(|| {
++                        "native job accounting differs from retained creation".into()
++                    });
++                }
+             }
+         }
+         Ok(())
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned.rs:113:
+     }
+     fn complete(&mut self) -> Result<()> {
+-        if !self.pending.as_ref().is_some_and(|p| p.thread.is_finished()) { return Ok(()); }
++        if !self
++            .pending
++            .as_ref()
++            .is_some_and(|p| p.thread.is_finished())
++        {
++            return Ok(());
++        }
+         let pending = self.pending.take().unwrap();
+-        let product = pending.thread.join().map_err(|_| anyhow::anyhow!("native creation task panicked"))??;
+-        self.total = self.total.checked_add(1).context("native creation count exhausted")?;
++        let product = pending
++            .thread
++            .join()
++            .map_err(|_| anyhow::anyhow!("native creation task panicked"))??;
++        self.total = self
++            .total
++            .checked_add(1)
++            .context("native creation count exhausted")?;
+         match product {
+             Product::Worker { child, channel } => {
+                 self.worker = Some(child);
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned.rs:125:
+                     self.started = true;
+                 }
+             }
+-            Product::Helper { child, input, output, id } => {
++            Product::Helper {
++                child,
++                input,
++                output,
++                id,
++            } => {
+                 self.helper = Some(child);
+                 if !self.closing {
+-                    let target = self.worker.as_ref().context("missing native receiving worker")?.process.as_handle();
++                    let target = self
++                        .worker
++                        .as_ref()
++                        .context("missing native receiving worker")?
++                        .process
++                        .as_handle();
+                     let helper = self.helper.as_ref().unwrap();
+                     // Only wait/query/cancel authority. No helper child-creation authority.
+-                    let process = creation::transfer(helper.process.as_handle(), target, Some(0x10_1001))?;
++                    let process =
++                        creation::transfer(helper.process.as_handle(), target, Some(0x10_1001))?;
+                     let input = creation::transfer(input.as_handle(), target, None)?;
+                     let output = creation::transfer(output.as_handle(), target, None)?;
+                     self.offer = Some((id, Instant::now() + TIMEOUT));
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned.rs:138:
+-                    self.channel.as_mut().context("missing native creation channel")?.reply(&helper_wire::Reply {
+-                        request_id: id, state: "offered".into(), handles: Some([process, input, output]), error: None })?;
++                    self.channel
++                        .as_mut()
++                        .context("missing native creation channel")?
++                        .reply(&helper_wire::Reply {
++                            request_id: id,
++                            state: "offered".into(),
++                            handles: Some([process, input, output]),
++                            error: None,
++                        })?;
+                 }
+             }
+         }
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned.rs:143:
+         Ok(())
+     }
+     fn requests(&mut self) -> Result<()> {
+-        if self.helper.as_ref().map(Created::ended).transpose()?.unwrap_or(false) {
++        if self
++            .helper
++            .as_ref()
++            .map(Created::ended)
++            .transpose()?
++            .unwrap_or(false)
++        {
+             anyhow::ensure!(self.offer.is_none(), "unacknowledged helper ended");
+             self.helper.take();
+         }
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned.rs:150:
+-        let Some(channel) = &mut self.channel else { return Ok(()); };
++        let Some(channel) = &mut self.channel else {
++            return Ok(());
++        };
+         let request = channel.poll_as::<helper_wire::Request>()?;
+         anyhow::ensure!(!channel.closed, "native helper creation link closed");
+-        let Some(request) = request else { return Ok(()); };
++        let Some(request) = request else {
++            return Ok(());
++        };
+         anyhow::ensure!(request.request_id > 0, "missing native creation identity");
+         match request.command.as_str() {
+             "create" => {
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned.rs:157:
+-                anyhow::ensure!(request.request_id > self.sequence && self.pending.is_none()
+-                    && self.offer.is_none() && self.helper.is_none() && self.total < u32::MAX,
+-                    "native creation is busy or obsolete");
+-                let helper = self.plan.helper.as_ref().filter(|h|
+-                    h.config.engine_id == request.engine && h.identity == request.launch)
+-                    .context("native helper launch differs from retained snapshot")?.clone();
++                anyhow::ensure!(
++                    request.request_id > self.sequence
++                        && self.pending.is_none()
++                        && self.offer.is_none()
++                        && self.helper.is_none()
++                        && self.total < u32::MAX,
++                    "native creation is busy or obsolete"
++                );
++                let helper = self
++                    .plan
++                    .helper
++                    .as_ref()
++                    .filter(|h| {
++                        h.config.engine_id == request.engine && h.identity == request.launch
++                    })
++                    .context("native helper launch differs from retained snapshot")?
++                    .clone();
+                 self.sequence = request.request_id;
+                 let job = Arc::clone(&self.job);
+                 let directory = self.directory.clone();
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned.rs:170:
+                     let (reader, output) = native::speech_pipe()?;
+                     let mut command = Command::new(&helper.config.program);
+                     helper.config.environment.apply(&mut command);
+-                    command.args(&helper.config.arguments).current_dir(directory);
+-                    let child = creation::spawn(&command, job.handle(),
+-                        [input.as_handle(), output.as_handle(), error.as_handle()], None)?;
+-                    Ok(Product::Helper { child, input: writer, output: reader, id: request.request_id })
++                    command
++                        .args(&helper.config.arguments)
++                        .current_dir(directory);
++                    let child = creation::spawn(
++                        &command,
++                        job.handle(),
++                        [input.as_handle(), output.as_handle(), error.as_handle()],
++                        None,
++                    )?;
++                    Ok(Product::Helper {
++                        child,
++                        input: writer,
++                        output: reader,
++                        id: request.request_id,
++                    })
+                 })?);
+             }
+             "acknowledge" => {
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned.rs:180:
+-                anyhow::ensure!(self.offer.is_some_and(|(id, _)| id == request.request_id)
+-                    && request.engine.is_empty() && request.launch.is_empty(), "obsolete native helper acknowledgement");
+-                self.helper.as_mut().context("missing offered helper")?.release()?;
++                anyhow::ensure!(
++                    self.offer.is_some_and(|(id, _)| id == request.request_id)
++                        && request.engine.is_empty()
++                        && request.launch.is_empty(),
++                    "obsolete native helper acknowledgement"
++                );
++                self.helper
++                    .as_mut()
++                    .context("missing offered helper")?
++                    .release()?;
+                 self.offer.take();
+-                channel.reply(&helper_wire::Reply { request_id: request.request_id,
+-                    state: "started".into(), handles: None, error: None })?;
++                channel.reply(&helper_wire::Reply {
++                    request_id: request.request_id,
++                    state: "started".into(),
++                    handles: None,
++                    error: None,
++                })?;
+             }
+             _ => anyhow::bail!("unsupported native creation request"),
+         }
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned.rs:189:
+         Ok(())
+     }
+-    pub fn readiness(&self, events: &mut Vec<RawHandle>, deadline: &mut Option<Instant>) -> io::Result<bool> {
++    pub fn readiness(
++        &self,
++        events: &mut Vec<RawHandle>,
++        deadline: &mut Option<Instant>,
++    ) -> io::Result<bool> {
+         if let Some(pending) = &self.pending {
+-            if pending.thread.is_finished() { return Ok(true); }
++            if pending.thread.is_finished() {
++                return Ok(true);
++            }
+             if native::signalled(pending.done.handle())? {
+                 // Signalling precedes thread return by a tiny interval; only join
+                 // completion can release creation ownership. Avoid spinning.
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned.rs:197:
+                 readiness::earlier(deadline, Instant::now() + TICK);
+-            } else { events.push(pending.done.handle().as_raw_handle()); }
+-            if !self.closing { readiness::earlier(deadline, pending.deadline); }
++            } else {
++                events.push(pending.done.handle().as_raw_handle());
++            }
++            if !self.closing {
++                readiness::earlier(deadline, pending.deadline);
++            }
+         }
+         for child in [&self.worker, &self.helper].into_iter().flatten() {
+-            if !child.ended()? { events.push(child.process.as_raw_handle()); }
++            if !child.ended()? {
++                events.push(child.process.as_raw_handle());
++            }
+         }
+         if let Some(channel) = &self.channel {
+-            if readiness::channel(channel, events, deadline) { return Ok(true); }
++            if readiness::channel(channel, events, deadline) {
++                return Ok(true);
++            }
+         }
+         if !self.closing {
+-            if let Some((_, expiry)) = self.offer { readiness::earlier(deadline, expiry); }
++            if let Some((_, expiry)) = self.offer {
++                readiness::earlier(deadline, expiry);
++            }
+         }
+         Ok(false)
+     }
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned_tests.rs:4:
+ use omnivox_tts::{engine_configuration::LaunchEnvironment, helper_engine::HelperEngineConfig};
+ use std::io::Write;
+ 
+-fn null() -> File { std::fs::OpenOptions::new().read(true).write(true).open("NUL").unwrap() }
++fn null() -> File {
++    std::fs::OpenOptions::new()
++        .read(true)
++        .write(true)
++        .open("NUL")
++        .unwrap()
++}
+ fn empty() -> Native {
+-    Native { job: Arc::new(Job::new().unwrap()), worker: None, helper: None,
+-        pending: None, channel: None, plan: Plan { helper: None },
+-        directory: std::env::temp_dir(), error_output: null(), total: 0, sequence: 0,
+-        offer: None, started: false, closing: false, retired: false, error: None }
++    Native {
++        job: Arc::new(Job::new().unwrap()),
++        worker: None,
++        helper: None,
++        pending: None,
++        channel: None,
++        plan: Plan { helper: None },
++        directory: std::env::temp_dir(),
++        error_output: null(),
++        total: 0,
++        sequence: 0,
++        offer: None,
++        started: false,
++        closing: false,
++        retired: false,
++        error: None,
++    }
+ }
+ fn until(native: &mut Native, condition: impl Fn(&Native) -> bool) {
+     let deadline = Instant::now() + TIMEOUT;
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned_tests.rs:16:
+     while !condition(native) {
+-        assert!(Instant::now() < deadline, "native test deadline: {:?}", native.error);
++        assert!(
++            Instant::now() < deadline,
++            "native test deadline: {:?}",
++            native.error
++        );
+         native.poll(false).unwrap();
+         std::thread::sleep(TICK);
+     }
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned_tests.rs:31:
+     let mut native = empty();
+     native.worker = Some(suspended(&native.job));
+     native.total = 1;
+-    let program = std::env::var("OMNIVOX_TEST_GUARD_HELPER").expect("private Flite helper required");
++    let program =
++        std::env::var("OMNIVOX_TEST_GUARD_HELPER").expect("private Flite helper required");
+     native.plan.helper = Some(Helper::capture(HelperEngineConfig::new("flite", program)).unwrap());
+     let (server, client) = os::channel_pair().unwrap();
+     native.channel = Some(Channel::new(server));
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned_tests.rs:38:
+     (native, os::Blocking::from_handle(client).unwrap())
+ }
+ fn send(client: &mut os::Blocking, request: &helper_wire::Request) {
+-    serde_json::to_writer(&mut *client, request).unwrap(); client.write_all(b"\n").unwrap();
++    serde_json::to_writer(&mut *client, request).unwrap();
++    client.write_all(b"\n").unwrap();
+ }
+ fn create(native: &Native) -> helper_wire::Request {
+-    helper_wire::Request { request_id: 1, command: "create".into(), engine: "flite".into(),
+-        launch: native.plan.helper.as_ref().unwrap().identity.clone() }
++    helper_wire::Request {
++        request_id: 1,
++        command: "create".into(),
++        engine: "flite".into(),
++        launch: native.plan.helper.as_ref().unwrap().identity.clone(),
++    }
+ }
+ 
+ #[test]
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned_tests.rs:49:
+ fn pending_creation_keeps_retirement_unconfirmed_and_control_responsive() {
+     let mut native = empty();
+     let (release, wait) = std::sync::mpsc::sync_channel(1);
+-    native.pending = Some(Pending::start(move || {
+-        wait.recv_timeout(TIMEOUT)?;
+-        anyhow::bail!("fixture creation cancelled")
+-    }).unwrap());
++    native.pending = Some(
++        Pending::start(move || {
++            wait.recv_timeout(TIMEOUT)?;
++            anyhow::bail!("fixture creation cancelled")
++        })
++        .unwrap(),
++    );
+     // Neither polling nor retirement joins a blocked launch thread.
+-    for _ in 0..20 { native.poll(true).unwrap(); assert!(!native.retired); }
++    for _ in 0..20 {
++        native.poll(true).unwrap();
++        assert!(!native.retired);
++    }
+     release.send(()).unwrap();
+     until(&mut native, |n| n.retired);
+-    assert!(native.error.as_deref().unwrap().contains("fixture creation cancelled"));
++    assert!(native
++        .error
++        .as_deref()
++        .unwrap()
++        .contains("fixture creation cancelled"));
+ }
+ 
+ #[test]
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned_tests.rs:70:
+         let worker = native.worker.as_ref().unwrap().process.try_clone().unwrap();
+         let helper = native.helper.as_ref().unwrap().process.try_clone().unwrap();
+         assert!(!native::signalled(helper.as_handle()).unwrap());
+-        if lose_link { drop(client); }
+-        else { native.offer.as_mut().unwrap().1 = Instant::now(); }
++        if lose_link {
++            drop(client);
++        } else {
++            native.offer.as_mut().unwrap().1 = Instant::now();
++        }
+         until(&mut native, |n| n.retired);
+         assert!(native::signalled(worker.as_handle()).unwrap());
+         assert!(native::signalled(helper.as_handle()).unwrap());
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned_tests.rs:87:
+     native.worker.as_ref().unwrap().terminate().unwrap();
+     until(&mut native, |n| n.retired);
+     assert!(native.offer.is_none());
+-    if let Some(helper) = &native.helper { assert!(helper.ended().unwrap()); }
++    if let Some(helper) = &native.helper {
++        assert!(helper.ended().unwrap());
++    }
+ }
+ 
+ #[test]
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned_tests.rs:96:
+     for duplicate in [false, true] {
+         let (mut native, mut client) = fixture();
+         let mut request = create(&native);
+-        if !duplicate { request.launch.push('0'); }
++        if !duplicate {
++            request.launch.push('0');
++        }
+         send(&mut client, &request);
+-        if duplicate { send(&mut client, &request); }
++        if duplicate {
++            send(&mut client, &request);
++        }
+         until(&mut native, |n| n.retired);
+         assert!(native.error.is_some());
+         assert!(native.total <= 2);
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/owned_tests.rs:109:
+ #[ignore = "requires explicit private native runtime"]
+ fn unaccounted_job_member_never_becomes_a_retirement_receipt() {
+     let mut native = empty();
+-    native.worker = Some(suspended(&native.job)); native.total = 1;
++    native.worker = Some(suspended(&native.job));
++    native.total = 1;
+     let unexpected = suspended(&native.job);
+     native.closing = true;
+-    until(&mut native, |n| n.worker.as_ref().unwrap().ended().unwrap() && unexpected.ended().unwrap());
++    until(&mut native, |n| {
++        n.worker.as_ref().unwrap().ended().unwrap() && unexpected.ended().unwrap()
++    });
+     native.poll(true).unwrap();
+     assert!(!native.retired);
+-    assert!(native.error.as_deref().unwrap().contains("accounting differs"));
++    assert!(native
++        .error
++        .as_deref()
++        .unwrap()
++        .contains("accounting differs"));
+     // Drop still emits no proof and remains bounded by its shutdown deadline.
+ }
+ 
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/plan.rs:22:
+ 
+ impl Plan {
+     pub fn validate(startup: &Startup) -> Result<()> {
+-        let snapshot = startup.engines.as_ref().context("guard requires an engine snapshot")?;
+-        for entry in snapshot.resolved().registrations().filter(|entry| entry.enabled) {
++        let snapshot = startup
++            .engines
++            .as_ref()
++            .context("guard requires an engine snapshot")?;
++        for entry in snapshot
++            .resolved()
++            .registrations()
++            .filter(|entry| entry.enabled)
++        {
+             anyhow::ensure!(
+                 matches!(entry.engine_id.as_str(), "espeak" | "flite")
+                     && entry.origin != EngineOrigin::ExternalHelper,
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/plan.rs:35:
+     }
+     pub fn prepare(startup: &Startup) -> Result<Self> {
+         Self::validate(startup)?;
+-        let helper = startup.engines.as_ref().unwrap().resolved().registration("flite")
++        let helper = startup
++            .engines
++            .as_ref()
++            .unwrap()
++            .resolved()
++            .registration("flite")
+             .filter(|entry| entry.enabled && entry.unavailable.is_none())
+             .and_then(|entry| entry.helper.clone())
+-            .map(Helper::capture).transpose()?;
++            .map(Helper::capture)
++            .transpose()?;
+         Ok(Self { helper })
+     }
+ }
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/plan.rs:45:
+ 
+ impl Helper {
+     pub(super) fn capture(config: HelperEngineConfig) -> Result<Self> {
+-        let identity = helper_wire::identity(&config.engine_id, &config.program,
+-            &config.arguments, &config.environment)?;
++        let identity = helper_wire::identity(
++            &config.engine_id,
++            &config.program,
++            &config.arguments,
++            &config.environment,
++        )?;
+         let image = Image::capture(&config.program)?;
+-        Ok(Self { config, identity, image })
++        Ok(Self {
++            config,
++            identity,
++            image,
++        })
+     }
+-    pub fn verify(&self) -> Result<File> { self.image.verify() }
++    pub fn verify(&self) -> Result<File> {
++        self.image.verify()
++    }
+ }
+ 
+ // Keep native paths intact. This private fingerprint is not a new management
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/plan.rs:57:
+ // record. Verification remains at creation, never on ordinary speech requests.
+ #[derive(Clone)]
+-struct Image { path: PathBuf, bytes: u64, hash: [u8; 32] }
++struct Image {
++    path: PathBuf,
++    bytes: u64,
++    hash: [u8; 32],
++}
+ impl Image {
+     fn open(path: &Path) -> Result<File> {
+-        anyhow::ensure!(path.is_absolute() && std::fs::metadata(path)?.is_file(),
+-            "guard helper must be an absolute regular file");
++        anyhow::ensure!(
++            path.is_absolute() && std::fs::metadata(path)?.is_file(),
++            "guard helper must be an absolute regular file"
++        );
+         let file = File::open(path)?;
+-        anyhow::ensure!(file.metadata()?.is_file(), "guard helper is not a regular file");
++        anyhow::ensure!(
++            file.metadata()?.is_file(),
++            "guard helper is not a regular file"
++        );
+         Ok(file)
+     }
+     fn digest(file: &mut File, size: u64) -> Result<[u8; 32]> {
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/plan.rs:75:
+             let limit = remaining.min(buffer.len() as u64) as usize;
+             let n = file.read(&mut buffer[..limit])?;
+             anyhow::ensure!(n > 0, "guard helper truncated");
+-            hash.update(&buffer[..n]); remaining -= n as u64;
++            hash.update(&buffer[..n]);
++            remaining -= n as u64;
+         }
+         anyhow::ensure!(file.read(&mut [0])? == 0, "guard helper grew");
+         let after = file.metadata()?;
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/plan.rs:82:
+-        anyhow::ensure!(after.len() == size && after.modified().ok() == before.modified().ok(),
+-            "guard helper changed during verification");
++        anyhow::ensure!(
++            after.len() == size && after.modified().ok() == before.modified().ok(),
++            "guard helper changed during verification"
++        );
+         file.rewind()?;
+         Ok(hash.finalize().into())
+     }
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/plan.rs:88:
+         let mut file = Self::open(path)?;
+         let bytes = file.metadata()?.len();
+         let hash = Self::digest(&mut file, bytes)?;
+-        Ok(Self { path: path.into(), bytes, hash })
++        Ok(Self {
++            path: path.into(),
++            bytes,
++            hash,
++        })
+     }
+     fn verify(&self) -> Result<File> {
+         let mut file = Self::open(&self.path)?;
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/plan.rs:95:
+-        anyhow::ensure!(Self::digest(&mut file, self.bytes)? == self.hash,
+-            "guard helper executable changed");
++        anyhow::ensure!(
++            Self::digest(&mut file, self.bytes)? == self.hash,
++            "guard helper executable changed"
++        );
+         Ok(file)
+     }
+ }
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/readiness.rs:15:
+     let mut events = Vec::with_capacity(10);
+     let mut deadline = (driver.closing && !driver.tree_retired()).then(|| Instant::now() + TICK);
+     if let Some(native) = &driver.native {
+-        if native.readiness(&mut events, &mut deadline)? { return Ok(()); }
++        if native.readiness(&mut events, &mut deadline)? {
++            return Ok(());
++        }
+     }
+     if !driver.closing || !driver.io_retired {
+         events.push(driver.parent.as_raw_handle());
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows.rs:31:
+ }
+ impl Blocking {
+     pub(super) fn from_handle(handle: OwnedHandle) -> io::Result<Self> {
+-        Ok(Self { stream: Control::new(handle)?, timeout: Some(TIMEOUT) })
++        Ok(Self {
++            stream: Control::new(handle)?,
++            timeout: Some(TIMEOUT),
++        })
+     }
+     fn retry<T>(
+         &mut self,
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows.rs:172:
+     let mut listener = Listener::bind(&id)?;
+     let client = connect(listener.address())?;
+     let server = loop {
+-        if let Some(stream) = listener.accept()? { break stream; }
++        if let Some(stream) = listener.accept()? {
++            break stream;
++        }
+         std::thread::sleep(super::TICK);
+     };
+     Ok((server, client.into_handle()?))
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard.rs:1:
+ //! Opt-in native cleanup authority, independent of local speech forwarding.
+ //! Native lifetime and local control use platform-specific handles. Speech
+ //! retains the ordinary anonymous-pipe path and never passes through the guard.
++#[cfg(windows)]
++#[path = "native_guard/windows/helper_client.rs"]
++mod helper_client;
++#[cfg(windows)]
++#[path = "native_guard/windows/helper_wire.rs"]
++mod helper_wire;
+ #[cfg(target_os = "linux")]
+ #[path = "native_guard/linux.rs"]
+ mod os;
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard.rs:12:
+ #[cfg(windows)]
+ #[path = "native_guard/windows/readiness.rs"]
+ mod readiness;
+-mod wire;
+ #[cfg(windows)]
+-#[path = "native_guard/windows/helper_client.rs"]
+-mod helper_client;
++#[path = "native_guard/windows/owned.rs"]
++mod windows_owned;
+ #[cfg(windows)]
+-#[path = "native_guard/windows/helper_wire.rs"]
+-mod helper_wire;
+-#[cfg(windows)]
+ #[path = "native_guard/windows/plan.rs"]
+ mod windows_plan;
++mod wire;
+ #[cfg(windows)]
+-#[path = "native_guard/windows/owned.rs"]
+-mod windows_owned;
+-#[cfg(windows)]
+ use windows_owned::Native;
+ 
+ use crate::voice_validation::owned::platform;
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard.rs:48:
+ 
+ #[cfg(windows)]
+ pub fn worker_arguments(mut args: Vec<String>) -> Result<Vec<String>> {
+-    if args.first().is_some_and(|arg| arg == os::native::creation::WORKER_MODE) {
+-        let handle = args.get(1).context("missing private helper creation channel")?;
++    if args
++        .first()
++        .is_some_and(|arg| arg == os::native::creation::WORKER_MODE)
++    {
++        let handle = args
++            .get(1)
++            .context("missing private helper creation channel")?;
+         helper_client::install(handle)?;
+         args.drain(..2);
+     }
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard.rs:176:
+         let deadline = Instant::now() + TIMEOUT;
+         let mut reply = self.request("start")?;
+         while reply["started"] != true && reply["tree_retired"] != true {
+-            anyhow::ensure!(reply["native_error"].is_null(), "native start failed: {}", reply["native_error"]);
++            anyhow::ensure!(
++                reply["native_error"].is_null(),
++                "native start failed: {}",
++                reply["native_error"]
++            );
+             anyhow::ensure!(Instant::now() < deadline, "guard native start unconfirmed");
+             std::thread::sleep(TICK);
+             reply = self.request("status")?;
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard.rs:303:
+         let [input, output, error] = self.pipes.take().context("guard pipes already consumed")?;
+         #[cfg(windows)]
+         {
+-            self.native = Some(Native::start(startup, [input, output, error],
+-                self.plan.take().context("missing native creation plan")?)?);
++            self.native = Some(Native::start(
++                startup,
++                [input, output, error],
++                self.plan.take().context("missing native creation plan")?,
++            )?);
+         }
+         #[cfg(target_os = "linux")]
+         {
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard.rs:311:
+-        startup.verify()?;
+-        let tree = platform::Tree::for_speech()?;
+-        let mut command = Command::new(&startup.executable.path);
+-        command
+-            .args(&startup.arguments)
+-            .current_dir(&startup.working_directory);
+-        startup.environment.apply(&mut command);
+-        command
+-            .env_remove("OMNIVOX_REMOTE_WORKER")
+-            .env("OMNIVOX_OWNED_WORKER", "1")
+-            .stdin(Stdio::from(input))
+-            .stdout(Stdio::from(output))
+-            .stderr(Stdio::from(error));
+-        platform::configure_speech(&mut command);
+-        let child = command.spawn()?;
+-        drop(command);
+-        self.native = Some(Native {
+-            child,
+-            tree,
+-            assigned: false,
+-            retired: false,
+-        });
+-        let native = self.native.as_mut().unwrap();
+-        native.tree.assign(&native.child)?;
+-        native.assigned = true;
++            startup.verify()?;
++            let tree = platform::Tree::for_speech()?;
++            let mut command = Command::new(&startup.executable.path);
++            command
++                .args(&startup.arguments)
++                .current_dir(&startup.working_directory);
++            startup.environment.apply(&mut command);
++            command
++                .env_remove("OMNIVOX_REMOTE_WORKER")
++                .env("OMNIVOX_OWNED_WORKER", "1")
++                .stdin(Stdio::from(input))
++                .stdout(Stdio::from(output))
++                .stderr(Stdio::from(error));
++            platform::configure_speech(&mut command);
++            let child = command.spawn()?;
++            drop(command);
++            self.native = Some(Native {
++                child,
++                tree,
++                assigned: false,
++                retired: false,
++            });
++            let native = self.native.as_mut().unwrap();
++            native.tree.assign(&native.child)?;
++            native.assigned = true;
+         }
+         // The actual owner still has to write the validated owned START frame.
+         Ok(())
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard.rs:347:
+         #[cfg(windows)]
+         if let Some(native) = &mut self.native {
+             native.poll(self.closing)?;
+-            if native.closing { self.retire(); }
++            if native.closing {
++                self.retire();
++            }
+         }
+         #[cfg(target_os = "linux")]
+         if self.closing {
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard.rs:363:
+         #[cfg(target_os = "linux")]
+         let started = self.native.is_some();
+         #[cfg(windows)]
+-        let native_error = self.native.as_ref().and_then(|native| native.error.as_deref());
++        let native_error = self
++            .native
++            .as_ref()
++            .and_then(|native| native.error.as_deref());
+         #[cfg(target_os = "linux")]
+         let native_error: Option<&str> = None;
+         json!({"type":"guard_status","request_id":id,"guard":self.endpoint.guard,"worker":self.endpoint.worker,
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-tts/src/helper_engine.rs:1:
+ //! Host-side support for TTS engines backed by helper processes.
+ 
++#[cfg(windows)]
++use crate::native_helper::Child;
+ use std::collections::{HashMap, VecDeque};
+ use std::ffi::OsString;
+ use std::fs::File;
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-tts/src/helper_engine.rs:8:
+ use std::process::ChildStdin;
+ #[cfg(not(windows))]
+ use std::process::{Child, Command, Stdio};
+-#[cfg(windows)]
+-use crate::native_helper::Child;
+ use std::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
+ use std::sync::{mpsc, Arc, Mutex, MutexGuard, RwLock, TryLockError};
+ use std::thread::{self, JoinHandle};
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-tts/src/helper_engine.rs:364:
+         info!(engine_id, "Starting TTS helper process");
+         #[cfg(windows)]
+         let mut child = crate::native_helper::spawn(engine_id, program, arguments, environment)
+-            .map_err(|error| HelperEngineError::Transport(format!("could not start {engine_id} helper: {error}")))?;
+-        #[cfg(not(windows))]
+-        let mut child = {
+-        let mut command = Command::new(program);
+-        environment.apply(&mut command);
+-        command
+-            .args(arguments)
+-            .stdin(Stdio::piped())
+-            .stdout(Stdio::piped())
+-            .stderr(Stdio::inherit())
+-            .spawn()
+             .map_err(|error| {
+                 HelperEngineError::Transport(format!("could not start {engine_id} helper: {error}"))
+-            })?
++            })?;
++        #[cfg(not(windows))]
++        let mut child = {
++            let mut command = Command::new(program);
++            environment.apply(&mut command);
++            command
++                .args(arguments)
++                .stdin(Stdio::piped())
++                .stdout(Stdio::piped())
++                .stderr(Stdio::inherit())
++                .spawn()
++                .map_err(|error| {
++                    HelperEngineError::Transport(format!(
++                        "could not start {engine_id} helper: {error}"
++                    ))
++                })?
+         };
+         let child_id = child.id();
+         info!(engine_id, child_id, "TTS helper process started");
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-tts/src/lib.rs:18:
+ pub mod logical_voices;
+ pub mod macos;
+ pub mod marker_protocol;
+-pub mod native_parameters;
+ #[cfg(windows)]
+ #[doc(hidden)]
+ pub mod native_helper;
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-tts/src/lib.rs:25:
++pub mod native_parameters;
+ pub mod native_synthesis;
+ #[cfg(feature = "piper")]
+ pub mod piper;
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-tts/src/native_helper.rs:14:
+ 
+ /// Install only at the private worker entry before engine threads start.
+ pub fn install(launcher: Launcher) -> io::Result<()> {
+-    LAUNCHER.set(launcher).map_err(|_| io::Error::other("native helper launcher already installed"))
++    LAUNCHER
++        .set(launcher)
++        .map_err(|_| io::Error::other("native helper launcher already installed"))
+ }
+ 
+ enum Process {
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-tts/src/native_helper.rs:40:
+ impl Child {
+     /// Handles come from one complete guard handoff. The actual process handle
+     /// retains SYNCHRONIZE, QUERY_LIMITED_INFORMATION and TERMINATE authority.
+-    pub fn guarded(process: OwnedHandle, input: OwnedHandle, output: OwnedHandle) -> io::Result<Self> {
++    pub fn guarded(
++        process: OwnedHandle,
++        input: OwnedHandle,
++        output: OwnedHandle,
++    ) -> io::Result<Self> {
+         // SAFETY: borrowing the supplied live handle; failure does not adopt a PID.
+         let id = unsafe { GetProcessId(process.as_raw_handle()) };
+-        if id == 0 { return Err(io::Error::last_os_error()); }
+-        Ok(Self { process: Process::Guarded(process), stdin: Some(input.into()), stdout: Some(output.into()), id })
++        if id == 0 {
++            return Err(io::Error::last_os_error());
++        }
++        Ok(Self {
++            process: Process::Guarded(process),
++            stdin: Some(input.into()),
++            stdout: Some(output.into()),
++            id,
++        })
+     }
+-    pub fn id(&self) -> u32 { self.id }
++    pub fn id(&self) -> u32 {
++        self.id
++    }
+     pub fn try_wait(&mut self) -> io::Result<Option<ExitStatus>> {
+         match &mut self.process {
+             Process::Ordinary(child) => child.try_wait(),
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-tts/src/native_helper.rs:57:
+                     0 => {
+                         let mut status = 0;
+                         // SAFETY: actual process completion precedes reading its exit code.
+-                        if unsafe { GetExitCodeProcess(handle.as_raw_handle(), &mut status) } == 0 { return Err(io::Error::last_os_error()); }
++                        if unsafe { GetExitCodeProcess(handle.as_raw_handle(), &mut status) } == 0 {
++                            return Err(io::Error::last_os_error());
++                        }
+                         Ok(Some(ExitStatus::from_raw(status)))
+                     }
+                     _ => Err(io::Error::last_os_error()),
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-tts/src/native_helper.rs:70:
+             Process::Ordinary(child) => child.kill(),
+             Process::Guarded(handle) => {
+                 // SAFETY: the guard transferred cancellation for this exact helper.
+-                if unsafe { TerminateProcess(handle.as_raw_handle(), 1) } == 0 { Err(io::Error::last_os_error()) } else { Ok(()) }
++                if unsafe { TerminateProcess(handle.as_raw_handle(), 1) } == 0 {
++                    Err(io::Error::last_os_error())
++                } else {
++                    Ok(())
++                }
+             }
+         }
+     }
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-tts/src/native_helper.rs:77:
+ }
+ 
+-pub(crate) fn spawn(engine: &str, program: &Path, arguments: &[OsString], environment: &LaunchEnvironment) -> io::Result<Child> {
+-    if let Some(launch) = LAUNCHER.get() { return launch(engine, program, arguments, environment); }
++pub(crate) fn spawn(
++    engine: &str,
++    program: &Path,
++    arguments: &[OsString],
++    environment: &LaunchEnvironment,
++) -> io::Result<Child> {
++    if let Some(launch) = LAUNCHER.get() {
++        return launch(engine, program, arguments, environment);
++    }
+     let mut command = Command::new(program);
+     environment.apply(&mut command);
+-    let mut child = command.args(arguments).stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::inherit()).spawn()?;
+-    Ok(Child { id: child.id(), stdin: child.stdin.take(), stdout: child.stdout.take(), process: Process::Ordinary(child) })
++    let mut child = command
++        .args(arguments)
++        .stdin(Stdio::piped())
++        .stdout(Stdio::piped())
++        .stderr(Stdio::inherit())
++        .spawn()?;
++    Ok(Child {
++        id: child.id(),
++        stdin: child.stdin.take(),
++        stdout: child.stdout.take(),
++        process: Process::Ordinary(child),
++    })
+ }
+ 
+make: *** [Makefile:158: fmt-check] Error 1

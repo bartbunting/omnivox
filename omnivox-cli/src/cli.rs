@@ -66,8 +66,7 @@ fn parse_string_flag(flag: &str, args: &[String], i: &mut usize) -> String {
     }
 }
 
-pub fn parse_args() -> CliArgs {
-    let args: Vec<String> = std::env::args().skip(1).collect();
+pub fn parse_args(args: &[String]) -> CliArgs {
     let mut cli = CliArgs {
         engine: String::new(),
         action: String::from("server"),
@@ -95,33 +94,33 @@ pub fn parse_args() -> CliArgs {
             "--list-voices-alist" => cli.action = String::from("list-voices-alist"),
             "--dump-wav" => cli.action = String::from("dump-wav"),
             "--play-wav" => cli.action = String::from("play-wav"),
-            "--engine" => cli.engine = parse_string_flag("--engine", &args, &mut i),
-            "--voice" => cli.voice = Some(parse_string_flag("--voice", &args, &mut i)),
-            "--rate" => cli.rate = Some(parse_float_flag("--rate", &args, &mut i)),
-            "--pitch" => cli.pitch = Some(parse_float_flag("--pitch", &args, &mut i)),
+            "--engine" => cli.engine = parse_string_flag("--engine", args, &mut i),
+            "--voice" => cli.voice = Some(parse_string_flag("--voice", args, &mut i)),
+            "--rate" => cli.rate = Some(parse_float_flag("--rate", args, &mut i)),
+            "--pitch" => cli.pitch = Some(parse_float_flag("--pitch", args, &mut i)),
             "--voice-volume" => {
-                cli.voice_volume = Some(parse_float_flag("--voice-volume", &args, &mut i))
+                cli.voice_volume = Some(parse_float_flag("--voice-volume", args, &mut i))
             }
             "--tone-volume" => {
-                cli.tone_volume = Some(parse_float_flag("--tone-volume", &args, &mut i))
+                cli.tone_volume = Some(parse_float_flag("--tone-volume", args, &mut i))
             }
             "--sound-volume" => {
-                cli.sound_volume = Some(parse_float_flag("--sound-volume", &args, &mut i))
+                cli.sound_volume = Some(parse_float_flag("--sound-volume", args, &mut i))
             }
             "--audio-target" => {
-                cli.audio_target = Some(parse_string_flag("--audio-target", &args, &mut i))
+                cli.audio_target = Some(parse_string_flag("--audio-target", args, &mut i))
             }
             "--audio-output" => {
-                cli.audio_output = Some(parse_string_flag("--audio-output", &args, &mut i))
+                cli.audio_output = Some(parse_string_flag("--audio-output", args, &mut i))
             }
             "--piper-model" => {
-                cli.piper_model = Some(parse_string_flag("--piper-model", &args, &mut i))
+                cli.piper_model = Some(parse_string_flag("--piper-model", args, &mut i))
             }
             "--config-dir" => {
-                cli.config_dir = Some(parse_string_flag("--config-dir", &args, &mut i))
+                cli.config_dir = Some(parse_string_flag("--config-dir", args, &mut i))
             }
             "--voice-library" => {
-                cli.voice_library = Some(parse_string_flag("--voice-library", &args, &mut i))
+                cli.voice_library = Some(parse_string_flag("--voice-library", args, &mut i))
             }
             other => {
                 if cli.action == "dump-wav" || cli.action == "play-wav" {

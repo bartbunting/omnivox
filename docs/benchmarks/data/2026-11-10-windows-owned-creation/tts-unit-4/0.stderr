@@ -1,0 +1,21 @@
+
+thread 'omnivox-external-init-0' (16116) panicked at omnivox-tts/src/helper_engine/initialization.rs:399:13:
+failed worker
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'omnivox-external-init-1' (17516) panicked at omnivox-tts/src/helper_engine/initialization.rs:399:13:
+failed worker
+
+thread 'omnivox-helper-initialization' (35008) panicked at omnivox-tts/src/helper_engine/initialization_tests.rs:434:9:
+controlled initialization panic
+
+thread 'omnivox-helper-initialization' (5536) panicked at omnivox-tts/src/helper_engine/initialization_tests.rs:434:9:
+controlled initialization panic
+
+thread 'omnivox-helper-initialization' (39572) panicked at omnivox-tts/src/helper_engine/initialization_tests.rs:434:9:
+controlled initialization panic
+
+thread 'omnivox-helper-initialization' (39192) panicked at omnivox-tts/src/helper_engine/initialization_tests.rs:434:9:
+controlled initialization panic
+blocked connector: budget_ms=100 return_ms=101
+unconfirmed writer cleanup: budget_ms=100 return_ms=100

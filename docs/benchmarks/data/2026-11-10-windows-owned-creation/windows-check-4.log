@@ -1,0 +1,12 @@
+info: syncing channel updates for 1.97.1-x86_64-unknown-linux-gnu
+info: latest update on 2026-07-16 for version 1.97.1 (8bab26f4f 2026-07-14)
+info: downloading component clippy
+   Compiling omnivox-cli v1.18.0 (/workspace/omnivox/omnivox-cli)
+    Checking omnivox-tts v1.18.0 (/workspace/omnivox/omnivox-tts)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 15.32s
+   Compiling omnivox-cli v1.18.0 (/workspace/omnivox/omnivox-cli)
+   Compiling omnivox-tts v1.18.0 (/workspace/omnivox/omnivox-tts)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 31.96s
+  Executable unittests src/main.rs (target/guard-windows-check/x86_64-pc-windows-gnu/debug/deps/omnivox-f3e5efc671617985.exe)
+  Executable unittests src/lib.rs (target/guard-windows-check/x86_64-pc-windows-gnu/debug/deps/omnivox_tts-27486f4111bbacfc.exe)
+  Executable tests/protocol_documentation.rs (target/guard-windows-check/x86_64-pc-windows-gnu/debug/deps/protocol_documentation-073449495d33f1eb.exe)

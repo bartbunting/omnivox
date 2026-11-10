@@ -1,7 +1,7 @@
 //! Windows job ownership keeps remote workers and helpers tied to the broker.
 use anyhow::{Context, Result};
 use std::ffi::c_void;
-use std::os::windows::io::AsRawHandle;
+use std::os::windows::io::{AsRawHandle, BorrowedHandle};
 use std::process::Child;
 
 type Handle = *mut c_void;
@@ -48,6 +48,16 @@ unsafe extern "system" {
 }
 
 pub struct Job(Handle);
+
+// SAFETY: the private kernel job handle remains owned until Drop. Windows job
+// operations synchronize their own state; sharing it never transfers ownership.
+unsafe impl Send for Job {}
+unsafe impl Sync for Job {}
+
+pub(crate) struct Counts {
+    pub total: u32,
+    pub active: u32,
+}
 
 impl Job {
     pub fn new() -> Result<Self> {
@@ -111,6 +121,15 @@ impl Job {
     }
 
     pub fn is_empty(&self) -> std::io::Result<bool> {
+        Ok(self.counts()?.active == 0)
+    }
+
+    pub(crate) fn handle(&self) -> BorrowedHandle<'_> {
+        // SAFETY: borrow cannot outlive this sole owning job handle.
+        unsafe { BorrowedHandle::borrow_raw(self.0) }
+    }
+
+    pub(crate) fn counts(&self) -> std::io::Result<Counts> {
         #[repr(C)]
         #[derive(Default)]
         struct Accounting {
@@ -138,7 +157,10 @@ impl Job {
         {
             return Err(std::io::Error::last_os_error());
         }
-        Ok(accounting.active_processes == 0)
+        Ok(Counts {
+            total: accounting.total_processes,
+            active: accounting.active_processes,
+        })
     }
 }
 

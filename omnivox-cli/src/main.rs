@@ -95,6 +95,8 @@ fn main() -> Result<()> {
     }) {
         anyhow::bail!("independent native guard control is not implemented on this platform");
     }
+    #[cfg(windows)]
+    let args = native_guard::worker_arguments(args)?;
     #[cfg(any(target_os = "linux", target_os = "macos", windows))]
     if voice_local::requested(&args) {
         return voice_local::run(&args);
@@ -112,7 +114,7 @@ fn main() -> Result<()> {
         return remote::run(&args);
     }
     remote::await_worker_start()?;
-    let cli = parse_args();
+    let cli = parse_args(&args);
 
     match cli.action.as_str() {
         "help" => {

@@ -327,7 +327,9 @@ initialization and output creation.
 
 The client channel accepts `status`, `retire`, and `retire-owner`. Replies are
 `guard_status` records with matching identities and request ID, Boolean
-`attempted`, `started`, `tree_retired`, `io_retired`, and nullable `error`.
+`attempted`, `started`, `tree_retired`, `io_retired`, nullable `error`, and
+nullable `native_error`. The latter diagnoses asynchronous native failure; it
+does not prevent subsequent retirement/status requests or establish cleanup.
 `started` reports native creation, not usable speech. `retire` cancels preparation
 and begins tree cleanup. `retire-owner` is legal only after `tree_retired: true`;
 it signals the actual inherited owner pidfd, never a PID recovered from storage.
@@ -371,6 +373,50 @@ non-inheritable handles, explicit process-launch allowlist, overlapped-I/O
 cancellation and bounded event waiting have native component evidence. None of
 those transport checks makes job-accounting zero sufficient cleanup proof.
 Windows owner descriptors are not exposed through the gated entry points.
+
+### Windows creation candidate
+
+Under [ADR 0019](../adr/0019-windows-native-creation-ownership.md), the private
+Windows guard now creates its worker and Flite helper itself. The public startup
+gate above remains until integrated qualification. Its [component evidence](../benchmarks/2026-11-10-windows-owned-creation.md)
+does not qualify other helpers, ordinary owners or remote/session ownership.
+
+Preparation accepts only explicit eSpeak/Flite registration snapshots. It rejects
+other enabled engines and external registrations without silently disabling them.
+Creation uses one bounded background task, with at most one worker and one helper
+retained concurrently. Each starts suspended, atomically assigned to the guard's
+private kill-on-close job, with restricted child creation and explicit inherited
+handles. Root verification remains immediately before creation. Helper invocation
+matching preserves native program/argument/environment values; it supplements
+existing payload, managed-asset and helper-protocol checks without adding a disk
+scan to guard preparation or speech admission.
+
+The worker inherits one private duplex creation channel. Frames are bounded to
+8 KiB. A `create` request contains positive, increasing `request_id`, `engine`
+and a SHA-256 `launch` identity of the retained invocation. It cannot supply a
+new program, arguments or environment. Only one creation or unacknowledged offer
+is allowed. An `offered` reply returns the same ID, state, three fresh handle
+values in `handles`, and null `error`. Those values belong exclusively to the
+actual receiving worker: process wait/query/terminate authority, helper input and
+helper output. Never persist, replay or adopt them in another process.
+
+The worker adopts the handles once and sends `acknowledge` with the same ID and
+empty engine/launch fields. Only then does the guard resume the retained primary
+thread and reply `started`, with no further handles. Helper initialization, PCM
+and cancellation then use the existing direct pipes and retained process object.
+The link is used only for initialization/recovery, never each speech request.
+Creation and acknowledgement each have a six-second deadline. An uncertain or
+failed handoff closes admission and retires the receiving worker to close any
+handles installed by a partial transfer; its peer remains independent.
+
+Retirement stops known processes while pending creation completes. Final job
+termination follows collection of any late suspended result, so it cannot race
+atomic job assignment. `tree_retired` requires no pending creation, actual
+worker/helper process-handle completion, completion of guard-owned native I/O,
+and consistent cumulative job accounting with zero active members. Counts, exit
+codes, timeouts and missing replies do not substitute for actual completion.
+Forwarding-I/O proof remains separate. A stuck kernel operation or lost authority
+can therefore still withhold replacement; no records or claims are deleted.
 
 ## Remote workstation ownership
 

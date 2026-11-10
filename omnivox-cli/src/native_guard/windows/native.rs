@@ -7,6 +7,9 @@ use std::os::windows::{
 };
 use std::path::Path;
 
+#[path = "creation.rs"]
+pub(crate) mod creation;
+
 const SYNCHRONIZE: u32 = 0x10_0000;
 #[repr(C)]
 #[derive(Default)]
@@ -326,7 +329,16 @@ pub(crate) fn spawn(executable: &Path, handles: [BorrowedHandle<'_>; 6]) -> io::
 /// or workers are created. Validation copies first, so malformed argv never
 /// constructs an OwnedHandle from an unchecked integer.
 pub(crate) fn receive(arguments: &[String]) -> io::Result<[OwnedHandle; 6]> {
-    if arguments.len() != 6 {
+    receive_handles(arguments)
+}
+
+pub(crate) fn receive_one(argument: &str) -> io::Result<OwnedHandle> {
+    let [handle] = receive_handles(&[argument.to_owned()])?;
+    Ok(handle)
+}
+
+fn receive_handles<const N: usize>(arguments: &[String]) -> io::Result<[OwnedHandle; N]> {
+    if arguments.len() != N {
         return Err(io::ErrorKind::InvalidInput.into());
     }
     let values: Vec<u64> = arguments
@@ -336,7 +348,7 @@ pub(crate) fn receive(arguments: &[String]) -> io::Result<[OwnedHandle; 6]> {
     let mut unique = values.clone();
     unique.sort_unstable();
     unique.dedup();
-    if unique.len() != 6 {
+    if unique.len() != N {
         return Err(io::ErrorKind::InvalidInput.into());
     }
     let mut result = Vec::new();
