@@ -26,6 +26,7 @@ use tracing::{info, warn};
 use crate::engine_execution::{IsolatedTtsEngine, IsolationBudget};
 use crate::voice_library::StartupLibrary;
 
+mod early;
 mod startup;
 pub(crate) use startup::EngineStartup;
 
@@ -60,7 +61,8 @@ pub fn create_engines(
     let library = startup.library.as_ref();
     let isolation_budget = Arc::new(IsolationBudget::new());
     let mut registry = startup.registry()?;
-    let pending = start_helper_initializations(startup.helper_configs(false), library);
+    let (critical, optional) = early::partition(&startup);
+    let pending = start_helper_initializations(critical, library);
     for id in [native_registry_engine_id(), Some("espeak")]
         .into_iter()
         .flatten()
@@ -97,6 +99,24 @@ pub fn create_engines(
         isolation_budget.clone(),
         library,
     )?;
+    // Without a usable initial engine, preserve the ordinary complete fallback
+    // search. Optional discovery must never turn a viable startup into failure.
+    let optional = if !startup.order().iter().any(|id| {
+        registry
+            .engine(id)
+            .is_some_and(|engine| engine.descriptor().can_synthesize())
+    }) {
+        register_initialized_helpers(
+            &mut registry,
+            start_helper_initializations(optional, library),
+            generation.clone(),
+            isolation_budget.clone(),
+            library,
+        )?;
+        Vec::new()
+    } else {
+        optional
+    };
     for initialized in external {
         match (initialized.engine, initialized.result) {
             (Some(engine), Ok(_)) => {
@@ -140,6 +160,7 @@ pub fn create_engines(
     if library.is_some() {
         crate::voice_library::preflight_responses(&registry, &preferred.descriptor().id)?;
     }
+    early::discover(&mut registry, optional, generation, isolation_budget)?;
     info!(
         engine_id = preferred.descriptor().id,
         "Selected startup engine"
