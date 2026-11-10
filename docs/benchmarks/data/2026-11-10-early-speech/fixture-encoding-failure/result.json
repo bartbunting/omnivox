@@ -1,0 +1,1033 @@
+{
+  "runtime": {
+    "stage": "/home/bart/src/emacsvox-lightweight-reload/servers/omnivox-bin/versions/ea5d6dfb93dd575d",
+    "executable": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-lightweight-20261110/Emacsvox/Omnivox/runtime/4e1c1561f51908a6/omnivox.exe",
+    "sha256": "f5fc9ce3b5f4a9f4723079e2964dbf6e58e180973056d9c1dfbbe308a936b0b8",
+    "data": "C:\\Users\\bart\\AppData\\Local\\Temp\\omnivox-lightweight-20261110\\Emacsvox\\Omnivox\\espeak-data\\9a2e176369cfe0b982737abf6c26037f21d2b9af2a2fabcc08062864d0157718",
+    "rhvoice_library": "C:\\Users\\bart\\AppData\\Local\\Emacsvox\\RHVoice\\1.14.0-wrapper-0.5.0-slt\\RHVoice.dll",
+    "rhvoice_data": "C:\\Users\\bart\\AppData\\Local\\Emacsvox\\RHVoice\\1.14.0-wrapper-0.5.0-slt\\data",
+    "client_commit": "5fc22ec71b6576eea1fe5b26c5fac9f7bc7dea56",
+    "implementation_base_commit": "6c5678cc8579231f30246f05e942af5839760cc7",
+    "modified_source": "omnivox-cli/src/native_guard/windows/helper_client.rs",
+    "modified_source_sha256": "1131681e220d8ff6166a17d0eba620455e306aa5b7b80bbc5fc9a200dbb873cc",
+    "implementation_commit": "ac9ee0a129f12e120ce2af822387cfa6fa225129"
+  },
+  "runs": [
+    {
+      "name": "0",
+      "early": false,
+      "ready_ms": 5845.530456,
+      "first_source_ms": 5889.192936,
+      "initial_optional": {
+        "id": "rutts",
+        "display_name": "rutts",
+        "version": null,
+        "availability": {
+          "status": "unavailable",
+          "reason": "helper transport failed: helper cleanup: Access is denied. (os error 5)"
+        },
+        "health": {
+          "status": "failed",
+          "reason": "helper transport failed: helper cleanup: Access is denied. (os error 5)"
+        },
+        "capabilities": {
+          "acss": {
+            "rate": false,
+            "average_pitch": false,
+            "pitch_range": false,
+            "stress": false,
+            "richness": false,
+            "volume": false
+          },
+          "audio_output": "buffered_pcm",
+          "cancellation": "none",
+          "concurrency": {
+            "mode": "serialized"
+          },
+          "markers": {
+            "word": false,
+            "sentence": false,
+            "phoneme": false,
+            "native_index": false,
+            "requested_anchors": "none"
+          },
+          "language_switching": false,
+          "text_repertoire": "unknown",
+          "post_synthesis_dimensions": [],
+          "native_extensions": []
+        },
+        "voices": [],
+        "default_voice_id": null
+      },
+      "during": [
+        {
+          "id": 2,
+          "start_ns": 2624874396721,
+          "end_ns": 2624890697060,
+          "source_ms": 7.042386,
+          "terminal_ms": 16.300339
+        },
+        {
+          "id": 3,
+          "start_ns": 2624960133333,
+          "end_ns": 2624972839820,
+          "source_ms": 7.467682,
+          "terminal_ms": 12.706487
+        },
+        {
+          "id": 4,
+          "start_ns": 2625041590958,
+          "end_ns": 2625056735399,
+          "source_ms": 9.947578,
+          "terminal_ms": 15.144441
+        },
+        {
+          "id": 5,
+          "start_ns": 2625131854584,
+          "end_ns": 2625153304717,
+          "source_ms": 12.515294,
+          "terminal_ms": 21.450133
+        },
+        {
+          "id": 6,
+          "start_ns": 2625223545737,
+          "end_ns": 2625248518596,
+          "source_ms": 12.112597,
+          "terminal_ms": 24.972859
+        },
+        {
+          "id": 7,
+          "start_ns": 2625316770558,
+          "end_ns": 2625337614072,
+          "source_ms": 10.779904,
+          "terminal_ms": 20.843514
+        },
+        {
+          "id": 8,
+          "start_ns": 2625408040744,
+          "end_ns": 2625432713206,
+          "source_ms": 13.143266,
+          "terminal_ms": 24.672462
+        },
+        {
+          "id": 9,
+          "start_ns": 2625505439704,
+          "end_ns": 2625529892834,
+          "source_ms": 12.455045,
+          "terminal_ms": 24.45313
+        },
+        {
+          "id": 10,
+          "start_ns": 2625598460094,
+          "end_ns": 2625615439052,
+          "source_ms": 8.297734,
+          "terminal_ms": 16.978958
+        },
+        {
+          "id": 11,
+          "start_ns": 2625691412278,
+          "end_ns": 2625705719915,
+          "source_ms": 8.074065,
+          "terminal_ms": 14.307637
+        },
+        {
+          "id": 12,
+          "start_ns": 2625775273914,
+          "end_ns": 2625793338494,
+          "source_ms": 10.406861,
+          "terminal_ms": 18.06458
+        },
+        {
+          "id": 13,
+          "start_ns": 2625869071413,
+          "end_ns": 2625880169382,
+          "source_ms": 6.860558,
+          "terminal_ms": 11.097969
+        },
+        {
+          "id": 14,
+          "start_ns": 2625951924164,
+          "end_ns": 2625969381370,
+          "source_ms": 8.635286,
+          "terminal_ms": 17.457206
+        },
+        {
+          "id": 15,
+          "start_ns": 2626041741050,
+          "end_ns": 2626057685481,
+          "source_ms": 9.701354,
+          "terminal_ms": 15.944431
+        },
+        {
+          "id": 16,
+          "start_ns": 2626132537112,
+          "end_ns": 2626145638470,
+          "source_ms": 7.318996,
+          "terminal_ms": 13.101358
+        },
+        {
+          "id": 17,
+          "start_ns": 2626218006473,
+          "end_ns": 2626234942928,
+          "source_ms": 7.306952,
+          "terminal_ms": 16.936455
+        },
+        {
+          "id": 18,
+          "start_ns": 2626309971896,
+          "end_ns": 2626324367531,
+          "source_ms": 8.635152,
+          "terminal_ms": 14.395635
+        },
+        {
+          "id": 19,
+          "start_ns": 2626400099657,
+          "end_ns": 2626416584050,
+          "source_ms": 8.305098,
+          "terminal_ms": 16.484393
+        },
+        {
+          "id": 20,
+          "start_ns": 2626491460874,
+          "end_ns": 2626505933917,
+          "source_ms": 7.839514,
+          "terminal_ms": 14.473043
+        },
+        {
+          "id": 21,
+          "start_ns": 2626579564658,
+          "end_ns": 2626594594109,
+          "source_ms": 7.853537,
+          "terminal_ms": 15.029451
+        },
+        {
+          "id": 22,
+          "start_ns": 2626662424081,
+          "end_ns": 2626680091798,
+          "source_ms": 9.498404,
+          "terminal_ms": 17.667717
+        },
+        {
+          "id": 23,
+          "start_ns": 2626754599876,
+          "end_ns": 2626771963571,
+          "source_ms": 9.681779,
+          "terminal_ms": 17.363695
+        },
+        {
+          "id": 24,
+          "start_ns": 2626848679004,
+          "end_ns": 2626866427576,
+          "source_ms": 9.430412,
+          "terminal_ms": 17.748572
+        },
+        {
+          "id": 25,
+          "start_ns": 2626942015739,
+          "end_ns": 2626961421852,
+          "source_ms": 11.469403,
+          "terminal_ms": 19.406113
+        },
+        {
+          "id": 26,
+          "start_ns": 2627036822085,
+          "end_ns": 2627057727348,
+          "source_ms": 13.323395,
+          "terminal_ms": 20.905263
+        },
+        {
+          "id": 27,
+          "start_ns": 2627133818261,
+          "end_ns": 2627155686862,
+          "source_ms": 13.748363,
+          "terminal_ms": 21.868601
+        },
+        {
+          "id": 28,
+          "start_ns": 2627230953190,
+          "end_ns": 2627250168008,
+          "source_ms": 10.670558,
+          "terminal_ms": 19.214818
+        },
+        {
+          "id": 29,
+          "start_ns": 2627329867370,
+          "end_ns": 2627347869319,
+          "source_ms": 8.570508,
+          "terminal_ms": 18.001949
+        },
+        {
+          "id": 30,
+          "start_ns": 2627414829932,
+          "end_ns": 2627434177408,
+          "source_ms": 10.619394,
+          "terminal_ms": 19.347476
+        },
+        {
+          "id": 31,
+          "start_ns": 2627509752322,
+          "end_ns": 2627526869393,
+          "source_ms": 8.100119,
+          "terminal_ms": 17.117071
+        },
+        {
+          "id": 32,
+          "start_ns": 2627604508796,
+          "end_ns": 2627623684975,
+          "source_ms": 9.24009,
+          "terminal_ms": 19.176179
+        },
+        {
+          "id": 33,
+          "start_ns": 2627695637812,
+          "end_ns": 2627718815086,
+          "source_ms": 11.053129,
+          "terminal_ms": 23.177274
+        },
+        {
+          "id": 34,
+          "start_ns": 2627788633364,
+          "end_ns": 2627805122972,
+          "source_ms": 8.564618,
+          "terminal_ms": 16.489608
+        },
+        {
+          "id": 35,
+          "start_ns": 2627878416001,
+          "end_ns": 2627894047933,
+          "source_ms": 8.376885,
+          "terminal_ms": 15.631932
+        },
+        {
+          "id": 36,
+          "start_ns": 2627966038728,
+          "end_ns": 2627984304696,
+          "source_ms": 9.195043,
+          "terminal_ms": 18.265968
+        },
+        {
+          "id": 37,
+          "start_ns": 2628060518659,
+          "end_ns": 2628078720277,
+          "source_ms": 10.551228,
+          "terminal_ms": 18.201618
+        },
+        {
+          "id": 38,
+          "start_ns": 2628147116466,
+          "end_ns": 2628170277858,
+          "source_ms": 12.431909,
+          "terminal_ms": 23.161392
+        },
+        {
+          "id": 39,
+          "start_ns": 2628237781705,
+          "end_ns": 2628255380701,
+          "source_ms": 11.298791,
+          "terminal_ms": 17.598996
+        },
+        {
+          "id": 40,
+          "start_ns": 2628323580438,
+          "end_ns": 2628345305902,
+          "source_ms": 13.218646,
+          "terminal_ms": 21.725464
+        },
+        {
+          "id": 41,
+          "start_ns": 2628414270938,
+          "end_ns": 2628430923796,
+          "source_ms": 9.600468,
+          "terminal_ms": 16.652858
+        },
+        {
+          "id": 42,
+          "start_ns": 2628500185713,
+          "end_ns": 2628513873608,
+          "source_ms": 7.303546,
+          "terminal_ms": 13.687895
+        },
+        {
+          "id": 43,
+          "start_ns": 2628584139949,
+          "end_ns": 2628598963140,
+          "source_ms": 8.242527,
+          "terminal_ms": 14.823191
+        },
+        {
+          "id": 44,
+          "start_ns": 2628667444867,
+          "end_ns": 2628690875569,
+          "source_ms": 11.553715,
+          "terminal_ms": 23.430702
+        },
+        {
+          "id": 45,
+          "start_ns": 2628762581408,
+          "end_ns": 2628781155910,
+          "source_ms": 7.094564,
+          "terminal_ms": 18.574502
+        },
+        {
+          "id": 46,
+          "start_ns": 2628848251320,
+          "end_ns": 2628872479407,
+          "source_ms": 11.017157,
+          "terminal_ms": 24.228087
+        },
+        {
+          "id": 47,
+          "start_ns": 2628944081383,
+          "end_ns": 2628966046262,
+          "source_ms": 10.070939,
+          "terminal_ms": 21.964879
+        },
+        {
+          "id": 48,
+          "start_ns": 2629033938622,
+          "end_ns": 2629055177394,
+          "source_ms": 11.766406,
+          "terminal_ms": 21.238772
+        },
+        {
+          "id": 49,
+          "start_ns": 2629125686607,
+          "end_ns": 2629148786662,
+          "source_ms": 10.653791,
+          "terminal_ms": 23.100055
+        },
+        {
+          "id": 50,
+          "start_ns": 2629223975232,
+          "end_ns": 2629243205666,
+          "source_ms": 10.534184,
+          "terminal_ms": 19.230434
+        },
+        {
+          "id": 51,
+          "start_ns": 2629311130123,
+          "end_ns": 2629334977637,
+          "source_ms": 12.795583,
+          "terminal_ms": 23.847514
+        },
+        {
+          "id": 52,
+          "start_ns": 2629401842258,
+          "end_ns": 2629423918211,
+          "source_ms": 11.817448,
+          "terminal_ms": 22.075953
+        },
+        {
+          "id": 53,
+          "start_ns": 2629493269292,
+          "end_ns": 2629517883500,
+          "source_ms": 11.404191,
+          "terminal_ms": 24.614208
+        },
+        {
+          "id": 54,
+          "start_ns": 2629585867674,
+          "end_ns": 2629607695238,
+          "source_ms": 11.079817,
+          "terminal_ms": 21.827564
+        },
+        {
+          "id": 55,
+          "start_ns": 2629675215417,
+          "end_ns": 2629701333838,
+          "source_ms": 12.956805,
+          "terminal_ms": 26.118421
+        },
+        {
+          "id": 56,
+          "start_ns": 2629774226480,
+          "end_ns": 2629795550610,
+          "source_ms": 12.352066,
+          "terminal_ms": 21.32413
+        },
+        {
+          "id": 57,
+          "start_ns": 2629863959181,
+          "end_ns": 2629878014906,
+          "source_ms": 7.762825,
+          "terminal_ms": 14.055725
+        },
+        {
+          "id": 58,
+          "start_ns": 2629943933719,
+          "end_ns": 2629966409224,
+          "source_ms": 11.779181,
+          "terminal_ms": 22.475505
+        },
+        {
+          "id": 59,
+          "start_ns": 2630035106267,
+          "end_ns": 2630057281655,
+          "source_ms": 10.52156,
+          "terminal_ms": 22.175388
+        },
+        {
+          "id": 60,
+          "start_ns": 2630123454805,
+          "end_ns": 2630148668429,
+          "source_ms": 13.318517,
+          "terminal_ms": 25.213624
+        },
+        {
+          "id": 61,
+          "start_ns": 2630215119175,
+          "end_ns": 2630234185731,
+          "source_ms": 9.85821,
+          "terminal_ms": 19.066556
+        },
+        {
+          "id": 62,
+          "start_ns": 2630306044084,
+          "end_ns": 2630330592411,
+          "source_ms": 11.556779,
+          "terminal_ms": 24.548327
+        },
+        {
+          "id": 63,
+          "start_ns": 2630402391154,
+          "end_ns": 2630419661423,
+          "source_ms": 9.001249,
+          "terminal_ms": 17.270269
+        },
+        {
+          "id": 64,
+          "start_ns": 2630492594105,
+          "end_ns": 2630514732932,
+          "source_ms": 12.608483,
+          "terminal_ms": 22.138827
+        },
+        {
+          "id": 65,
+          "start_ns": 2630584151744,
+          "end_ns": 2630605809702,
+          "source_ms": 12.604974,
+          "terminal_ms": 21.657958
+        },
+        {
+          "id": 66,
+          "start_ns": 2630676771772,
+          "end_ns": 2630691949116,
+          "source_ms": 7.254317,
+          "terminal_ms": 15.177344
+        },
+        {
+          "id": 67,
+          "start_ns": 2630759499281,
+          "end_ns": 2630780627533,
+          "source_ms": 9.139457,
+          "terminal_ms": 21.128252
+        },
+        {
+          "id": 68,
+          "start_ns": 2630852777553,
+          "end_ns": 2630872678944,
+          "source_ms": 8.523484,
+          "terminal_ms": 19.901391
+        },
+        {
+          "id": 69,
+          "start_ns": 2630945204505,
+          "end_ns": 2630965278720,
+          "source_ms": 9.136964,
+          "terminal_ms": 20.074215
+        },
+        {
+          "id": 70,
+          "start_ns": 2631033324753,
+          "end_ns": 2631058662960,
+          "source_ms": 12.201975,
+          "terminal_ms": 25.338207
+        },
+        {
+          "id": 71,
+          "start_ns": 2631128489588,
+          "end_ns": 2631151385208,
+          "source_ms": 11.493982,
+          "terminal_ms": 22.89562
+        },
+        {
+          "id": 72,
+          "start_ns": 2631224987982,
+          "end_ns": 2631243315421,
+          "source_ms": 9.653089,
+          "terminal_ms": 18.327439
+        },
+        {
+          "id": 73,
+          "start_ns": 2631310663652,
+          "end_ns": 2631330870081,
+          "source_ms": 8.276828,
+          "terminal_ms": 20.206429
+        },
+        {
+          "id": 74,
+          "start_ns": 2631406462300,
+          "end_ns": 2631429954706,
+          "source_ms": 11.591949,
+          "terminal_ms": 23.492406
+        },
+        {
+          "id": 75,
+          "start_ns": 2631499779212,
+          "end_ns": 2631519622421,
+          "source_ms": 10.473225,
+          "terminal_ms": 19.843209
+        },
+        {
+          "id": 76,
+          "start_ns": 2631591436360,
+          "end_ns": 2631613077247,
+          "source_ms": 11.874682,
+          "terminal_ms": 21.640887
+        },
+        {
+          "id": 77,
+          "start_ns": 2631688469295,
+          "end_ns": 2631709177006,
+          "source_ms": 12.485327,
+          "terminal_ms": 20.707711
+        },
+        {
+          "id": 78,
+          "start_ns": 2631783260292,
+          "end_ns": 2631804811350,
+          "source_ms": 9.59635,
+          "terminal_ms": 21.551058
+        },
+        {
+          "id": 79,
+          "start_ns": 2631875771626,
+          "end_ns": 2631898275624,
+          "source_ms": 12.128021,
+          "terminal_ms": 22.503998
+        },
+        {
+          "id": 80,
+          "start_ns": 2631974391139,
+          "end_ns": 2631997881078,
+          "source_ms": 12.731602,
+          "terminal_ms": 23.489939
+        },
+        {
+          "id": 81,
+          "start_ns": 2632067322629,
+          "end_ns": 2632088834699,
+          "source_ms": 12.459532,
+          "terminal_ms": 21.51207
+        },
+        {
+          "id": 82,
+          "start_ns": 2632165042511,
+          "end_ns": 2632184542755,
+          "source_ms": 11.324295,
+          "terminal_ms": 19.500244
+        },
+        {
+          "id": 83,
+          "start_ns": 2632258251235,
+          "end_ns": 2632281231210,
+          "source_ms": 12.831096,
+          "terminal_ms": 22.979975
+        },
+        {
+          "id": 84,
+          "start_ns": 2632348957031,
+          "end_ns": 2632364400026,
+          "source_ms": 8.30877,
+          "terminal_ms": 15.442995
+        },
+        {
+          "id": 85,
+          "start_ns": 2632432553258,
+          "end_ns": 2632451240144,
+          "source_ms": 10.190954,
+          "terminal_ms": 18.686886
+        },
+        {
+          "id": 86,
+          "start_ns": 2632523900257,
+          "end_ns": 2632544343902,
+          "source_ms": 12.79642,
+          "terminal_ms": 20.443645
+        },
+        {
+          "id": 87,
+          "start_ns": 2632615436236,
+          "end_ns": 2632635507052,
+          "source_ms": 9.917382,
+          "terminal_ms": 20.070816
+        },
+        {
+          "id": 88,
+          "start_ns": 2632705470039,
+          "end_ns": 2632729378164,
+          "source_ms": 12.569456,
+          "terminal_ms": 23.908125
+        },
+        {
+          "id": 89,
+          "start_ns": 2632802785923,
+          "end_ns": 2632825145956,
+          "source_ms": 10.575732,
+          "terminal_ms": 22.360033
+        },
+        {
+          "id": 90,
+          "start_ns": 2632894281022,
+          "end_ns": 2632910492546,
+          "source_ms": 8.817049,
+          "terminal_ms": 16.211524
+        },
+        {
+          "id": 91,
+          "start_ns": 2632978765237,
+          "end_ns": 2632999510974,
+          "source_ms": 11.901178,
+          "terminal_ms": 20.745737
+        },
+        {
+          "id": 92,
+          "start_ns": 2633069374063,
+          "end_ns": 2633085459131,
+          "source_ms": 8.585369,
+          "terminal_ms": 16.085068
+        },
+        {
+          "id": 93,
+          "start_ns": 2633153308832,
+          "end_ns": 2633170387363,
+          "source_ms": 7.681378,
+          "terminal_ms": 17.078531
+        },
+        {
+          "id": 94,
+          "start_ns": 2633241568405,
+          "end_ns": 2633258858372,
+          "source_ms": 9.868789,
+          "terminal_ms": 17.289967
+        },
+        {
+          "id": 95,
+          "start_ns": 2633329065245,
+          "end_ns": 2633346302987,
+          "source_ms": 11.753442,
+          "terminal_ms": 17.237742
+        },
+        {
+          "id": 96,
+          "start_ns": 2633417369544,
+          "end_ns": 2633441603727,
+          "source_ms": 12.416238,
+          "terminal_ms": 24.234183
+        },
+        {
+          "id": 97,
+          "start_ns": 2633510543746,
+          "end_ns": 2633530418677,
+          "source_ms": 11.285769,
+          "terminal_ms": 19.874931
+        },
+        {
+          "id": 98,
+          "start_ns": 2633600692487,
+          "end_ns": 2633615610231,
+          "source_ms": 6.817527,
+          "terminal_ms": 14.917744
+        },
+        {
+          "id": 99,
+          "start_ns": 2633687225260,
+          "end_ns": 2633711168553,
+          "source_ms": 11.586162,
+          "terminal_ms": 23.943293
+        },
+        {
+          "id": 100,
+          "start_ns": 2633785674924,
+          "end_ns": 2633806406293,
+          "source_ms": 11.22865,
+          "terminal_ms": 20.731369
+        },
+        {
+          "id": 101,
+          "start_ns": 2633877666107,
+          "end_ns": 2633898375279,
+          "source_ms": 11.054574,
+          "terminal_ms": 20.709172
+        },
+        {
+          "id": 102,
+          "start_ns": 2633966315640,
+          "end_ns": 2633985165536,
+          "source_ms": 11.321039,
+          "terminal_ms": 18.849896
+        },
+        {
+          "id": 103,
+          "start_ns": 2634054348189,
+          "end_ns": 2634078697855,
+          "source_ms": 11.094446,
+          "terminal_ms": 24.349666
+        },
+        {
+          "id": 104,
+          "start_ns": 2634150229128,
+          "end_ns": 2634174192366,
+          "source_ms": 12.662468,
+          "terminal_ms": 23.963238
+        },
+        {
+          "id": 105,
+          "start_ns": 2634242703742,
+          "end_ns": 2634263123074,
+          "source_ms": 12.041691,
+          "terminal_ms": 20.419332
+        },
+        {
+          "id": 106,
+          "start_ns": 2634337259096,
+          "end_ns": 2634355210495,
+          "source_ms": 10.481396,
+          "terminal_ms": 17.951399
+        },
+        {
+          "id": 107,
+          "start_ns": 2634427516600,
+          "end_ns": 2634446726897,
+          "source_ms": 9.895738,
+          "terminal_ms": 19.210297
+        },
+        {
+          "id": 108,
+          "start_ns": 2634523075039,
+          "end_ns": 2634546631808,
+          "source_ms": 12.563989,
+          "terminal_ms": 23.556769
+        },
+        {
+          "id": 109,
+          "start_ns": 2634615872950,
+          "end_ns": 2634634285086,
+          "source_ms": 9.465718,
+          "terminal_ms": 18.412136
+        },
+        {
+          "id": 110,
+          "start_ns": 2634713858917,
+          "end_ns": 2634734242871,
+          "source_ms": 11.476723,
+          "terminal_ms": 20.383954
+        },
+        {
+          "id": 111,
+          "start_ns": 2634805426963,
+          "end_ns": 2634824392347,
+          "source_ms": 9.361837,
+          "terminal_ms": 18.965384
+        },
+        {
+          "id": 112,
+          "start_ns": 2634895412766,
+          "end_ns": 2634909353460,
+          "source_ms": 7.453476,
+          "terminal_ms": 13.940694
+        },
+        {
+          "id": 113,
+          "start_ns": 2634983190901,
+          "end_ns": 2635002871287,
+          "source_ms": 9.138339,
+          "terminal_ms": 19.680386
+        },
+        {
+          "id": 114,
+          "start_ns": 2635079614526,
+          "end_ns": 2635098350428,
+          "source_ms": 9.891035,
+          "terminal_ms": 18.735902
+        },
+        {
+          "id": 115,
+          "start_ns": 2635167369139,
+          "end_ns": 2635182117919,
+          "source_ms": 7.794622,
+          "terminal_ms": 14.74878
+        },
+        {
+          "id": 116,
+          "start_ns": 2635260569822,
+          "end_ns": 2635279111214,
+          "source_ms": 10.109662,
+          "terminal_ms": 18.541392
+        },
+        {
+          "id": 117,
+          "start_ns": 2635348780767,
+          "end_ns": 2635371426793,
+          "source_ms": 11.850428,
+          "terminal_ms": 22.646026
+        },
+        {
+          "id": 118,
+          "start_ns": 2635442228667,
+          "end_ns": 2635466624803,
+          "source_ms": 11.911342,
+          "terminal_ms": 24.396136
+        },
+        {
+          "id": 119,
+          "start_ns": 2635544187216,
+          "end_ns": 2635564516152,
+          "source_ms": 11.512384,
+          "terminal_ms": 20.328936
+        },
+        {
+          "id": 120,
+          "start_ns": 2635644068824,
+          "end_ns": 2635659165426,
+          "source_ms": 9.258403,
+          "terminal_ms": 15.096602
+        },
+        {
+          "id": 121,
+          "start_ns": 2635732537848,
+          "end_ns": 2635749400127,
+          "source_ms": 7.994041,
+          "terminal_ms": 16.862279
+        },
+        {
+          "id": 122,
+          "start_ns": 2635824952145,
+          "end_ns": 2635841690558,
+          "source_ms": 10.220045,
+          "terminal_ms": 16.738413
+        },
+        {
+          "id": 123,
+          "start_ns": 2635918499367,
+          "end_ns": 2635939768981,
+          "source_ms": 10.184342,
+          "terminal_ms": 21.269614
+        },
+        {
+          "id": 124,
+          "start_ns": 2636014727006,
+          "end_ns": 2636030472503,
+          "source_ms": 6.458661,
+          "terminal_ms": 15.745497
+        },
+        {
+          "id": 125,
+          "start_ns": 2636113227212,
+          "end_ns": 2636129273945,
+          "source_ms": 8.661843,
+          "terminal_ms": 16.046733
+        },
+        {
+          "id": 126,
+          "start_ns": 2636198326978,
+          "end_ns": 2636218002798,
+          "source_ms": 7.554165,
+          "terminal_ms": 19.67582
+        },
+        {
+          "id": 127,
+          "start_ns": 2636287613074,
+          "end_ns": 2636311747574,
+          "source_ms": 11.533995,
+          "terminal_ms": 24.1345
+        },
+        {
+          "id": 128,
+          "start_ns": 2636385980294,
+          "end_ns": 2636404449979,
+          "source_ms": 10.872204,
+          "terminal_ms": 18.469685
+        },
+        {
+          "id": 129,
+          "start_ns": 2636478182470,
+          "end_ns": 2636495281400,
+          "source_ms": 8.376651,
+          "terminal_ms": 17.09893
+        },
+        {
+          "id": 130,
+          "start_ns": 2636566990553,
+          "end_ns": 2636586229323,
+          "source_ms": 11.216246,
+          "terminal_ms": 19.23877
+        },
+        {
+          "id": 131,
+          "start_ns": 2636662685067,
+          "end_ns": 2636683432176,
+          "source_ms": 10.042438,
+          "terminal_ms": 20.747109
+        },
+        {
+          "id": 132,
+          "start_ns": 2636759802741,
+          "end_ns": 2636780074346,
+          "source_ms": 11.327135,
+          "terminal_ms": 20.271605
+        },
+        {
+          "id": 133,
+          "start_ns": 2636856689005,
+          "end_ns": 2636873371108,
+          "source_ms": 9.506672,
+          "terminal_ms": 16.682103
+        }
+      ],
+      "final_optional": {
+        "id": "rutts",
+        "display_name": "rutts",
+        "version": null,
+        "availability": {
+          "status": "unavailable",
+          "reason": "helper transport failed: helper cleanup: Access is denied. (os error 5)"
+        },
+        "health": {
+          "status": "failed",
+          "reason": "helper transport failed: helper cleanup: Access is denied. (os error 5)"
+        },
+        "capabilities": {
+          "acss": {
+            "rate": false,
+            "average_pitch": false,
+            "pitch_range": false,
+            "stress": false,
+            "richness": false,
+            "volume": false
+          },
+          "audio_output": "buffered_pcm",
+          "cancellation": "none",
+          "concurrency": {
+            "mode": "serialized"
+          },
+          "markers": {
+            "word": false,
+            "sentence": false,
+            "phoneme": false,
+            "native_index": false,
+            "requested_anchors": "none"
+          },
+          "language_switching": false,
+          "text_repertoire": "unknown",
+          "post_synthesis_dimensions": [],
+          "native_extensions": []
+        },
+        "voices": [],
+        "default_voice_id": null
+      },
+      "exit": 0,
+      "retire_ms": 56.385211999895546
+    }
+  ]
+}

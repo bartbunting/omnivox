@@ -1,0 +1,1 @@
+PASS initial pending inventory, both lanes speaking, late refresh, preserved Flite, explicit later selection on both lanes.

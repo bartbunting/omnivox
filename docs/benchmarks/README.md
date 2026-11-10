@@ -17,6 +17,7 @@ acceptance on every platform.
 
 | Concern | Retained comparison / reproduction source | Measurement boundary |
 | --- | --- | --- |
+| Early selected speech | [Optional discovery prototype](2026-11-10-early-speech.md) | Controlled delayed-helper availability, fallback, active cancellation, native retirement, compiled client late selection and matched warm startup. |
 | Slow initial startup | [Selected speech versus complete discovery](2026-11-10-startup-investigation.md) | Real slow-launch events and 36 matched warm ordinary/guarded startup controls; no acoustic or cold-start causality claim. |
 | Windows startup contention | [Independent helper queue deadline](2026-11-10-helper-queue.md) | Observed Eloquence/Flite exclusion, bounded queue regression, native ownership checks and isolated GUI source completion. |
 | Foreground settings timeout | [Delayed registration acknowledgement](2026-11-10-foreground-registration.md) | Functional startup failure reproduction, bounded client repair and isolated desktop profile; source completion only. |

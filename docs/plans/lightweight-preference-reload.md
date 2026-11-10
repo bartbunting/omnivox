@@ -295,8 +295,13 @@ Next slices:
 3. The [startup investigation](../benchmarks/2026-11-10-startup-investigation.md)
    found selected Flite ready 4.75 seconds before command admission in a slow
    launch; removing TGSpeechBox alone gave no consistent warm improvement.
-   Next, test selected speech before optional discovery completes, with truthful
-   inventory status, unchanged native ownership and client registration checks.
+   The opt-in [early-speech prototype](../benchmarks/2026-11-10-early-speech.md)
+   now passes delayed discovery, fallback, active cancellation, retirement,
+   independent notification and compiled client late-selection checks. Warm
+   first-source median improves from 1,137 to 864 ms in six matched runs per path.
+   Before adoption, qualify saved preferences targeting a pending engine and
+   client visibility/refresh of pending discovery, then review the readiness
+   contract. Existing complete-inventory managed startup remains unchanged.
    Foreground availability now survives the longer notification startup;
    reducing total operation time is a separate objective. Any further engine's
    cancellation exception needs its own replacement, native retention and failure

@@ -287,6 +287,12 @@ in deterministic order before the command loop. External helpers use four separa
 initialization slots and a 120-second batch admission budget. Their inventory is
 available for explicit selection; unrestricted matching requires local automatic
 permission. Failed attempts retain their helper owner until cleanup is confirmed.
+An opt-in [private early-speech experiment](benchmarks/2026-11-10-early-speech.md)
+instead publishes selected speech before optional shipped-helper discovery in
+eligible unmanaged local owners. It reuses bounded asynchronous registry rescans
+and truthful unavailable/in-progress entries, retaining eager managed/external
+startup and native ownership. It is disabled by default; client adoption and
+platform qualification remain separate from the experiment's source checks.
 An owned initialization task keeps its engine, lifecycle lock and process-wide
 slot while a launch, protocol I/O or cleanup call remains unfinished, even after the
 admission caller returns. Only that caller can publish a negotiated connection;
