@@ -1,0 +1,15 @@
+{
+  "omnivox_commit": "e2109be",
+  "emacsvox_before": "06a8722a18f836f97eb434ee5ddef2bbfbf9dd4b",
+  "emacs": "/home/bart/opt/emacs-31/bin/emacs",
+  "emacs_version": "31.0.90",
+  "runtime_sha256": "bac425201a1bb5d175e34a01ddf1b6f3775172e91fb6ac42905060ede094e67c",
+  "output": "null",
+  "forced_apply_deadline_seconds": 0.2,
+  "forced_ack_delay_seconds": 0.5,
+  "incident_foreground_rejections": 29,
+  "incident_notification_rejections": 0,
+  "raw_incident": "local-only target/foreground-registry/incident; private speech text not published",
+  "emacsvox_after": "5fc22ec71b6576eea1fe5b26c5fac9f7bc7dea56",
+  "source_sha256": "84f0501700fd950370793ca1ed788b96100045bc4d8cc1f519eefce5fdc134d5"
+}
