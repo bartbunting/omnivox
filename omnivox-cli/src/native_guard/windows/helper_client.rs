@@ -6,7 +6,7 @@ use std::ffi::OsString;
 use std::io::{self, BufReader, Write};
 use std::os::windows::io::{FromRawHandle, OwnedHandle};
 use std::path::Path;
-use std::sync::{Mutex, OnceLock, TryLockError};
+use std::sync::{Mutex, MutexGuard, OnceLock, TryLockError};
 use std::time::{Duration, Instant};
 
 struct Client {
@@ -40,23 +40,10 @@ fn launch(
     environment: &LaunchEnvironment,
 ) -> io::Result<Child> {
     let identity = wire::identity(engine, program, arguments, environment)?;
-    let deadline = Instant::now() + TIMEOUT;
     let mutex = CLIENT
         .get()
         .ok_or_else(|| io::Error::other("native helper channel unavailable"))?;
-    let mut state = loop {
-        match mutex.try_lock() {
-            Ok(state) => break state,
-            Err(TryLockError::WouldBlock) if Instant::now() < deadline => {
-                std::thread::sleep(Duration::from_millis(1))
-            }
-            _ => {
-                return Err(io::Error::other(
-                    "native helper creation channel busy or unavailable",
-                ))
-            }
-        }
-    };
+    let mut state = creation_slot(mutex, TIMEOUT)?;
     let client = state
         .as_mut()
         .ok_or_else(|| io::Error::other("native helper ownership is unavailable"))?;
@@ -70,6 +57,32 @@ fn launch(
         drop(failed);
     }
     result
+}
+
+fn creation_slot<T>(mutex: &Mutex<T>, phase_timeout: Duration) -> io::Result<MutexGuard<'_, T>> {
+    // Waiting transfers no handles. Give the bounded helper set time to pass
+    // through both creation and acknowledgement ahead of this caller. A single
+    // phase deadline here falsely excludes healthy engines during a slow start.
+    // Native I/O, creation and handoff retain their own unchanged deadlines;
+    // the independent guard can still retire the worker during this wait.
+    let deadline = Instant::now() + phase_timeout * (2 * super::windows_plan::MAX_HELPERS as u32);
+    loop {
+        match mutex.try_lock() {
+            Ok(state) => return Ok(state),
+            Err(TryLockError::WouldBlock) if Instant::now() < deadline => {
+                std::thread::sleep(Duration::from_millis(1))
+            }
+            Err(TryLockError::WouldBlock) => {
+                return Err(io::Error::new(
+                    io::ErrorKind::TimedOut,
+                    "native helper creation queue timed out",
+                ))
+            }
+            Err(TryLockError::Poisoned(_)) => {
+                return Err(io::Error::other("native helper creation channel poisoned"))
+            }
+        }
+    }
 }
 
 impl Client {
@@ -146,6 +159,47 @@ impl Client {
 mod tests {
     use super::*;
     use crate::native_guard::wire::{Channel, WaitFor};
+
+    #[test]
+    fn serialized_helpers_do_not_share_one_creation_deadline() {
+        let slot = Mutex::new(0);
+        let count = super::super::windows_plan::MAX_HELPERS;
+        let ready = std::sync::Barrier::new(count);
+        let phase = Duration::from_millis(100);
+        let started = Instant::now();
+        std::thread::scope(|scope| {
+            for _ in 0..count {
+                scope.spawn(|| {
+                    ready.wait();
+                    let mut slot = creation_slot(&slot, phase).unwrap();
+                    std::thread::sleep(phase / 2);
+                    *slot += 1;
+                });
+            }
+        });
+        assert_eq!(*slot.lock().unwrap(), count);
+        assert!(started.elapsed() > phase);
+    }
+
+    #[test]
+    fn creation_queue_still_has_a_deadline() {
+        let slot = Mutex::new(());
+        let held = slot.lock().unwrap();
+        std::thread::scope(|scope| {
+            scope
+                .spawn(|| {
+                    assert_eq!(
+                        creation_slot(&slot, Duration::from_millis(2))
+                            .unwrap_err()
+                            .kind(),
+                        io::ErrorKind::TimedOut
+                    );
+                })
+                .join()
+                .unwrap();
+        });
+        drop(held);
+    }
 
     #[test]
     fn correlated_rejection_keeps_the_creation_link_usable() {

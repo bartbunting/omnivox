@@ -424,6 +424,14 @@ Creation and acknowledgement each have a six-second deadline. An uncertain or
 failed handoff closes admission and retires the receiving worker to close any
 handles installed by a partial transfer; its peer remains independent.
 
+The worker serializes these exchanges. Waiting to acquire that channel has a
+separate bound of 96 seconds: eight helper slots times two six-second phases.
+A waiting caller transfers no handles and does not consume another helper's
+creation deadline. The lock is released after the start acknowledgement, before
+native engine initialization. This is a maximum queue wait, not a startup delay
+or a speech-path timeout. Native phase deadlines and independent guard retirement
+remain unchanged; queue expiry cannot authorize replacement or imply cleanup.
+
 A confirmed creation failure before a process is returned or handles are
 transferred may instead return `rejected`, the matching request ID, null `handles`
 and an error string. Unchanged job accounting additionally checks that no unknown
