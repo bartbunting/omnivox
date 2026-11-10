@@ -1,0 +1,44 @@
+[
+  {
+    "case": "partial-length",
+    "guard_exit_ms": 2.8306180029176176,
+    "healthy_peer_speech": true,
+    "passed": true
+  },
+  {
+    "case": "partial-body",
+    "guard_exit_ms": 6062.903476005886,
+    "healthy_peer_speech": true,
+    "passed": true
+  },
+  {
+    "case": "partial-start",
+    "worker_gate_wait": "0",
+    "tree_before_io": {
+      "attempted": true,
+      "error": null,
+      "guard": "0c90dc81-d212-4faa-9aea-cbd0b0f02481",
+      "io_retired": false,
+      "request_id": 3,
+      "started": true,
+      "tree_retired": true,
+      "type": "guard_status",
+      "worker": "649d700e-181b-48a4-aeee-77cc14173348"
+    },
+    "proof": {
+      "attempted": true,
+      "error": null,
+      "guard": "0c90dc81-d212-4faa-9aea-cbd0b0f02481",
+      "io_retired": true,
+      "request_id": 6,
+      "started": true,
+      "tree_retired": true,
+      "type": "guard_status",
+      "worker": "649d700e-181b-48a4-aeee-77cc14173348"
+    },
+    "retire_ms": 4.062727995915338,
+    "healthy_peer_speech": true,
+    "minimal_replacement_speech": true,
+    "passed": true
+  }
+]

@@ -1,0 +1,92 @@
+[
+  {
+    "case": "idle-wakeups",
+    "before": {
+      "VmRSS": "10416 kB",
+      "voluntary_ctxt_switches": "6",
+      "nonvoluntary_ctxt_switches": "1",
+      "wait": "poll_schedule_timeout.constprop.0"
+    },
+    "after": {
+      "VmRSS": "10416 kB",
+      "voluntary_ctxt_switches": "6",
+      "nonvoluntary_ctxt_switches": "1",
+      "wait": "poll_schedule_timeout.constprop.0"
+    },
+    "elapsed": 1.0005055500078015,
+    "passed": true
+  },
+  {
+    "case": "client-disconnect",
+    "speech_after_disconnect": true,
+    "passed": true
+  },
+  {
+    "case": "partial-control",
+    "expiry_ms": 6006.286497999099,
+    "speech_after_timeout": true,
+    "passed": true
+  },
+  {
+    "case": "held-status",
+    "queued_bytes": 113600,
+    "socket_observations": [
+      "u_str ESTAB  0      0                                                                                       * 29900068            * 29900067 users:((\"omnivox\",pid=523769,fd=10))                                                                                                                                                                        skmem:(r0,rb212992,t0,tb212992,f0,w0,o0,bl0,d0)     ",
+      "u_str ESTAB  0      0                                                                                       * 6081                * 25041                                                                                                                                                                                                                skmem:(r0,rb212992,t0,tb212992,f0,w0,o0,bl0,d0)     ",
+      "u_str ESTAB  0      0                                                                                       * 29900064            * 29900063 users:((\"omnivox\",pid=523769,fd=4))                                                                                                                                                                         skmem:(r0,rb212992,t0,tb212992,f0,w0,o0,bl0,d0)     ",
+      "u_str ESTAB  0      0                                                                                       * 29406906            * 29406905 users:((\"codex\",pid=454525,fd=30))                                                                                                                                                                          skmem:(r0,rb212992,t0,tb212992,f0,w0,o0,bl0,d0)     ",
+      "u_str ESTAB  107456 53760                                 @omnivox-guard-f938d50d-dc6c-43a9-ba09-2cf57935b0ff 29891147            * 29907088 users:((\"omnivox\",pid=523769,fd=5))                                                                                                                                                                         skmem:(r0,rb212992,t53760,tb212992,f0,w0,o0,bl0,d0) ",
+      "u_str ESTAB  0      0                                                                      /run/user/1000/bus 37338               * 37337    users:((\"dbus-daemon\",pid=6410,fd=12))                                                                                                                                                                      skmem:(r0,rb212992,t0,tb212992,f0,w0,o0,bl0,d0)     ",
+      "u_str LISTEN 0      4096                                  @omnivox-guard-f938d50d-dc6c-43a9-ba09-2cf57935b0ff 29890290            * 0        users:((\"omnivox\",pid=523769,fd=3))                                                                                                                                                                         skmem:(r0,rb212992,t0,tb212992,f0,w0,o0,bl0,d0)     ",
+      "u_str ESTAB  0      0                                                @bc076ac4eb9424d4/bus/systemd/bus-system 35920               * 33181                                                                                                                                                                                                                skmem:(r0,rb8388608,t0,tb8388608,f0,w0,o0,bl0,d0)   "
+    ],
+    "guard": {
+      "VmRSS": "10444 kB",
+      "voluntary_ctxt_switches": "9",
+      "nonvoluntary_ctxt_switches": "0",
+      "wait": "poll_schedule_timeout.constprop.0"
+    },
+    "syscall": [
+      "7",
+      "0x5768190f4230",
+      "0x4",
+      "0xffffffffffffffff",
+      "0x0",
+      "0x0",
+      "0x0",
+      "0x7ffd08e84880",
+      "0x7168c48a03e6"
+    ],
+    "poll_interests": [
+      {
+        "fd": 12,
+        "events": 1
+      },
+      {
+        "fd": 10,
+        "events": 1
+      },
+      {
+        "fd": 4,
+        "events": 1
+      },
+      {
+        "fd": 5,
+        "events": 4
+      }
+    ],
+    "native_exit_while_status_held_ms": 2.1805669966852292,
+    "proof": {
+      "attempted": true,
+      "error": null,
+      "guard": "f938d50d-dc6c-43a9-ba09-2cf57935b0ff",
+      "io_retired": true,
+      "request_id": 12000,
+      "started": true,
+      "tree_retired": true,
+      "type": "guard_status",
+      "worker": "903db8bb-c136-4c32-bba1-66f3f0b7d453"
+    },
+    "passed": true
+  }
+]

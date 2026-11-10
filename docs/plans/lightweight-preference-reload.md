@@ -209,14 +209,13 @@ preserving notifications and old claims. The first paired tests caught a lost
 in-memory proof during completed-connection cleanup; a regression now preserves
 that proof for explicit emergency recovery.
 
-The guard adds no speech forwarding hop, but its extra executable launches and
-lifecycle round trips have a measured startup cost, and the matched speech samples
-leave a small possible latency penalty unresolved. Compare readiness-based
-lifecycle waiting with the current poll loop using unchanged speech pipes and
-native fault checks before default or platform enablement; measure rather than
-assume an improvement. Continue with bounded partial
-bootstrap/START and status-backpressure qualification on the integrated path;
-the earlier standalone fixture is not a substitute. Port the native handle and
+The [readiness and recovery follow-up](../benchmarks/2026-11-10-guard-readiness.md)
+passes the integrated partial-bootstrap/START and status-backpressure matrix,
+plus same-authority client reconnection. Event waiting removes idle wakeups;
+320 matched character samples per engine/variant leave a small pooled guarded
+source difference around 0.13 ms, within substantial run variation. Startup still
+costs additional preparation, and acoustic/tail equivalence is not established.
+Port the native handle and
 local transport boundary to Windows using the retained named-pipe/handle work,
 then measure actual WSL-to-Windows prepared recovery before enabling it. Native
 macOS and acoustic/listening checks remain independent gates. Do not enable this

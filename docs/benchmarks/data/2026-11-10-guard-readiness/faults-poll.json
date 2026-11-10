@@ -1,0 +1,73 @@
+[
+  {
+    "case": "idle-wakeups",
+    "before": {
+      "VmRSS": "10036 kB",
+      "voluntary_ctxt_switches": "10",
+      "nonvoluntary_ctxt_switches": "1",
+      "wait": "hrtimer_nanosleep"
+    },
+    "after": {
+      "VmRSS": "10036 kB",
+      "voluntary_ctxt_switches": "205",
+      "nonvoluntary_ctxt_switches": "1",
+      "wait": "hrtimer_nanosleep"
+    },
+    "elapsed": 1.0003832630027318,
+    "passed": true
+  },
+  {
+    "case": "client-disconnect",
+    "speech_after_disconnect": true,
+    "passed": true
+  },
+  {
+    "case": "partial-control",
+    "expiry_ms": 6007.542438994278,
+    "speech_after_timeout": true,
+    "passed": true
+  },
+  {
+    "case": "held-status",
+    "queued_bytes": 113600,
+    "socket_observations": [
+      "u_str ESTAB  109504 26880                                 @omnivox-guard-c0ebf4d5-b4e6-4cb2-ad8a-8cfd44835e7d 29916313            * 29901440 users:((\"omnivox\",pid=524452,fd=5))                                                                                                                                                                         skmem:(r0,rb212992,t26880,tb212992,f0,w0,o0,bl0,d0) ",
+      "u_str LISTEN 0      4096                                         /var/run/docker/libnetwork/121320ff6e34.sock 3733                * 0                                                                                                                                                                                                                    skmem:(r0,rb212992,t0,tb212992,f0,w0,o0,bl0,d0)     ",
+      "u_str ESTAB  0      0                                                                                       * 29915200            * 29915199 users:((\"omnivox\",pid=524452,fd=4))                                                                                                                                                                         skmem:(r0,rb212992,t0,tb212992,f0,w0,o0,bl0,d0)     ",
+      "u_str ESTAB  0      0                                                   /run/containerd/containerd.sock.ttrpc 29823007            * 29824067                                                                                                                                                                                                             skmem:(r0,rb212992,t0,tb212992,f0,w0,o0,bl0,d0)     ",
+      "u_str ESTAB  0      0                                                                                       * 29915204            * 29915203 users:((\"omnivox\",pid=524452,fd=10))                                                                                                                                                                        skmem:(r0,rb212992,t0,tb212992,f0,w0,o0,bl0,d0)     ",
+      "u_str LISTEN 0      4096   /run/containerd/s/2c90cd649b382e08ab69ec22712fe4e853e0d639c028d6548730902c65b46566 29747541            * 0                                                                                                                                                                                                                    skmem:(r0,rb212992,t0,tb212992,f0,w0,o0,bl0,d0)     ",
+      "u_str LISTEN 0      4096                                  @omnivox-guard-c0ebf4d5-b4e6-4cb2-ad8a-8cfd44835e7d 29916310            * 0        users:((\"omnivox\",pid=524452,fd=3))                                                                                                                                                                         skmem:(r0,rb212992,t0,tb212992,f0,w0,o0,bl0,d0)     "
+    ],
+    "guard": {
+      "VmRSS": "10164 kB",
+      "voluntary_ctxt_switches": "54",
+      "nonvoluntary_ctxt_switches": "0",
+      "wait": "hrtimer_nanosleep"
+    },
+    "syscall": [
+      "230",
+      "0x1",
+      "0x0",
+      "0x7ffc7e086808",
+      "0x7ffc7e086808",
+      "0x0",
+      "0x0",
+      "0x7ffc7e0867c0",
+      "0x7b47d74a032e"
+    ],
+    "native_exit_while_status_held_ms": 6.012519996147603,
+    "proof": {
+      "attempted": true,
+      "error": null,
+      "guard": "c0ebf4d5-b4e6-4cb2-ad8a-8cfd44835e7d",
+      "io_retired": true,
+      "request_id": 12000,
+      "started": true,
+      "tree_retired": true,
+      "type": "guard_status",
+      "worker": "fef0ac83-2356-4cd9-b357-06191c166826"
+    },
+    "passed": true
+  }
+]

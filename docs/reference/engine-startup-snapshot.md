@@ -331,10 +331,13 @@ lease held by every forwarding endpoint and startup writer. Minimal replacement
 requires both retirement fields to be true.
 
 Frames are bounded to 8 KiB, bootstrap state to 32 MiB, and one active client
-connection per guard. Native lifecycle polling runs every 5 ms; this does not
+connection per guard. The Linux guard waits on actual lifecycle/socket readiness;
+only active native retirement needs a bounded 5 ms reaping check. This does not
 poll or gate ordinary speech. Status output is nonblocking and bounded to one
 pending reply. A slow status consumer cannot block parent-lifetime observation.
-A lost client connection alone preserves a healthy owner and speech. Losing all
+A lost client connection alone preserves a healthy owner and speech. The client
+may reconnect using its exact retained descriptor and authenticate again; it
+never creates a replacement guard or infers cleanup from that disconnection. Losing all
 native authority remains a blocked replacement, even if a worker has exited.
 
 The experimental Emacs client uses internal `omnivox-native-guard--enabled`,
