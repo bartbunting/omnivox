@@ -1,0 +1,48 @@
+{
+  "omnivox_base": "beea3a5084deaf862dd747105d91506654c1408d",
+  "emacsvox_commit": "ac338dde747925a78a8578d7e6de8dd28f9076cf",
+  "prototype": {
+    "stage": "/home/bart/src/emacsvox-lightweight-reload/servers/omnivox-bin/versions/c56e4a39e052332a",
+    "runtime": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-lightweight-20261110/Emacsvox/Omnivox/runtime/c56e4a39e052332a",
+    "data": "C:\\Users\\bart\\AppData\\Local\\Temp\\omnivox-lightweight-20261110\\Emacsvox\\Omnivox\\espeak-data\\9a2e176369cfe0b982737abf6c26037f21d2b9af2a2fabcc08062864d0157718",
+    "executable": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-lightweight-20261110/Emacsvox/Omnivox/runtime/c56e4a39e052332a/omnivox.exe",
+    "sha256": "4b7d5bd9d61a5f40a2d2a045277c69505acb1275d7b2899ca82d949517dcf4f9"
+  },
+  "rust_toolchain": "1.97.1",
+  "archive_files": 1387,
+  "archive_uncompressed_bytes": 35624212,
+  "limitations": [
+    "No acoustic or listening checks",
+    "No native macOS qualification",
+    "No native Windows Piper runtime",
+    "Prototype fails strict descendant completion proof",
+    "Timing is source onset with null output, not PCM or acoustic latency"
+  ],
+  "source_patch_note": "Before qualification gate; includes native test additions after the prototype runtime build. Runtime source is unchanged until the gate.",
+  "linux_initial_fixture_sha256": "86346921b4c08af7cb224b7a3ddf50909dfbf70f0ed4e90b363c505e8709d7c8",
+  "linux_initial_fixture_note": "Incorrect earlier payload copy; old raw results retained, not credited to the refactor.",
+  "linux_final": {
+    "executable": "/home/bart/src/omnivox-lightweight-reload/target/guard-windows/linux-final-payload-2/omnivox",
+    "sha256": "840d7ae934c3c12235187d1347147fd00f9a72a3f007003131df8d77cf344ccd",
+    "source": "make build; every copied payload file verified against target/release"
+  },
+  "windows_final": {
+    "stage": "/home/bart/src/emacsvox-lightweight-reload/servers/omnivox-bin/versions/1c1833281316787d",
+    "runtime": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-lightweight-20261110/Emacsvox/Omnivox/runtime/1c1833281316787d",
+    "data": "C:\\Users\\bart\\AppData\\Local\\Temp\\omnivox-lightweight-20261110\\Emacsvox\\Omnivox\\espeak-data\\9a2e176369cfe0b982737abf6c26037f21d2b9af2a2fabcc08062864d0157718",
+    "executable": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-lightweight-20261110/Emacsvox/Omnivox/runtime/1c1833281316787d/omnivox.exe",
+    "sha256": "e710b325f73a3b96c1808eee4486644abb530951e0e0d9b094c7f92a78b79b28"
+  },
+  "source_commit": "5f3967746087be84dffd47613dc34f1836c44657",
+  "verification": {
+    "linux_final_native_faults": "passed",
+    "linux_final_partial_transfers_and_backpressure": "passed",
+    "linux_final_compiled_client": "passed",
+    "windows_native_pipe_tests": 12,
+    "windows_final_native_startup_gate_tests": 3,
+    "windows_final_private_full_staging": "passed; eSpeak, Flite, RuTTS and TGSpeechBox native smoke",
+    "windows_descendant_completion": "FAILED in frozen prototype; final owner entry gated",
+    "acoustic": "unavailable",
+    "native_macos": "unavailable"
+  }
+}

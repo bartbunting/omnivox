@@ -215,8 +215,21 @@ plus same-authority client reconnection. Event waiting removes idle wakeups;
 320 matched character samples per engine/variant leave a small pooled guarded
 source difference around 0.13 ms, within substantial run variation. Startup still
 costs additional preparation, and acoustic/tail equivalence is not established.
-Port the native handle and
-local transport boundary to Windows using the retained named-pipe/handle work,
-then measure actual WSL-to-Windows prepared recovery before enabling it. Native
-macOS and acoustic/listening checks remain independent gates. Do not enable this
-path by default, import global preference commits, or infer missing cleanup.
+The [Windows port investigation](../benchmarks/2026-11-10-windows-guard-qualification.md)
+retains native named pipes, handle ownership and component tests, but fails the
+surviving-helper completion check. Guarded Windows startup now rejects before
+management/native initialization. The old child-ended plus job-accounting-zero
+criterion can precede descendant process-handle completion. Transport and compiled
+client successes do not override that failed proof.
+
+Next, isolate one Flite helper creation/ownership handoff that retains every actual
+process handle before native execution, including creator failure and concurrent
+creation. Require actual completion without saved-PID authority, guessed helper
+counts or sleeps. Stop and review the concrete boundary if a small complete
+protocol cannot establish it; do not expand managed Apply to solve this problem.
+Review retained ADR 0015's completion criterion against that evidence without
+silently rewriting it. After proof, target preparation/bridge startup: the matched
+prototype adds roughly 588–682 ms to two-lane preparation under WSL, while normal
+eSpeak/Flite speech remains close to the direct path. Preserve the working reload
+path independently. Native macOS and acoustic/listening checks remain separate
+gates; the guard is not enabled by default.

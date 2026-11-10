@@ -276,6 +276,10 @@ The remaining configuration work is:
   The opt-in [Linux native guard](benchmarks/2026-11-10-guard-integration.md)
   connects independent cleanup to the paired client without TCP or another speech
   hop. Its startup cost and remaining platform qualification remain explicit.
+  [Windows native testing](benchmarks/2026-11-10-windows-guard-qualification.md)
+  found job-accounting zero can precede helper process-handle completion. Retain
+  the transport work, keep Windows guarded startup unavailable, and establish
+  actual descendant ownership/completion before further preparation optimization.
   The [plan](plans/lightweight-preference-reload.md) tracks remaining acoustic/platform
   qualification and recovery hardening.
 - **Retained session work:** preserve the accepted session experiment at

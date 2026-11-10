@@ -28,8 +28,12 @@ damaged or unwritable management state after proven native cleanup under
 need for independent cleanup authority. The opt-in
 [Linux integration](benchmarks/2026-11-10-guard-integration.md) now covers owner
 loss and blocked forwarding with a surviving guard, including compiled-client
-minimal recovery. Guard loss remains blocked. Integrated partial-transfer/status
-backpressure, Windows/WSL, acoustic timing and native macOS remain in the
+minimal recovery. Guard loss remains blocked. Integrated Linux partial-transfer
+and status-backpressure checks pass. The
+[Windows transport investigation](benchmarks/2026-11-10-windows-guard-qualification.md)
+passes native pipe and several recovery checks but fails strict descendant
+completion; Windows guarded startup is unavailable pending that proof. Windows
+qualification, acoustic timing and native macOS remain in the
 [plan](plans/lightweight-preference-reload.md). This branch is not published or
 deployed to installed speech.
 

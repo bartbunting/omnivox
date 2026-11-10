@@ -1,0 +1,92 @@
+[
+  {
+    "engine": "espeak",
+    "guarded": false,
+    "source_samples": 320,
+    "source_median_ms": 3.3570659999999997,
+    "source_run_medians_ms": [
+      3.624959,
+      3.2100285,
+      3.2956295,
+      3.396459
+    ],
+    "protocol_median_ms": 1.116336,
+    "reload_median_ms": 8.213628,
+    "two_ready_median_ms": 911.8525415
+  },
+  {
+    "engine": "espeak",
+    "guarded": true,
+    "source_samples": 320,
+    "source_median_ms": 3.2869785,
+    "source_run_medians_ms": [
+      3.2008165,
+      3.3176164999999997,
+      3.331598,
+      3.254159
+    ],
+    "protocol_median_ms": 1.0245549999999999,
+    "reload_median_ms": 7.4313905,
+    "two_ready_median_ms": 1555.137909
+  },
+  {
+    "engine": "flite",
+    "guarded": false,
+    "source_samples": 320,
+    "source_median_ms": 5.5772445,
+    "source_run_medians_ms": [
+      5.2716435,
+      5.8895095,
+      5.750719,
+      5.3396595
+    ],
+    "protocol_median_ms": 1.1042675000000002,
+    "reload_median_ms": 9.6723195,
+    "two_ready_median_ms": 912.353359
+  },
+  {
+    "engine": "flite",
+    "guarded": true,
+    "source_samples": 320,
+    "source_median_ms": 5.327005,
+    "source_run_medians_ms": [
+      5.334074,
+      5.187218,
+      5.568515,
+      5.1014195
+    ],
+    "protocol_median_ms": 1.1335875,
+    "reload_median_ms": 7.1767685,
+    "two_ready_median_ms": 1593.8738185
+  },
+  {
+    "engine": "winrt",
+    "guarded": false,
+    "source_samples": 320,
+    "source_median_ms": 121.9126485,
+    "source_run_medians_ms": [
+      104.156107,
+      117.844426,
+      131.7522775,
+      142.313378
+    ],
+    "protocol_median_ms": 1.0689609999999998,
+    "reload_median_ms": 7.2921130000000005,
+    "two_ready_median_ms": 1182.893574
+  },
+  {
+    "engine": "winrt",
+    "guarded": true,
+    "source_samples": 320,
+    "source_median_ms": 126.7691235,
+    "source_run_medians_ms": [
+      128.83304750000002,
+      113.596942,
+      135.6327055,
+      123.606705
+    ],
+    "protocol_median_ms": 1.0142579999999999,
+    "reload_median_ms": 6.08398,
+    "two_ready_median_ms": 1771.1150109999999
+  }
+]

@@ -349,6 +349,24 @@ asset claims. Ordinary managed operations still require their existing evidence.
 The launcher bridge entry bypasses preference conversion, data discovery and
 logging setup so damaged settings cannot obstruct cleanup.
 
+### Windows qualification gate
+
+The Windows transport is implemented for native investigation, but guarded owner
+startup is unavailable. Both ordinary and emergency `--guarded` entry points
+reject before reading configuration, opening management state or creating a
+guard/worker. Ordinary unguarded speech and preference reload remain available.
+The [native qualification report](../benchmarks/2026-11-10-windows-guard-qualification.md)
+records a surviving-helper counterexample: the root process ended and private job
+accounting reached zero while a retained helper process handle was unsignalled.
+The gate must remain until descendant completion is established independently.
+
+The retained private native entry/test code uses `transport: "windows-pipe"` and
+an exact local `\\.\pipe\omnivox-guard-<guard UUID>` address. Its protected user ACL,
+non-inheritable handles, explicit process-launch allowlist, overlapped-I/O
+cancellation and bounded event waiting have native component evidence. None of
+those transport checks makes job-accounting zero sufficient cleanup proof.
+Windows owner descriptors are not exposed through the gated entry points.
+
 ## Remote workstation ownership
 
 The broker captures native environment, working directory and executable path
