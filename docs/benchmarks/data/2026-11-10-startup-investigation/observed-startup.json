@@ -1,0 +1,78 @@
+[
+  {
+    "timestamp": "2026-11-10T12:05:24.565624Z",
+    "event": "Omnivox v1.18.0 starting"
+  },
+  {
+    "timestamp": "2026-11-10T12:05:26.524209Z",
+    "event": "TTS helper process started",
+    "engine": "rhvoice"
+  },
+  {
+    "timestamp": "2026-11-10T12:05:26.552457Z",
+    "event": "TTS helper connection ready",
+    "engine": "rhvoice"
+  },
+  {
+    "timestamp": "2026-11-10T12:05:27.142620Z",
+    "event": "TTS helper process started",
+    "engine": "dectalk"
+  },
+  {
+    "timestamp": "2026-11-10T12:05:27.422057Z",
+    "event": "TTS helper connection ready",
+    "engine": "dectalk"
+  },
+  {
+    "timestamp": "2026-11-10T12:05:29.062739Z",
+    "event": "TTS helper process started",
+    "engine": "flite"
+  },
+  {
+    "timestamp": "2026-11-10T12:05:29.089490Z",
+    "event": "TTS helper connection ready",
+    "engine": "flite"
+  },
+  {
+    "timestamp": "2026-11-10T12:05:29.599192Z",
+    "event": "TTS helper process started",
+    "engine": "eloquence"
+  },
+  {
+    "timestamp": "2026-11-10T12:05:29.905394Z",
+    "event": "TTS helper connection ready",
+    "engine": "eloquence"
+  },
+  {
+    "timestamp": "2026-11-10T12:05:31.298186Z",
+    "event": "TTS helper process started",
+    "engine": "tgspeechbox"
+  },
+  {
+    "timestamp": "2026-11-10T12:05:32.012685Z",
+    "event": "TTS helper connection ready",
+    "engine": "tgspeechbox"
+  },
+  {
+    "timestamp": "2026-11-10T12:05:33.758928Z",
+    "event": "TTS helper process started",
+    "engine": "rutts"
+  },
+  {
+    "timestamp": "2026-11-10T12:05:33.786073Z",
+    "event": "TTS helper connection ready",
+    "engine": "rutts"
+  },
+  {
+    "timestamp": "2026-11-10T12:05:33.786485Z",
+    "event": "TTS engines initialized"
+  },
+  {
+    "timestamp": "2026-11-10T12:05:33.786699Z",
+    "event": "Initializing audio output"
+  },
+  {
+    "timestamp": "2026-11-10T12:05:33.839663Z",
+    "event": "Ready to accept commands"
+  }
+]

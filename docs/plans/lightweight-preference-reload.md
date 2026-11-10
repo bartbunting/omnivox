@@ -292,8 +292,12 @@ Next slices:
    companion; MBROLA and external wrappers need supported child creation and
    native qualification. Preserve their ordinary launch paths. Qualify native
    macOS separately; no automatic installed deployment.
-3. Measure optional discovery and preparation costs before changing startup
-   further. Foreground availability now survives the longer notification startup;
+3. The [startup investigation](../benchmarks/2026-11-10-startup-investigation.md)
+   found selected Flite ready 4.75 seconds before command admission in a slow
+   launch; removing TGSpeechBox alone gave no consistent warm improvement.
+   Next, test selected speech before optional discovery completes, with truthful
+   inventory status, unchanged native ownership and client registration checks.
+   Foreground availability now survives the longer notification startup;
    reducing total operation time is a separate objective. Any further engine's
    cancellation exception needs its own replacement, native retention and failure
    evidence. Keep preference reload independent and avoid a new coordination layer.

@@ -17,6 +17,7 @@ acceptance on every platform.
 
 | Concern | Retained comparison / reproduction source | Measurement boundary |
 | --- | --- | --- |
+| Slow initial startup | [Selected speech versus complete discovery](2026-11-10-startup-investigation.md) | Real slow-launch events and 36 matched warm ordinary/guarded startup controls; no acoustic or cold-start causality claim. |
 | Windows startup contention | [Independent helper queue deadline](2026-11-10-helper-queue.md) | Observed Eloquence/Flite exclusion, bounded queue regression, native ownership checks and isolated GUI source completion. |
 | Foreground settings timeout | [Delayed registration acknowledgement](2026-11-10-foreground-registration.md) | Functional startup failure reproduction, bounded client repair and isolated desktop profile; source completion only. |
 | Replacement and foreground handover | [Prompt Flite cancellation and prepared foreground](2026-11-10-replacement-and-handover.md) | Phase-controlled replacement, eight-engine reload response, continuous source gaps, slow notification startup and fresh compiled recovery profiles. |
