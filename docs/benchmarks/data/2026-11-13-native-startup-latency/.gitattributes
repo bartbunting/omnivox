@@ -1,0 +1,3 @@
+# Preserve captured Windows output and unified patch context verbatim.
+*.json -text whitespace=cr-at-eol
+*.patch -text -whitespace

@@ -1,0 +1,12 @@
+{
+  "workstation_commit": "c8b06539609db133531563e65233dfdb48d53d97",
+  "client_commit": "0acf2deae811a920b49db325eaaa3f9b31a7e8ce",
+  "native_emacs": "31.1",
+  "runtime_build": "4e1c1561f51908a6",
+  "boundary": "Windows Process.Start of the identical C# launcher through client-observed first utterance_started; does not include Explorer .lnk dispatch or acoustic output",
+  "source_trace": "after-load-functions and function milestone advice; identical in matched arms",
+  "ignored_attempts": {
+    "baseline-1": "Functional check passed and owned speech processes retired, but the timing export used a Lisp list where JSON required an array. Export error prevented normal Emacs exit; runner killed its own process after 180 seconds. Excluded from timing.",
+    "probe-validation": "Batch tracer syntax validation intentionally lacked runtime environment; reported missing default client path. Excluded."
+  }
+}
