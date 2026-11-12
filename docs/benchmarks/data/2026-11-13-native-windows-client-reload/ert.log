@@ -1,0 +1,896 @@
+Running 716 tests (2026-11-13 03:06:47+1100, selector ‘t’)
+   passed    1/716  emacsvox-aural-action-submission-merges-compatibility-cue (0.009686 sec)
+   passed    2/716  emacsvox-aural-action-submission-presents-enabled-cue (0.010227 sec)
+   passed    3/716  emacsvox-aural-action-submission-queues-one-native-transaction (0.008972 sec)
+   passed    4/716  emacsvox-aural-action-submission-rejects-content (0.000060 sec)
+   passed    5/716  emacsvox-aural-action-submission-skips-disabled-cue (0.009319 sec)
+   passed    6/716  emacsvox-aural-action-submission-skips-empty-plan (0.008181 sec)
+   passed    7/716  emacsvox-aural-builds-rich-structured-timeline (0.274903 sec)
+   passed    8/716  emacsvox-aural-capital-tones-preserve-camel-case-span (0.015137 sec)
+   passed    9/716  emacsvox-aural-capital-tones-preserve-legacy-word-tails (0.010496 sec)
+   passed   10/716  emacsvox-aural-capitalization-sync-keeps-structured-timeline (0.030981 sec)
+   passed   11/716  emacsvox-aural-clause-chunks-do-not-repeat-boundary-actions (0.010731 sec)
+   passed   12/716  emacsvox-aural-delivers-multipart-timeline-as-one-tracked-write (0.000764 sec)
+   passed   13/716  emacsvox-aural-delivers-native-replaceable-timeline-immediately (0.000405 sec)
+   passed   14/716  emacsvox-aural-delivers-negotiated-structured-timelines-once (0.000541 sec)
+   passed   15/716  emacsvox-aural-delivers-tracked-replaceable-timeline-immediately (0.000216 sec)
+   passed   16/716  emacsvox-aural-delivery-coalesces-native-navigation-burst (0.008436 sec)
+Emacsvox discarded speech delivery to emacsvox-send-failure-owner: simulated write failure
+   passed   17/716  emacsvox-aural-delivery-contains-process-send-failure (0.000180 sec)
+   passed   18/716  emacsvox-aural-delivery-frames-windows-replaceable-payload (0.000172 sec)
+   passed   19/716  emacsvox-aural-delivery-keeps-stops-immediate-and-cancellable (0.000105 sec)
+   passed   20/716  emacsvox-aural-delivery-orders-pending-before-fifo-output (0.000098 sec)
+Emacsvox discarded speech delivery to emacsvox-dead-delivery-test: process-not-live
+   passed   21/716  emacsvox-aural-delivery-records-dead-process-failure (0.000069 sec)
+   passed   22/716  emacsvox-aural-delivery-rejects-mixed-process-transaction (0.000064 sec)
+   passed   23/716  emacsvox-aural-delivery-replaces-complete-navigation-payloads (0.000113 sec)
+   passed   24/716  emacsvox-aural-diagnostics-do-not-contend-for-editor-locks (0.220111 sec)
+Aural diagnostic logging enabled; complete spoken text will be saved to /tmp/emacsvox-aural-toggle-uFVHl9/chosen.log
+Aural diagnostic logging disabled; log: /tmp/emacsvox-aural-toggle-uFVHl9/chosen.log
+Aural diagnostic logging enabled; complete spoken text will be saved to /tmp/emacsvox-aural-toggle-uFVHl9/chosen.log
+   passed   25/716  emacsvox-aural-diagnostics-interactive-toggle-remembers-file (0.001725 sec)
+   passed   26/716  emacsvox-aural-diagnostics-rotate-and-bound-archives (0.002867 sec)
+   passed   27/716  emacsvox-aural-diagnostics-tighten-existing-log-permissions (0.000389 sec)
+   passed   28/716  emacsvox-aural-empty-native-delivery-preserves-pending-work (0.000208 sec)
+   passed   29/716  emacsvox-aural-failed-tracked-transaction-does-not-issue-id (0.294750 sec)
+   passed   30/716  emacsvox-aural-generated-maths-voice-reaches-both-speech-lanes (0.013640 sec)
+   passed   31/716  emacsvox-aural-generated-sampler-voices-remain-concrete (0.346162 sec)
+   passed   32/716  emacsvox-aural-generated-voice-replaces-base-before-context-adjustment (0.000155 sec)
+   passed   33/716  emacsvox-aural-generated-voice-survives-palette-and-cache-changes (0.003039 sec)
+   passed   34/716  emacsvox-aural-history-bounds-unicode-payload-with-full-digest (0.000198 sec)
+   passed   35/716  emacsvox-aural-history-refuses-incomplete-preview-replay (0.003546 sec)
+   passed   36/716  emacsvox-aural-history-rejects-failed-immediate-delivery (0.000117 sec)
+   passed   37/716  emacsvox-aural-history-retains-successful-immediate-delivery (0.000152 sec)
+   passed   38/716  emacsvox-aural-history-stays-disabled-after-pending-delivery (0.008239 sec)
+   passed   39/716  emacsvox-aural-indexes-dense-unicode-offsets-in-one-pass (0.296066 sec)
+   passed   40/716  emacsvox-aural-inserted-cue-legacy-fallback (0.000519 sec)
+   passed   41/716  emacsvox-aural-keeps-whole-legacy-packet-on-raw-write (0.000131 sec)
+   passed   42/716  emacsvox-aural-leading-whitespace-keeps-boundary-actions-once (0.012158 sec)
+   passed   43/716  emacsvox-aural-legacy-tone-does-not-drop-surrounding-speech (0.000218 sec)
+   passed   44/716  emacsvox-aural-multipart-framing-preserves-one-unicode-envelope (0.000384 sec)
+   passed   45/716  emacsvox-aural-multipart-framing-rejects-too-many-parts (0.000059 sec)
+   passed   46/716  emacsvox-aural-native-choice-copies-native-strings-and-operations (0.000103 sec)
+   passed   47/716  emacsvox-aural-native-choice-draft-matches-contract (0.000098 sec)
+   passed   48/716  emacsvox-aural-native-choice-inherit-default-and-false (0.000136 sec)
+   passed   49/716  emacsvox-aural-native-choice-operation-limit-is-atomic (0.000302 sec)
+   passed   50/716  emacsvox-aural-native-choice-preserves-unknown-inert-identities (0.000047 sec)
+   passed   51/716  emacsvox-aural-native-choice-rejects-malformed-records (0.000286 sec)
+   passed   52/716  emacsvox-aural-native-choice-removal-is-independent-of-key-order (0.000056 sec)
+   passed   53/716  emacsvox-aural-native-choice-reorder-and-common-edits-preserve-native (0.000087 sec)
+   passed   54/716  emacsvox-aural-native-choice-replacement-keeps-or-resets-explicitly (0.000165 sec)
+   passed   55/716  emacsvox-aural-native-choice-requires-versioned-storage (0.000116 sec)
+   passed   56/716  emacsvox-aural-native-choice-validates-finite-typed-scalars (0.000202 sec)
+   passed   57/716  emacsvox-aural-native-cue-timing-reaches-final-wire (0.021437 sec)
+Type C-x 1 to delete the help window, C-M-v to scroll help.
+Prepared session after-earcon override for role heading, level 2, mode fundamental mode, occasion continuous; review it and press w to write
+Prepared session voice override for role heading, level 2, mode fundamental mode; review it and press w to write
+   passed   58/716  emacsvox-aural-native-history-inspects-and-remaps-later-parts (0.316029 sec)
+   passed   59/716  emacsvox-aural-native-mixed-captured-and-raw-visibility (0.011381 sec)
+   passed   60/716  emacsvox-aural-native-notification-captures-before-logging (0.000073 sec)
+   passed   61/716  emacsvox-aural-native-ordered-delivery-does-not-stop-speech (0.008741 sec)
+   passed   62/716  emacsvox-aural-native-rule-rich-style-reaches-final-wire (0.008674 sec)
+   passed   63/716  emacsvox-aural-native-saved-style-matches-voice-previews (0.024639 sec)
+   passed   64/716  emacsvox-aural-native-storage-inheritance-copy-and-exchange (0.003813 sec)
+   passed   65/716  emacsvox-aural-native-storage-local-only-still-promotes-owner (0.000264 sec)
+   passed   66/716  emacsvox-aural-native-storage-partial-save-and-undo (0.028464 sec)
+   passed   67/716  emacsvox-aural-native-storage-projection-and-owner-disagreement (0.000160 sec)
+   passed   68/716  emacsvox-aural-native-storage-promotion-matches-contract (0.000171 sec)
+   passed   69/716  emacsvox-aural-native-storage-read-write-and-unloaded-writer (0.008808 sec)
+   passed   70/716  emacsvox-aural-native-storage-removal-preserves-existing-schema (0.000379 sec)
+   passed   71/716  emacsvox-aural-native-storage-shared-edit-and-inherited-edit (0.001532 sec)
+   passed   72/716  emacsvox-aural-native-suppression-preserves-surviving-effects (0.060393 sec)
+   passed   73/716  emacsvox-aural-native-urgent-actions-interrupt-first (0.263461 sec)
+   passed   74/716  emacsvox-aural-native-urgent-content-interrupts-first (0.007963 sec)
+   passed   75/716  emacsvox-aural-native-visibility-snapshot-outlives-source (0.010074 sec)
+   passed   76/716  emacsvox-aural-native-voice-fields-preserve-zero-and-omission (0.007713 sec)
+   passed   77/716  emacsvox-aural-navigation-hard-stops-only-its-main-lane (0.000249 sec)
+   passed   78/716  emacsvox-aural-normalizes-effect-neutral-points-exactly (0.000028 sec)
+   passed   79/716  emacsvox-aural-notification-submission-is-atomic-and-lane-owned (0.008490 sec)
+   passed   80/716  emacsvox-aural-ordinary-speech-uses-palette-default-on-both-lanes (0.010312 sec)
+   passed   81/716  emacsvox-aural-palette-default-is-the-base-for-contextual-adjustments (0.008424 sec)
+   passed   82/716  emacsvox-aural-positioned-actions-use-a-running-utf8-offset (0.266952 sec)
+   passed   83/716  emacsvox-aural-preparation-delivery-policy-contract (0.000150 sec)
+   passed   84/716  emacsvox-aural-preparation-effect-transition-state-ownership (0.000086 sec)
+   passed   85/716  emacsvox-aural-preparation-effects-preserve-complete-timeline (0.000146 sec)
+   passed   86/716  emacsvox-aural-preparation-effects-reach-final-write-once (0.000857 sec)
+   passed   87/716  emacsvox-aural-preparation-explicit-policy-ignores-submission-state (0.000059 sec)
+   passed   88/716  emacsvox-aural-preparation-policy-capture-follows-resource-resolution (0.000092 sec)
+   passed   89/716  emacsvox-aural-rejects-unsendable-timelines-atomically (0.000663 sec)
+   passed   90/716  emacsvox-aural-requires-negotiated-timeline-v3 (0.000061 sec)
+   passed   91/716  emacsvox-aural-source-assigns-whole-submission-delivery (0.000097 sec)
+   passed   92/716  emacsvox-aural-source-call-with-submission-freezes-boundary (0.000059 sec)
+   passed   93/716  emacsvox-aural-source-captures-effective-overlay-icon (0.000039 sec)
+   passed   94/716  emacsvox-aural-source-coalesces-equal-faces-across-metadata (0.000048 sec)
+   passed   95/716  emacsvox-aural-source-enclosing-delivery-is-authoritative (0.000041 sec)
+   passed   96/716  emacsvox-aural-source-freezes-effective-invisibility-decision (0.000044 sec)
+   passed   97/716  emacsvox-aural-source-keeps-source-visible-property-visible (0.000044 sec)
+   passed   98/716  emacsvox-aural-source-preserves-effective-overlay-properties (0.000070 sec)
+   passed   99/716  emacsvox-aural-source-text-property-ignores-aliases (0.000032 sec)
+   passed  100/716  emacsvox-aural-spatial-reduces-azimuth-to-stereo (0.000033 sec)
+   passed  101/716  emacsvox-aural-speak-line-object-labels-use-matching-facts (0.078362 sec)
+   passed  102/716  emacsvox-aural-speech-labels-use-palette-default (0.008516 sec)
+   passed  103/716  emacsvox-aural-structured-timeline-allows-distributed-window-actions (0.000533 sec)
+   passed  104/716  emacsvox-aural-structured-timeline-bounds-replacement-key (0.000050 sec)
+   passed  105/716  emacsvox-aural-structured-timeline-bounds-source-action-window (0.000484 sec)
+   passed  106/716  emacsvox-aural-structured-timeline-bounds-total-actions (0.003664 sec)
+   passed  107/716  emacsvox-aural-structured-timeline-coalesces-css-face-runs (0.009764 sec)
+   passed  108/716  emacsvox-aural-structured-timeline-honors-disabled-icons (0.000085 sec)
+   passed  109/716  emacsvox-aural-structured-timeline-keeps-real-voice-runs (0.000055 sec)
+   passed  110/716  emacsvox-aural-structured-timeline-matches-interop-fixtures (0.000043 sec)
+   passed  111/716  emacsvox-aural-structured-timeline-omits-a-nil-logical-voice (0.000032 sec)
+   passed  112/716  emacsvox-aural-structured-timeline-prefers-named-voice-request (0.000045 sec)
+   passed  113/716  emacsvox-aural-structured-timeline-preserves-delivery-policy (0.000052 sec)
+   passed  114/716  emacsvox-aural-submission-binds-its-id-through-dispatch (0.008669 sec)
+   passed  115/716  emacsvox-aural-submission-combines-one-object-and-legacy-actions (0.010237 sec)
+   passed  116/716  emacsvox-aural-submission-opt-in-diagnostics-record-timing-and-text (0.011954 sec)
+   passed  117/716  emacsvox-aural-submission-preserves-explicit-object-boundaries (0.010068 sec)
+   passed  118/716  emacsvox-aural-submission-records-one-exact-history-transaction (0.009673 sec)
+   passed  119/716  emacsvox-aural-submission-transforms-source-before-preparation (0.007407 sec)
+   passed  120/716  emacsvox-aural-submit-object-tone-uses-matching-facts (0.009802 sec)
+   passed  121/716  emacsvox-aural-suppresses-delivery-during-server-negotiation (0.000177 sec)
+   passed  122/716  emacsvox-aural-timeline-applies-omnivox-pitch-contrast (0.000046 sec)
+   passed  123/716  emacsvox-aural-timeline-frame-boundary-is-decoded-json-size (0.000126 sec)
+   passed  124/716  emacsvox-aural-transport-caches-digests-by-file-generation (0.254982 sec)
+   passed  125/716  emacsvox-aural-transport-capitalization-compiles-at-source (0.007808 sec)
+   passed  126/716  emacsvox-aural-transport-captures-overlay-face-precedence (0.000104 sec)
+   passed  127/716  emacsvox-aural-transport-captures-source-context (0.000059 sec)
+   passed  128/716  emacsvox-aural-transport-centers-unsupported-spatial-output (0.008130 sec)
+   passed  129/716  emacsvox-aural-transport-cleanup-preserves-frozen-plan (0.000104 sec)
+   passed  130/716  emacsvox-aural-transport-coalesces-equivalent-midword-runs (0.007521 sec)
+   passed  131/716  emacsvox-aural-transport-compiles-and-queues-named-tones (0.007842 sec)
+   passed  132/716  emacsvox-aural-transport-compiles-cues-and-palette-voices (0.008250 sec)
+   passed  133/716  emacsvox-aural-transport-compiles-each-source-run-once (0.007622 sec)
+   passed  134/716  emacsvox-aural-transport-compiles-named-base-and-partial-style (0.000200 sec)
+   passed  135/716  emacsvox-aural-transport-compiles-raw-acss (0.000067 sec)
+   passed  136/716  emacsvox-aural-transport-content-addresses-samples (0.002355 sec)
+   passed  137/716  emacsvox-aural-transport-degrades-unavailable-exact-family (0.000279 sec)
+   passed  138/716  emacsvox-aural-transport-detects-partially-prepared-text (0.008735 sec)
+   passed  139/716  emacsvox-aural-transport-direct-icon-inherits-submission-facts (0.007633 sec)
+   passed  140/716  emacsvox-aural-transport-distinguishes-local-and-queued-cues (0.009290 sec)
+   passed  141/716  emacsvox-aural-transport-does-not-double-spatialize-assets (0.007422 sec)
+   passed  142/716  emacsvox-aural-transport-emits-transition-edges-once (0.008142 sec)
+   passed  143/716  emacsvox-aural-transport-emits-versioned-presentation-tones (0.000106 sec)
+   passed  144/716  emacsvox-aural-transport-excludes-inhibited-interface-history (0.006668 sec)
+   passed  145/716  emacsvox-aural-transport-face-rules-ignore-voice-lock (0.010880 sec)
+   passed  146/716  emacsvox-aural-transport-freezes-fact-backed-tones (0.007916 sec)
+   passed  147/716  emacsvox-aural-transport-freezes-layered-face-presentation (0.008664 sec)
+Silenced face font-lock-warning-face in this buffer
+Silenced personality voice-lighten in this buffer
+   passed  148/716  emacsvox-aural-transport-freezes-local-suppression-at-source (0.009503 sec)
+   passed  149/716  emacsvox-aural-transport-freezes-volume-capability-policy (0.007992 sec)
+   passed  150/716  emacsvox-aural-transport-honors-independent-spatial-controls (0.000038 sec)
+   passed  151/716  emacsvox-aural-transport-ignores-legacy-absolute-rate (0.000052 sec)
+   passed  152/716  emacsvox-aural-transport-immediate-icon-uses-concrete-cue (0.009910 sec)
+   passed  153/716  emacsvox-aural-transport-inaudible-overrides-face-rule-voice (0.007543 sec)
+   passed  154/716  emacsvox-aural-transport-indentation-compiles-at-source (0.008919 sec)
+   passed  155/716  emacsvox-aural-transport-indentation-presents-once-across-runs (0.019686 sec)
+   passed  156/716  emacsvox-aural-transport-infers-or-honors-object-boundaries (0.007732 sec)
+   passed  157/716  emacsvox-aural-transport-keeps-real-midword-voice-boundaries (0.008136 sec)
+   passed  158/716  emacsvox-aural-transport-legacy-personality-uses-custom-palette-entry (0.007943 sec)
+   passed  159/716  emacsvox-aural-transport-lowers-unnegotiated-presentation-tones (0.000103 sec)
+   passed  160/716  emacsvox-aural-transport-marks-interface-history-at-source (0.000039 sec)
+   passed  161/716  emacsvox-aural-transport-matches-each-source-run-once (0.008229 sec)
+   passed  162/716  emacsvox-aural-transport-mono-output-centers-with-reason (0.000040 sec)
+   passed  163/716  emacsvox-aural-transport-normalizes-explicit-face-names (0.000034 sec)
+   passed  164/716  emacsvox-aural-transport-notification-captures-before-logging (0.000069 sec)
+   passed  165/716  emacsvox-aural-transport-owns-and-releases-pulse-samples (0.258522 sec)
+   passed  166/716  emacsvox-aural-transport-portable-family-follows-synth (0.000172 sec)
+   passed  167/716  emacsvox-aural-transport-prepares-mode-rule-at-source (0.008793 sec)
+   passed  168/716  emacsvox-aural-transport-presents-mixed-face-heading-once (0.014239 sec)
+   passed  169/716  emacsvox-aural-transport-preserves-or-degrades-relative-rate (0.000069 sec)
+   passed  170/716  emacsvox-aural-transport-preserves-voice-lock-compatibility (0.007678 sec)
+   passed  171/716  emacsvox-aural-transport-preset-nil-and-zero-retain-current-behavior (0.007577 sec)
+   passed  172/716  emacsvox-aural-transport-queue-never-reresolves (0.008597 sec)
+   passed  173/716  emacsvox-aural-transport-queues-one-strict-order (0.008283 sec)
+   passed  174/716  emacsvox-aural-transport-records-unsupported-voice-dimension (0.000062 sec)
+   passed  175/716  emacsvox-aural-transport-rejects-invalid-presentation-tones (0.000103 sec)
+   passed  176/716  emacsvox-aural-transport-rejects-unregistered-tones (0.007736 sec)
+   passed  177/716  emacsvox-aural-transport-renders-templates-before-queueing (0.058631 sec)
+   passed  178/716  emacsvox-aural-transport-retains-bounded-data-only-history (0.009112 sec)
+   passed  179/716  emacsvox-aural-transport-rich-icon-plan-uses-server-queue (0.008824 sec)
+   passed  180/716  emacsvox-aural-transport-routes-explicit-palette-family-locally (0.000105 sec)
+   passed  181/716  emacsvox-aural-transport-scales-long-multi-face-document (0.025317 sec)
+   passed  182/716  emacsvox-aural-transport-source-and-frozen-faces-agree (0.008684 sec)
+   passed  183/716  emacsvox-aural-transport-spatial-adapters-preserve-order (0.008445 sec)
+   passed  184/716  emacsvox-aural-transport-tts-speak-control-matrix (0.014877 sec)
+   passed  185/716  emacsvox-aural-transport-tts-speak-keeps-source-icon-policy (0.008973 sec)
+   passed  186/716  emacsvox-aural-transport-tts-speak-keeps-source-snapshot (0.007651 sec)
+   passed  187/716  emacsvox-aural-transport-unknown-icon-falls-back-concretely (0.009362 sec)
+   passed  188/716  emacsvox-aural-transport-uses-adapter-owned-voice-capabilities (0.000053 sec)
+   passed  189/716  emacsvox-aural-unavailable-terminal-personality-does-not-claim-preview (0.000280 sec)
+   passed  190/716  emacsvox-aural-unknown-preset-keeps-explicit-context-and-diagnostic (0.000438 sec)
+   passed  191/716  emacsvox-aural-unknown-voice-diagnostics-are-bounded-and-silent (0.006998 sec)
+   passed  192/716  emacsvox-aural-unknown-voice-preserves-both-lanes-without-wire-name (0.009617 sec)
+   passed  193/716  emacsvox-aural-voice-choice-copy-inheritance-and-portable-export (0.001040 sec)
+   passed  194/716  emacsvox-aural-voice-choice-custom-edit-creates-new-local-snapshot (0.000538 sec)
+   passed  195/716  emacsvox-aural-voice-choice-missing-local-preserved-until-explicit-reset (0.000985 sec)
+   passed  196/716  emacsvox-aural-voice-choice-operations-preserve-identities-and-states (0.000163 sec)
+   passed  197/716  emacsvox-aural-voice-choice-partial-save-retry-keeps-settings-paired (0.018842 sec)
+   passed  198/716  emacsvox-aural-voice-choice-read-write-and-unloaded-routing-writer (0.005920 sec)
+   passed  199/716  emacsvox-aural-voice-choice-rejects-cross-store-disagreement (0.000179 sec)
+   passed  200/716  emacsvox-aural-voice-choice-rejects-malformed-patches-and-records (0.000267 sec)
+   passed  201/716  emacsvox-aural-voice-choice-resolves-owned-records-and-aliases (0.000691 sec)
+   passed  202/716  emacsvox-aural-voice-choice-save-matches-independent-fixture (0.000201 sec)
+   passed  203/716  emacsvox-aural-voice-choice-shared-edit-retains-tuning-and-reference (0.000799 sec)
+   passed  204/716  emacsvox-aural-voice-data-has-no-shared-named-routing-api (0.000040 sec)
+   passed  205/716  emacsvox-aural-voice-data-immutable-local-records (0.000077 sec)
+   passed  206/716  emacsvox-aural-voice-data-inheritance-owner-and-missing-local (0.000193 sec)
+   passed  207/716  emacsvox-aural-voice-data-old-envelopes-read-without-writing (0.001318 sec)
+   passed  208/716  emacsvox-aural-voice-data-owned-copy-has-new-owner (0.000683 sec)
+   passed  209/716  emacsvox-aural-voice-data-portable-export (0.000062 sec)
+   passed  210/716  emacsvox-aural-voice-data-prepared-resolution-keeps-validation (0.000523 sec)
+   passed  211/716  emacsvox-aural-voice-data-prepared-resolution-owns-inputs-and-results (0.000327 sec)
+   passed  212/716  emacsvox-aural-voice-data-prepared-resolution-preserves-results (0.004523 sec)
+   passed  213/716  emacsvox-aural-voice-data-rejects-retired-palettes-and-alias-entries (0.000437 sec)
+   passed  214/716  emacsvox-aural-voice-data-rejects-retired-referenced-snapshot (0.000042 sec)
+   passed  215/716  emacsvox-aural-voice-data-resolve-automatic-and-missing-differ (0.000366 sec)
+   passed  216/716  emacsvox-aural-voice-data-resolve-isolates-results (0.000475 sec)
+   passed  217/716  emacsvox-aural-voice-data-resolve-switches-owned-chains (0.000425 sec)
+   passed  218/716  emacsvox-aural-voice-data-shares-inheritance-errors (0.000096 sec)
+   passed  219/716  emacsvox-aural-voice-data-shares-whole-entry-inheritance (0.000238 sec)
+   passed  220/716  emacsvox-aural-voice-data-validates-owned-metadata (0.000130 sec)
+   passed  221/716  emacsvox-aural-voice-data-writers-retain-snapshots-and-survive-failure (0.270113 sec)
+   passed  222/716  emacsvox-aural-voice-drafts-conflicts-before-and-between-writes (0.009817 sec)
+   passed  223/716  emacsvox-aural-voice-drafts-detects-parent-change-since-opening (0.006391 sec)
+   passed  224/716  emacsvox-aural-voice-drafts-discard-prepared-save-cannot-later-write (0.008382 sec)
+   passed  225/716  emacsvox-aural-voice-drafts-does-not-claim-old-save-is-current-after-switch (0.023060 sec)
+   passed  226/716  emacsvox-aural-voice-drafts-file-change-after-first-write-blocks-publication (0.013770 sec)
+   passed  227/716  emacsvox-aural-voice-drafts-inactive-save-does-not-apply-or-invalidate-current (0.017370 sec)
+   passed  228/716  emacsvox-aural-voice-drafts-local-failure-publishes-nothing (0.012150 sec)
+   passed  229/716  emacsvox-aural-voice-drafts-newer-edits-survive-apply-and-buffer-destruction (0.019455 sec)
+   passed  230/716  emacsvox-aural-voice-drafts-opening-editing-and-discard-write-nothing (0.000086 sec)
+   passed  231/716  emacsvox-aural-voice-drafts-partial-write-keeps-old-live-and-saved-chain (0.068017 sec)
+   passed  232/716  emacsvox-aural-voice-drafts-recognizes-write-completed-before-error (0.019869 sec)
+   passed  233/716  emacsvox-aural-voice-drafts-revision-does-not-rewind-with-values (0.000046 sec)
+   passed  234/716  emacsvox-aural-voice-drafts-timeout-retry-and-new-selection (0.024040 sec)
+   passed  235/716  emacsvox-aural-voice-runtime-automatic-preview-keeps-startup-policy (0.000350 sec)
+   passed  236/716  emacsvox-aural-voice-runtime-compiler-preserves-cascade-and-identity (0.000535 sec)
+   passed  237/716  emacsvox-aural-voice-runtime-default-switches-with-palette-and-preview (0.004043 sec)
+   passed  238/716  emacsvox-aural-voice-runtime-new-palette-owns-status-after-profile-apply (0.002111 sec)
+   passed  239/716  emacsvox-aural-voice-runtime-registration-keeps-owned-and-legacy-scopes (0.008580 sec)
+   passed  240/716  emacsvox-aural-voice-runtime-selection-guards-stale-callbacks (0.009135 sec)
+   passed  241/716  emacsvox-aural-voice-runtime-snapshot-scopes-edits-and-nested-operations (0.001463 sec)
+   passed  242/716  emacsvox-aural-voice-runtime-static-projection-uses-explicit-palette (0.000559 sec)
+Some voice settings are not applied on speaker; supported settings remain active
+Omnivox control error on owned-notify, request 3: Test rejection
+   passed  243/716  emacsvox-aural-voice-runtime-two-lanes-freeze-owned-registrations (0.009032 sec)
+   passed  244/716  emacsvox-aural-voice-runtime-workbench-previews-the-complete-owned-chain (0.000667 sec)
+   passed  245/716  emacsvox-set-capitalization-presentation-supports-local-and-global (0.000060 sec)
+   passed  246/716  emacsvox-show-point-does-not-duplicate-blank-line-feedback (0.000125 sec)
+   passed  247/716  emacsvox-show-point-marker-is-local-to-the-text-boundary (0.010613 sec)
+   passed  248/716  emacsvox-speak-blank-lines-ignore-mode-syntax (0.000089 sec)
+   passed  249/716  emacsvox-speak-edit-operations-submit-first-class-tones (0.010001 sec)
+   passed  250/716  emacsvox-speak-line-condition-preserves-legacy-silence (0.000051 sec)
+   passed  251/716  emacsvox-speak-line-detects-semantic-conditions-in-order (0.000056 sec)
+   passed  252/716  emacsvox-speak-line-preserves-distinct-same-valued-icon (0.000114 sec)
+   passed  253/716  emacsvox-speak-line-replaces-one-complete-navigation-packet (0.008959 sec)
+   passed  254/716  emacsvox-speak-line-submits-first-class-condition-tones (0.008987 sec)
+   passed  255/716  emacsvox-speak-line-uses-one-native-source-boundary (0.000095 sec)
+   passed  256/716  emacsvox-speak-physical-line-keeps-after-cue-replaceable (0.008573 sec)
+   passed  257/716  emacsvox-speak-visual-line-captures-point-presentation-facts (0.000142 sec)
+   passed  258/716  emacsvox-speak-visual-line-detects-blank-conditions (0.000103 sec)
+   passed  259/716  emacsvox-speak-visual-line-omits-redundant-blank-boundary (0.000188 sec)
+   passed  260/716  emacsvox-speak-visual-line-replaces-one-complete-navigation-packet (0.010085 sec)
+   passed  261/716  emacsvox-speak-visual-line-uses-one-native-source-boundary (0.000198 sec)
+   passed  262/716  emacsvox-tts-auditory-icons-use-canonical-process (0.000086 sec)
+   passed  263/716  emacsvox-tts-canonical-protocol-preserves-wire-format (0.000077 sec)
+   passed  264/716  emacsvox-tts-canonical-state-aliases-remain-buffer-local (0.000088 sec)
+   passed  265/716  emacsvox-tts-capitalization-annotation-composes-and-disables (0.000100 sec)
+   passed  266/716  emacsvox-tts-capitalization-annotation-distinguishes-runs (0.000149 sec)
+   passed  267/716  emacsvox-tts-complete-preview-dead-owner-finishes-without-replay (0.000740 sec)
+   passed  268/716  emacsvox-tts-complete-preview-invalid-response-is-terminal (0.000562 sec)
+   passed  269/716  emacsvox-tts-complete-preview-negotiates-foreground-not-cache (0.000216 sec)
+   passed  270/716  emacsvox-tts-complete-preview-new-operation-retires-old-one (0.000751 sec)
+   passed  271/716  emacsvox-tts-complete-preview-policy-change-invalidates-comparison (0.000614 sec)
+   passed  272/716  emacsvox-tts-complete-preview-preflights-every-entry (0.000942 sec)
+   passed  273/716  emacsvox-tts-complete-preview-replacement-does-not-replay (0.000528 sec)
+   passed  274/716  emacsvox-tts-complete-preview-standalone-rejects-before-dispatch (0.000086 sec)
+   passed  275/716  emacsvox-tts-complete-preview-stop-callback-newest-operation-wins (0.000736 sec)
+   passed  276/716  emacsvox-tts-complete-preview-stop-ignores-late-response (0.000462 sec)
+   passed  277/716  emacsvox-tts-complete-preview-timeout-callback-can-start-replacement (0.000551 sec)
+   passed  278/716  emacsvox-tts-complete-preview-timeout-cleans-up (0.000333 sec)
+   passed  279/716  emacsvox-tts-complete-preview-wire-comparison-is-frozen (0.000911 sec)
+Omnivox control error on control-main, request 65: Omnivox speech connection closed
+Omnivox control error on control-main, request 2: Omnivox speech connection closed
+Omnivox control error on control-main, request 3: Omnivox speech connection closed
+Omnivox control error on control-main, request 4: Omnivox speech connection closed
+Omnivox control error on control-main, request 5: Omnivox speech connection closed
+Omnivox control error on control-main, request 6: Omnivox speech connection closed
+Omnivox control error on control-main, request 7: Omnivox speech connection closed
+Omnivox control error on control-main, request 8: Omnivox speech connection closed
+Omnivox control error on control-main, request 9: Omnivox speech connection closed
+Omnivox control error on control-main, request 10: Omnivox speech connection closed
+Omnivox control error on control-main, request 11: Omnivox speech connection closed
+Omnivox control error on control-main, request 12: Omnivox speech connection closed
+Omnivox control error on control-main, request 13: Omnivox speech connection closed
+Omnivox control error on control-main, request 14: Omnivox speech connection closed
+Omnivox control error on control-main, request 15: Omnivox speech connection closed
+Omnivox control error on control-main, request 16: Omnivox speech connection closed
+Omnivox control error on control-main, request 17: Omnivox speech connection closed
+Omnivox control error on control-main, request 18: Omnivox speech connection closed
+Omnivox control error on control-main, request 19: Omnivox speech connection closed
+Omnivox control error on control-main, request 20: Omnivox speech connection closed
+Omnivox control error on control-main, request 21: Omnivox speech connection closed
+Omnivox control error on control-main, request 22: Omnivox speech connection closed
+Omnivox control error on control-main, request 23: Omnivox speech connection closed
+Omnivox control error on control-main, request 24: Omnivox speech connection closed
+Omnivox control error on control-main, request 25: Omnivox speech connection closed
+Omnivox control error on control-main, request 26: Omnivox speech connection closed
+Omnivox control error on control-main, request 27: Omnivox speech connection closed
+Omnivox control error on control-main, request 28: Omnivox speech connection closed
+Omnivox control error on control-main, request 29: Omnivox speech connection closed
+Omnivox control error on control-main, request 30: Omnivox speech connection closed
+Omnivox control error on control-main, request 31: Omnivox speech connection closed
+Omnivox control error on control-main, request 32: Omnivox speech connection closed
+Omnivox control error on control-main, request 33: Omnivox speech connection closed
+Omnivox control error on control-main, request 34: Omnivox speech connection closed
+Omnivox control error on control-main, request 35: Omnivox speech connection closed
+Omnivox control error on control-main, request 36: Omnivox speech connection closed
+Omnivox control error on control-main, request 37: Omnivox speech connection closed
+Omnivox control error on control-main, request 38: Omnivox speech connection closed
+Omnivox control error on control-main, request 39: Omnivox speech connection closed
+Omnivox control error on control-main, request 40: Omnivox speech connection closed
+Omnivox control error on control-main, request 41: Omnivox speech connection closed
+Omnivox control error on control-main, request 42: Omnivox speech connection closed
+Omnivox control error on control-main, request 43: Omnivox speech connection closed
+Omnivox control error on control-main, request 44: Omnivox speech connection closed
+Omnivox control error on control-main, request 45: Omnivox speech connection closed
+Omnivox control error on control-main, request 46: Omnivox speech connection closed
+Omnivox control error on control-main, request 47: Omnivox speech connection closed
+Omnivox control error on control-main, request 48: Omnivox speech connection closed
+Omnivox control error on control-main, request 49: Omnivox speech connection closed
+Omnivox control error on control-main, request 50: Omnivox speech connection closed
+Omnivox control error on control-main, request 51: Omnivox speech connection closed
+Omnivox control error on control-main, request 52: Omnivox speech connection closed
+Omnivox control error on control-main, request 53: Omnivox speech connection closed
+Omnivox control error on control-main, request 54: Omnivox speech connection closed
+Omnivox control error on control-main, request 55: Omnivox speech connection closed
+Omnivox control error on control-main, request 56: Omnivox speech connection closed
+Omnivox control error on control-main, request 57: Omnivox speech connection closed
+Omnivox control error on control-main, request 58: Omnivox speech connection closed
+Omnivox control error on control-main, request 59: Omnivox speech connection closed
+Omnivox control error on control-main, request 60: Omnivox speech connection closed
+Omnivox control error on control-main, request 61: Omnivox speech connection closed
+Omnivox control error on control-main, request 62: Omnivox speech connection closed
+Omnivox control error on control-main, request 63: Omnivox speech connection closed
+Omnivox control error on control-main, request 64: Omnivox speech connection closed
+   passed  280/716  emacsvox-tts-control-lifetime-bounds-admission (0.000902 sec)
+Omnivox control error on control-notify, request 2: Omnivox inventory request timed out
+Omnivox control error on control-main, request 1: Omnivox inventory request timed out
+Omnivox control error on control-main, request 3: Omnivox speech connection closed
+Omnivox control error on control-notify, request 4: Omnivox speech connection closed
+   passed  281/716  emacsvox-tts-control-lifetime-coalesces-background-inventory (0.000732 sec)
+Omnivox control error on control-main, request 1: Omnivox inventory request timed out
+   passed  282/716  emacsvox-tts-control-lifetime-deadline-before-write (0.000175 sec)
+Omnivox control error on control-main, request 1: Omnivox capabilities request timed out
+   passed  283/716  emacsvox-tts-control-lifetime-late-capabilities-do-not-revive-startup (0.000153 sec)
+   passed  284/716  emacsvox-tts-control-lifetime-library-keeps-its-own-wait (0.000374 sec)
+Omnivox control error on control-main, request 1: Omnivox speech connection closed
+   passed  285/716  emacsvox-tts-control-lifetime-navigation-stop-keeps-requests (0.000184 sec)
+Omnivox control error on control-main, request 1: Omnivox speech connection closed
+   passed  286/716  emacsvox-tts-control-lifetime-original-sentinel-error-cleans-up (0.000125 sec)
+Omnivox control error on control-main, request 1: Omnivox speech connection closed
+Omnivox control error on control-notify, request 2: Omnivox speech connection closed
+   passed  287/716  emacsvox-tts-control-lifetime-process-exit-is-independent (0.000141 sec)
+Omnivox control error on control-real-deadline, request 5: Omnivox inventory request timed out
+   passed  288/716  emacsvox-tts-control-lifetime-real-timer (0.012426 sec)
+Omnivox control error on control-main, request 1: Omnivox inventory request timed out
+Omnivox control error on control-main, request 2: Omnivox speech connection closed
+   passed  289/716  emacsvox-tts-control-lifetime-reentrant-retry-owns-new-deadline (0.000182 sec)
+   passed  290/716  emacsvox-tts-control-lifetime-response-wins-deadline (0.000103 sec)
+Omnivox control error on control-main, request 1: Omnivox speech connection closed
+Omnivox control callback 1 on control-main failed: observer failed
+Omnivox control error on control-main, request 2: Omnivox speech connection closed
+   passed  291/716  emacsvox-tts-control-lifetime-retirement-survives-callback-errors (0.000158 sec)
+   passed  292/716  emacsvox-tts-control-lifetime-send-failure-releases-reservation (0.000103 sec)
+Omnivox control error on control-main, request 1: Omnivox inventory request timed out
+   passed  293/716  emacsvox-tts-control-lifetime-silent-worker-times-out-once (0.000115 sec)
+   passed  294/716  emacsvox-tts-control-lifetime-synchronous-startup-reply (0.000107 sec)
+   passed  295/716  emacsvox-tts-dectalk-configures-canonical-state (0.245951 sec)
+   passed  296/716  emacsvox-tts-dectalk-describes-and-compiles-base-voices (0.000161 sec)
+   passed  297/716  emacsvox-tts-dectalk-soft-uses-canonical-runtime (0.000067 sec)
+   passed  298/716  emacsvox-tts-default-preview-restores-voice-in-one-dispatch (0.000090 sec)
+   passed  299/716  emacsvox-tts-diagnostics-preserve-output-across-visibility-changes (0.000083 sec)
+   passed  300/716  emacsvox-tts-does-not-run-posix-launcher-on-native-windows (0.000045 sec)
+   passed  301/716  emacsvox-tts-espeak-configures-canonical-state (0.000194 sec)
+   passed  302/716  emacsvox-tts-espeak-copies-canonical-character-table (0.000045 sec)
+   passed  303/716  emacsvox-tts-espeak-uses-canonical-runtime (0.000088 sec)
+   passed  304/716  emacsvox-tts-explicit-stop-all-targets-each-lane-once (0.000100 sec)
+   passed  305/716  emacsvox-tts-free-form-mac-families-compile-installed-names (0.000042 sec)
+   passed  306/716  emacsvox-tts-global-punctuation-survives-a-stopped-server (0.000051 sec)
+   passed  307/716  emacsvox-tts-initialize-keeps-main-when-notifier-start-fails (0.233620 sec)
+   passed  308/716  emacsvox-tts-initialize-quit-retires-unpublished-replacement (0.000197 sec)
+Speech server emacsvox-retirement-old retired with cleanup error in stop command: pipe broke
+Speech server emacsvox-retirement-old retired with cleanup error in stopped hook (anonymous): observer broke
+   passed  309/716  emacsvox-tts-initialize-recovers-from-retirement-errors (0.000152 sec)
+   passed  310/716  emacsvox-tts-initialize-retires-old-process-after-new-starts (0.253055 sec)
+   passed  311/716  emacsvox-tts-initialize-retires-stale-notification-process (0.000129 sec)
+   passed  312/716  emacsvox-tts-intentional-retirement-suppresses-exit-failure (0.000065 sec)
+   passed  313/716  emacsvox-tts-interrupt-deduplicates-notification-owner (0.000202 sec)
+   passed  314/716  emacsvox-tts-legacy-audio-cue-functions-are-removed (0.000037 sec)
+   passed  315/716  emacsvox-tts-legacy-behavior-api-is-removed (0.000045 sec)
+   passed  316/716  emacsvox-tts-legacy-character-api-is-removed (0.000077 sec)
+   passed  317/716  emacsvox-tts-legacy-immediate-stop-state-is-removed (0.000024 sec)
+   passed  318/716  emacsvox-tts-legacy-notification-api-is-removed (0.000030 sec)
+   passed  319/716  emacsvox-tts-legacy-protocol-functions-are-removed (0.000044 sec)
+   passed  320/716  emacsvox-tts-legacy-punctuation-api-is-removed (0.000029 sec)
+   passed  321/716  emacsvox-tts-legacy-rate-api-is-removed (0.000029 sec)
+   passed  322/716  emacsvox-tts-legacy-server-api-is-removed (0.000048 sec)
+   passed  323/716  emacsvox-tts-legacy-speak-list-function-is-removed (0.000021 sec)
+   passed  324/716  emacsvox-tts-legacy-speaker-process-state-is-removed (0.000019 sec)
+   passed  325/716  emacsvox-tts-legacy-speech-function-is-removed (0.000028 sec)
+   passed  326/716  emacsvox-tts-legacy-stop-function-is-removed (0.000019 sec)
+   passed  327/716  emacsvox-tts-legacy-style-api-is-removed (0.000030 sec)
+   passed  328/716  emacsvox-tts-legacy-text-preparation-api-is-removed (0.000052 sec)
+   passed  329/716  emacsvox-tts-list-speech-cleans-up-after-assembly-error (0.265545 sec)
+   passed  330/716  emacsvox-tts-list-speech-preserves-grouping-and-context (0.000255 sec)
+   passed  331/716  emacsvox-tts-list-speech-preserves-outer-pronunciation (0.000262 sec)
+Emacsvox speech server Emacsvox test speech exited: finished
+Emacsvox speech server Emacsvox test speech exited: finished
+   passed  332/716  emacsvox-tts-local-process-separates-server-diagnostics (0.576451 sec)
+   passed  333/716  emacsvox-tts-mac-configures-canonical-state (0.000199 sec)
+   passed  334/716  emacsvox-tts-mac-uses-canonical-runtime (0.000048 sec)
+   passed  335/716  emacsvox-tts-marker-speech-rejects-unsupported-server (0.000051 sec)
+   passed  336/716  emacsvox-tts-notification-apply-selects-notification-process (0.000076 sec)
+   passed  337/716  emacsvox-tts-notification-output-menu-offers-channel-choices (0.003683 sec)
+   passed  338/716  emacsvox-tts-notification-preserves-semantic-occasion (0.000055 sec)
+   passed  339/716  emacsvox-tts-notification-without-second-process-shares-speaker (0.000024 sec)
+Speech server emacsvox-retirement-old-notify retired with cleanup error in stopped hook (anonymous): observer broke
+   passed  340/716  emacsvox-tts-notifier-replacement-survives-retirement-errors (0.000201 sec)
+   passed  341/716  emacsvox-tts-notify-initialize-clears-disabled-stream (0.000063 sec)
+   passed  342/716  emacsvox-tts-notify-initialize-preserves-old-on-start-failure (0.000072 sec)
+   passed  343/716  emacsvox-tts-notify-initialize-publishes-before-retirement (0.000079 sec)
+   passed  344/716  emacsvox-tts-notify-reset-preserves-old-on-configuration-error (0.000114 sec)
+   passed  345/716  emacsvox-tts-notify-reset-restores-omnivox-settings (0.000217 sec)
+   passed  346/716  emacsvox-tts-old-process-exit-cannot-clear-replacement (0.000068 sec)
+   passed  347/716  emacsvox-tts-omnivox-aggregates-post-synthesis-capabilities (0.000055 sec)
+   passed  348/716  emacsvox-tts-omnivox-apply-closes-on-second-phase-send-error (0.000548 sec)
+   passed  349/716  emacsvox-tts-omnivox-apply-handles-replies-during-send (0.000878 sec)
+   passed  350/716  emacsvox-tts-omnivox-apply-rejects-replaced-owner (0.000624 sec)
+   passed  351/716  emacsvox-tts-omnivox-bounds-control-responses (0.000121 sec)
+   passed  352/716  emacsvox-tts-omnivox-bounds-marker-events (0.001993 sec)
+   passed  353/716  emacsvox-tts-omnivox-control-filter-handles-fragments (0.000292 sec)
+   passed  354/716  emacsvox-tts-omnivox-delivers-bounded-marker-events-in-order (0.000226 sec)
+   passed  355/716  emacsvox-tts-omnivox-discovers-physical-voice-identifiers (0.000213 sec)
+   passed  356/716  emacsvox-tts-omnivox-discovery-uses-active-program (0.250762 sec)
+   passed  357/716  emacsvox-tts-omnivox-encodes-versioned-control-requests (0.000074 sec)
+   passed  358/716  emacsvox-tts-omnivox-enriches-timeline-semantic-events (0.000132 sec)
+   passed  359/716  emacsvox-tts-omnivox-gates-framing-on-capability (0.000053 sec)
+   passed  360/716  emacsvox-tts-omnivox-keeps-inventory-out-of-capabilities (0.000050 sec)
+   passed  361/716  emacsvox-tts-omnivox-keeps-unicode-mitigation-until-negotiated (0.000078 sec)
+   passed  362/716  emacsvox-tts-omnivox-logical-generations-are-content-based (0.085567 sec)
+   passed  363/716  emacsvox-tts-omnivox-negotiates-capabilities-and-inventory (0.004001 sec)
+Omnivox control error on emacsvox-omnivox-routing-policy-test, request 104: Omnivox speech connection closed
+   passed  364/716  emacsvox-tts-omnivox-negotiates-independent-routing-policy (0.004124 sec)
+Omnivox control error on emacsvox-omnivox-timeline-capability-test, request uncorrelated: Omnivox timeline V3 is required; rebuild and restart the server
+   passed  365/716  emacsvox-tts-omnivox-negotiates-timeline-v3-only (0.000102 sec)
+   passed  366/716  emacsvox-tts-omnivox-normalizes-logical-acss (0.000029 sec)
+   passed  367/716  emacsvox-tts-omnivox-notification-process-gets-channel-target (0.000192 sec)
+   passed  368/716  emacsvox-tts-omnivox-notification-routing-is-process-based (0.000055 sec)
+   passed  369/716  emacsvox-tts-omnivox-old-preview-omits-relative-rate-visibly (0.000427 sec)
+Omnivox control error on config-overlap-notify, request 27: stale_generation
+Omnivox control error on config-overlap-main, request 28: stale_generation
+   passed  370/716  emacsvox-tts-omnivox-overlapping-applies-own-their-generation (0.001969 sec)
+   passed  371/716  emacsvox-tts-omnivox-preserves-structured-voice-selectors (0.000055 sec)
+   passed  372/716  emacsvox-tts-omnivox-preserves-unicode-after-all-streams-negotiate (0.000046 sec)
+   passed  373/716  emacsvox-tts-omnivox-preview-failure-stops-the-sequence (0.000356 sec)
+   passed  374/716  emacsvox-tts-omnivox-preview-is-exact-and-non-mutating (0.000275 sec)
+   passed  375/716  emacsvox-tts-omnivox-preview-later-error-cleans-up (0.000264 sec)
+   passed  376/716  emacsvox-tts-omnivox-preview-stop-cancels-late-callbacks (0.000245 sec)
+   passed  377/716  emacsvox-tts-omnivox-preview-transports-supported-effects (0.000234 sec)
+   passed  378/716  emacsvox-tts-omnivox-projects-live-inventory (0.000055 sec)
+   passed  379/716  emacsvox-tts-omnivox-projects-runtime-engine-status (0.000043 sec)
+   passed  380/716  emacsvox-tts-omnivox-records-actual-route-and-degradation (0.000224 sec)
+   passed  381/716  emacsvox-tts-omnivox-refuses-legacy-language-operations (0.000131 sec)
+Omnivox control error on emacsvox-omnivox-registration-speaker, request 201: Omnivox speech connection closed
+Omnivox control error on emacsvox-omnivox-registration-notifier, request 202: Omnivox speech connection closed
+   passed  382/716  emacsvox-tts-omnivox-registers-both-processes-atomically (0.000290 sec)
+   passed  383/716  emacsvox-tts-omnivox-registers-stable-logical-voice-aliases (0.000062 sec)
+   passed  384/716  emacsvox-tts-omnivox-rejects-malformed-voice-discovery (0.000044 sec)
+   passed  385/716  emacsvox-tts-omnivox-rejects-mismatched-exact-preview-result (0.000028 sec)
+Omnivox control error on emacsvox-config-notification-test, request 32: notification failed
+   passed  386/716  emacsvox-tts-omnivox-reports-partial-configuration-apply (0.005783 sec)
+   passed  387/716  emacsvox-tts-omnivox-reports-process-inventory-agreement (0.000073 sec)
+   passed  388/716  emacsvox-tts-omnivox-reports-unsupported-live-stream (0.004350 sec)
+Omnivox control error on emacsvox-omnivox-recovery-probe-test, request 502: Omnivox speech connection closed
+   passed  389/716  emacsvox-tts-omnivox-requests-explicit-recovery-probe (0.000219 sec)
+   passed  390/716  emacsvox-tts-omnivox-scales-average-pitch-contrast (0.000077 sec)
+   passed  391/716  emacsvox-tts-omnivox-selects-voice-on-both-streams (0.000067 sec)
+   passed  392/716  emacsvox-tts-omnivox-separates-voice-discovery-diagnostics (0.110196 sec)
+   passed  393/716  emacsvox-tts-omnivox-timeout-during-registration-write (0.000633 sec)
+   passed  394/716  emacsvox-tts-omnivox-timeout-ignores-late-registration (0.000320 sec)
+   passed  395/716  emacsvox-tts-omnivox-timeout-leaves-overlapping-apply-live (0.000767 sec)
+Omnivox control error on config-timeout-main, request 42: Omnivox register_logical_voices_v2 request timed out
+   passed  396/716  emacsvox-tts-omnivox-timeout-observer-is-bounded (0.000290 sec)
+   passed  397/716  emacsvox-tts-omnivox-timeout-observes-late-registration (0.000250 sec)
+Omnivox control error on config-timeout-main, request 44: Omnivox speech connection closed
+   passed  398/716  emacsvox-tts-omnivox-timeout-retires-only-owned-requests (0.000278 sec)
+   passed  399/716  emacsvox-tts-omnivox-voices-emit-logical-routing-directives (0.000053 sec)
+   passed  400/716  emacsvox-tts-omnivox-zero-pitch-contrast-is-neutral (0.000044 sec)
+   passed  401/716  emacsvox-tts-ordinary-speech-stops-only-the-current-lane (0.000140 sec)
+   passed  402/716  emacsvox-tts-org-fold-uses-current-hidden-spec (0.000067 sec)
+   passed  403/716  emacsvox-tts-outloud-configures-canonical-state (0.000228 sec)
+   passed  404/716  emacsvox-tts-outloud-describes-and-compiles-base-voices (0.000103 sec)
+   passed  405/716  emacsvox-tts-outloud-uses-canonical-runtime (0.000045 sec)
+Speech server volume-failed retired with cleanup error in stop command: Volume write failed
+   passed  406/716  emacsvox-tts-output-volume-startup-failure-retires-new-process (5.043348 sec)
+   passed  407/716  emacsvox-tts-output-volumes-adjust-only-the-selected-component (0.000171 sec)
+   passed  408/716  emacsvox-tts-output-volumes-leave-other-backends-alone (0.000030 sec)
+   passed  409/716  emacsvox-tts-output-volumes-reject-invalid-percentages (0.000053 sec)
+   passed  410/716  emacsvox-tts-output-volumes-restore-on-local-and-remote-creation (0.000550 sec)
+   passed  411/716  emacsvox-tts-plain-configures-canonical-state (0.000139 sec)
+   passed  412/716  emacsvox-tts-plain-uses-canonical-runtime (0.000043 sec)
+   passed  413/716  emacsvox-tts-preserves-absolute-server-program (0.000031 sec)
+   passed  414/716  emacsvox-tts-process-routing-honors-dynamic-binding (0.000043 sec)
+   passed  415/716  emacsvox-tts-program-uses-canonical-environment-variable (0.000096 sec)
+   passed  416/716  emacsvox-tts-pronunciation-deletion-preserves-adjacent-matches (0.000139 sec)
+   passed  417/716  emacsvox-tts-pronunciation-editor-rejects-empty-literal-entries (0.000054 sec)
+   passed  418/716  emacsvox-tts-pronunciation-import-rejects-empty-literal-entries (0.000780 sec)
+   passed  419/716  emacsvox-tts-pronunciation-imports-headerless-dictionary-on-first-load (0.824730 sec)
+   passed  420/716  emacsvox-tts-pronunciation-keeps-properties-and-template-entries (0.000140 sec)
+   passed  421/716  emacsvox-tts-pronunciation-rejects-empty-literal-entries (0.000087 sec)
+   passed  422/716  emacsvox-tts-pronunciation-runtime-rejects-old-empty-literals (0.000058 sec)
+   passed  423/716  emacsvox-tts-pronunciation-zero-width-templates-make-progress (0.000201 sec)
+   passed  424/716  emacsvox-tts-protocol-dispatches-language-operations (0.000096 sec)
+   passed  425/716  emacsvox-tts-protocol-dispatches-marker-aware-speech (0.000150 sec)
+   passed  426/716  emacsvox-tts-protocol-dispatches-speech-operations (0.000059 sec)
+   passed  427/716  emacsvox-tts-protocol-dispatches-tone-and-silence (0.000054 sec)
+   passed  428/716  emacsvox-tts-protocol-dispatches-tracked-speech (0.000101 sec)
+   passed  429/716  emacsvox-tts-protocol-functions-support-native-advice (0.000055 sec)
+   passed  430/716  emacsvox-tts-protocol-queues-text-and-control-codes (0.000047 sec)
+   passed  431/716  emacsvox-tts-protocol-synchronizes-buffer-state (0.000043 sec)
+   passed  432/716  emacsvox-tts-protocol-synchronizes-negotiated-capitalization (0.000157 sec)
+   passed  433/716  emacsvox-tts-protocol-updates-engine-state (0.000073 sec)
+   passed  434/716  emacsvox-tts-punctuation-override-survives-major-mode-change (0.000089 sec)
+   passed  435/716  emacsvox-tts-punctuation-policy-does-not-create-an-override (0.000037 sec)
+   passed  436/716  emacsvox-tts-punctuation-policy-resolves-derived-modes (0.000236 sec)
+   passed  437/716  emacsvox-tts-punctuation-reset-restores-mode-policy (0.000121 sec)
+   passed  438/716  emacsvox-tts-punctuation-state-survives-a-stopped-server (0.000032 sec)
+   passed  439/716  emacsvox-tts-recognizes-negotiated-omnivox-tracking (0.000054 sec)
+   passed  440/716  emacsvox-tts-recognizes-tracked-server-by-basename (0.000025 sec)
+   passed  441/716  emacsvox-tts-records-dispatch-onset-and-terminal-diagnostics (0.000086 sec)
+   passed  442/716  emacsvox-tts-records-local-dispatch-cancellation (0.000047 sec)
+   passed  443/716  emacsvox-tts-reentrant-speech-preserves-outer-text (0.000148 sec)
+   passed  444/716  emacsvox-tts-resolves-bundled-server-on-posix (0.000047 sec)
+   passed  445/716  emacsvox-tts-resolves-path-server-on-native-windows (0.000032 sec)
+   passed  446/716  emacsvox-tts-retirement-cleans-an-already-dead-owner (0.000076 sec)
+   passed  447/716  emacsvox-tts-retirement-defers-quit-until-cleanup (0.000076 sec)
+   passed  448/716  emacsvox-tts-retirement-failures-do-not-strand-state-or-observers (0.000234 sec)
+   passed  449/716  emacsvox-tts-retirement-is-reentrant-and-idempotent (0.000068 sec)
+   passed  450/716  emacsvox-tts-retiring-process-cleans-owned-runtime-state (0.239672 sec)
+   passed  451/716  emacsvox-tts-server-player-uses-emacsvox-environment (0.008969 sec)
+   passed  452/716  emacsvox-tts-show-diagnostics-opens-selected-stream (0.000286 sec)
+   passed  453/716  emacsvox-tts-speech-snapshots-local-capitalization-presentation (0.000168 sec)
+   passed  454/716  emacsvox-tts-state-remains-buffer-local (0.000058 sec)
+   passed  455/716  emacsvox-tts-static-voice-inventory-preserves-identities (0.000146 sec)
+   passed  456/716  emacsvox-tts-stop-reports-tracked-cancellation-once (0.000209 sec)
+   passed  457/716  emacsvox-tts-swiftmac-configures-canonical-state (0.000171 sec)
+   passed  458/716  emacsvox-tts-swiftmac-preview-preserves-native-voice-id (0.000098 sec)
+   passed  459/716  emacsvox-tts-swiftmac-projects-enumerated-voice-cache (0.000049 sec)
+   passed  460/716  emacsvox-tts-swiftmac-uses-canonical-runtime (0.000067 sec)
+   passed  461/716  emacsvox-tts-temporary-punctuation-restores-after-error (0.000054 sec)
+   passed  462/716  emacsvox-tts-tracked-callback-errors-do-not-strand-peers (0.000105 sec)
+   passed  463/716  emacsvox-tts-tracked-direct-write-failure-does-not-register (0.000225 sec)
+   passed  464/716  emacsvox-tts-tracked-filter-handles-fragments-and-forwards-output (0.000086 sec)
+   passed  465/716  emacsvox-tts-tracked-filter-reports-cancellation (0.000048 sec)
+   passed  466/716  emacsvox-tts-tracked-speech-rejects-unsupported-server (0.000046 sec)
+   passed  467/716  emacsvox-tts-unexpected-process-exit-retires-owned-state (0.001057 sec)
+   passed  468/716  emacsvox-tts-unicode-customize-updates-conversion (0.010784 sec)
+   passed  469/716  emacsvox-tts-voice-capabilities-are-adapter-owned-and-copied (0.000045 sec)
+   passed  470/716  emacsvox-tts-voice-setup-selects-engine-adapter (0.000253 sec)
+   passed  471/716  omnivox-choice-codec-completes-shared-nulls-and-rejects-ambiguity (0.000083 sec)
+   passed  472/716  omnivox-choice-codec-context-nil-retains-old-acss-meaning (0.000034 sec)
+   passed  473/716  omnivox-choice-codec-does-not-clamp-malformed-saved-patches (0.000056 sec)
+   passed  474/716  omnivox-choice-codec-keeps-inheritance-zero-and-default-distinct (0.000037 sec)
+   passed  475/716  omnivox-choice-codec-marker-enforces-both-wire-bounds-and-canonical-base64 (0.001262 sec)
+   passed  476/716  omnivox-choice-codec-marker-receipt-preserves-exact-row-and-policy-null (0.000085 sec)
+   passed  477/716  omnivox-choice-codec-marker-rejects-duplicate-members-at-every-depth (0.000164 sec)
+   passed  478/716  omnivox-choice-codec-marker-rejects-shape-type-and-identity-errors (0.000438 sec)
+   passed  479/716  omnivox-choice-codec-marker-retains-existing-event-variants-under-version-three (0.000073 sec)
+   passed  480/716  omnivox-choice-codec-preserves-duplicate-physical-occurrences (0.000077 sec)
+   passed  481/716  omnivox-choice-codec-uses-the-same-contrast-and-neutral-points (0.000045 sec)
+   passed  482/716  omnivox-choice-consumer-complete-named-queue-uses-layered-transaction (0.011784 sec)
+   passed  483/716  omnivox-choice-consumer-compound-personality-is-explicit-legacy (0.010217 sec)
+   passed  484/716  omnivox-choice-consumer-context-and-speech-action-remain-sparse (0.011391 sec)
+   passed  485/716  omnivox-choice-consumer-isolated-letter-retains-legacy-protocol (0.010242 sec)
+   passed  486/716  omnivox-choice-consumer-named-speech-and-notification-retain-owned-identity (0.012998 sec)
+   passed  487/716  omnivox-choice-consumer-old-notification-lane-uses-shared-style (0.011430 sec)
+   passed  488/716  omnivox-choice-consumer-word-spelling-keeps-contextual-voice (0.010717 sec)
+   passed  489/716  omnivox-choice-consumer-word-spelling-retains-owned-capital-voice (0.014161 sec)
+   passed  490/716  omnivox-choice-playback-cancellation-retains-evidence-but-rejects-late-receipts (0.002516 sec)
+   passed  491/716  omnivox-choice-playback-consumed-receipt-survives-write-failure-without-replay (0.002964 sec)
+   passed  492/716  omnivox-choice-playback-early-split-pair-and-terminal-publish-after-return (0.002968 sec)
+   passed  493/716  omnivox-choice-playback-equivalent-ack-refresh-preserves-prepared-snapshot (0.003101 sec)
+   passed  494/716  omnivox-choice-playback-historical-summaries-and-public-values-are-bounded (0.002386 sec)
+   passed  495/716  omnivox-choice-playback-metadata-exhaustion-precedes-navigation-stop (0.002721 sec)
+   passed  496/716  omnivox-choice-playback-new-ack-during-framing-rejects-before-write (0.003318 sec)
+   passed  497/716  omnivox-choice-playback-observations-truncate-with-separate-latest-started-evidence (0.003491 sec)
+   passed  498/716  omnivox-choice-playback-old-registration-stays-valid-after-new-acknowledgement (0.005596 sec)
+   passed  499/716  omnivox-choice-playback-policy-fallback-never-borrows-matching-row-patch (0.002842 sec)
+   passed  500/716  omnivox-choice-playback-rejects-wrong-receipt-without-changing-sequence-or-route (0.002786 sec)
+   passed  501/716  omnivox-choice-playback-repeated-physical-voice-keeps-original-row-identity (0.004855 sec)
+   passed  502/716  omnivox-choice-playback-replaced-generation-cannot-accept-old-registration (0.002141 sec)
+   passed  503/716  omnivox-choice-playback-sequence-gap-breaks-pair-and-next-complete-pair-recovers (0.002970 sec)
+   passed  504/716  omnivox-choice-playback-shares-one-registry-charge-and-releases-at-last-owner (0.002844 sec)
+   passed  505/716  omnivox-choice-playback-two-lanes-reject-crossed-receipts-and-stale-degradation (0.062228 sec)
+   passed  506/716  omnivox-choice-registration-bounds-metadata-before-sending-policy-or-registry (0.001343 sec)
+   passed  507/716  omnivox-choice-registration-captures-raw-provenance-before-acknowledgement (0.002602 sec)
+   passed  508/716  omnivox-choice-registration-freezes-hash-members-and-mutable-wire-inputs (0.000073 sec)
+Some voice settings are not applied on notification; supported settings remain active
+   passed  509/716  omnivox-choice-registration-freezes-new-and-old-operations (0.003977 sec)
+   passed  510/716  omnivox-choice-registration-frozen-preparation-needs-no-live-palette (0.006452 sec)
+   passed  511/716  omnivox-choice-registration-late-ack-cannot-replace-newer-snapshot (0.004102 sec)
+   passed  512/716  omnivox-choice-registration-negotiates-the-whole-bundle-per-lane (0.007500 sec)
+   passed  513/716  omnivox-choice-registration-owned-rows-ignore-old-adapter-preferences (0.001399 sec)
+   passed  514/716  omnivox-choice-registration-owner-change-advances-identical-wire-content (0.004431 sec)
+   passed  515/716  omnivox-choice-registration-preparation-does-not-escape-to-callbacks (0.002491 sec)
+   passed  516/716  omnivox-choice-registration-preparation-validates-ancestry-once (0.005201 sec)
+Omnivox control error on choice-main, request 109: malformed response
+Omnivox control error on choice-main, request 110: malformed response
+Omnivox control error on choice-main, request 111: malformed response
+Omnivox control error on choice-main, request 112: malformed response
+   passed  517/716  omnivox-choice-registration-rejects-mismatched-flat-acknowledgements (0.005389 sec)
+   passed  518/716  omnivox-choice-registration-unsupported-warning-belongs-to-the-connection (0.000252 sec)
+   passed  519/716  omnivox-choice-timeline-ends-legacy-effects-at-layered-boundaries (0.001754 sec)
+   passed  520/716  omnivox-choice-timeline-keeps-rule-provenance-when-equal-values-cannot-be-merged (0.001736 sec)
+   passed  521/716  omnivox-choice-timeline-multipart-is-the-same-version-four-document (0.002011 sec)
+   passed  522/716  omnivox-choice-timeline-preserves-raw-context-through-real-compilation (0.002123 sec)
+   passed  523/716  omnivox-choice-timeline-rejects-malformed-layered-fields-before-framing (0.009872 sec)
+   passed  524/716  omnivox-choice-timeline-speech-actions-preserve-placement-and-span-context (0.001926 sec)
+   passed  525/716  omnivox-discovery-refresh-changes-only-own-lane-with-current-preferences (0.000208 sec)
+Omnivox control error on recovery main, request 113: Omnivox speech connection closed
+   passed  526/716  omnivox-discovery-refresh-deduplicates-requests-and-cleans-dead-owner (0.000184 sec)
+   passed  527/716  omnivox-discovery-refresh-ignores-retired-and-replaced-lanes (0.000154 sec)
+   passed  528/716  omnivox-discovery-refresh-is-opt-in-and-stops-on-final-failure (0.000096 sec)
+Omnivox control error on choice-main, request 118: Omnivox speech connection closed
+Omnivox control error on choice-main, request 119: Omnivox speech connection closed
+   passed  529/716  omnivox-discovery-refresh-preserves-saved-native-choices (0.020056 sec)
+Omnivox control error on recovery main, request uncorrelated: Lost reply
+Omnivox control error on recovery main, request uncorrelated: Lost reply
+   passed  530/716  omnivox-discovery-refresh-retries-lost-reply-within-fixed-budget (0.000175 sec)
+   passed  531/716  omnivox-discovery-refresh-starts-after-prepared-worker-is-published (0.000099 sec)
+   passed  532/716  omnivox-discovery-refresh-survives-notification-process-binding (0.000131 sec)
+   passed  533/716  omnivox-emergency-cannot-race-an-active-management-replacement (0.000119 sec)
+   passed  534/716  omnivox-emergency-failed-preparation-closes-unused-bridge (0.000236 sec)
+Emergency startup cleanup remains unconfirmed: native cleanup unconfirmed
+Emergency startup cleanup remains unconfirmed: native cleanup unconfirmed
+   passed  535/716  omnivox-emergency-failed-start-retains-unconfirmed-native-attempt (0.000180 sec)
+   passed  536/716  omnivox-emergency-live-native-proof-does-not-need-a-durable-receipt (0.000161 sec)
+   passed  537/716  omnivox-emergency-lost-reply-queries-the-same-live-native-authority (0.000137 sec)
+   passed  538/716  omnivox-emergency-lost-start-reply-retains-and-retries-the-same-attempt (0.000154 sec)
+   passed  539/716  omnivox-emergency-missing-native-proof-prevents-replacement (0.000183 sec)
+   passed  540/716  omnivox-emergency-prepares-bridge-while-old-speech-remains-usable (0.000428 sec)
+   passed  541/716  omnivox-emergency-reuses-prepared-owner-only-after-old-retirement (0.000290 sec)
+   passed  542/716  omnivox-emergency-unavailable-capability-preserves-working-main (0.000104 sec)
+   passed  543/716  omnivox-emergency-unconfirmed-attempt-blocks-another-preparation (0.000113 sec)
+   passed  544/716  omnivox-engine-configuration-cancelled-startup-edit-keeps-clean-draft (0.274010 sec)
+   passed  545/716  omnivox-engine-configuration-conflict-retains-draft-and-running-speech (0.000437 sec)
+   passed  546/716  omnivox-engine-configuration-displays-actual-worker-inventory (0.000073 sec)
+  skipped  547/716  omnivox-engine-configuration-graphical-navigation-retains-draft (0.000064 sec)
+  skipped  548/716  omnivox-engine-configuration-native-service-round-trip (0.000049 sec)
+   passed  549/716  omnivox-engine-configuration-old-service-keeps-legacy-speech (0.000121 sec)
+   passed  550/716  omnivox-engine-configuration-retains-independent-engine-drafts (0.000674 sec)
+   passed  551/716  omnivox-engine-configuration-save-and-apply-are-separate (0.000670 sec)
+   passed  552/716  omnivox-engine-configuration-spoken-row-and-native-actions (0.000285 sec)
+   passed  553/716  omnivox-engine-settings-both-local-workers-receive-settings (0.000378 sec)
+Loading voice-defs...
+Emacsvox speech server Notify exited: finished
+Omnivox control error on Notify, request 121: Omnivox speech connection closed
+Emacsvox speech server Speaker exited: finished
+Omnivox control error on Speaker, request 120: Omnivox speech connection closed
+   passed  554/716  omnivox-engine-settings-configured-check-rejects-partial-discovery (0.070437 sec)
+  skipped  555/716  omnivox-engine-settings-graphical-customize-returns-to-details (0.000071 sec)
+   passed  556/716  omnivox-engine-settings-keeps-disabled-files-and-environment (0.000158 sec)
+   passed  557/716  omnivox-engine-settings-local-launcher-converts-native-path-lists (0.022528 sec)
+   passed  558/716  omnivox-engine-settings-rejects-ambiguous-and-remote-paths (0.050557 sec)
+   passed  559/716  omnivox-engine-settings-remote-and-other-launchers-are-excluded (0.000318 sec)
+   passed  560/716  omnivox-engine-settings-respects-native-and-legacy-overrides (0.000129 sec)
+   passed  561/716  omnivox-engine-settings-unset-files-do-not-deny-library-voices (0.000085 sec)
+   passed  562/716  omnivox-library-apply-manages-mbrola-after-first-installation (0.000092 sec)
+   passed  563/716  omnivox-library-async-inspection-cancel-and-timeout (0.000677 sec)
+   passed  564/716  omnivox-library-async-inspection-correlates-and-cleans-up (0.000209 sec)
+   passed  565/716  omnivox-library-async-inspection-probes-capabilities-without-waiting (0.281728 sec)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   passed  566/716  omnivox-library-confirmation-completes-and-cancels (0.001353 sec)
+   passed  567/716  omnivox-library-eligibility-preserves-unmanaged-and-engine-exclusions (0.000146 sec)
+   passed  568/716  omnivox-library-empty-state-explains-actions-and-clears-on-install (0.000305 sec)
+   passed  569/716  omnivox-library-engine-acknowledgement-is-from-the-exact-worker (0.000173 sec)
+   passed  570/716  omnivox-library-engine-candidate-reuses-main-record-and-rejects-mismatch (0.000258 sec)
+   passed  571/716  omnivox-library-engine-environment-preserves-rollback-priority (0.000076 sec)
+  skipped  572/716  omnivox-library-engine-native-pair-freezes-and-recovers (0.000051 sec)
+Notification speech server unavailable; using available speech: Optional notifier failed
+   passed  573/716  omnivox-library-engine-new-activation-retires-stale-notifier-on-failure (0.000253 sec)
+Notification speech server unavailable; using available speech: Quit
+   passed  574/716  omnivox-library-engine-notifier-quit-configures-main-and-retires-old-peer (0.000126 sec)
+   passed  575/716  omnivox-library-engine-preparation-negotiates-before-capture (0.000291 sec)
+   passed  576/716  omnivox-library-engine-recovery-retains-the-peer-and-snapshot (0.000150 sec)
+   passed  577/716  omnivox-library-engine-recovery-survives-cleared-process-globals (0.000086 sec)
+   passed  578/716  omnivox-library-native-owner-keeps-native-environment (0.000090 sec)
+   passed  579/716  omnivox-library-native-owner-negotiates-without-posix-settings (0.107322 sec)
+   passed  580/716  omnivox-library-native-owner-rejects-remote-and-unrelated-targets (0.000123 sec)
+   passed  581/716  omnivox-library-removal-capability-is-explicit-on-older-servers (0.000044 sec)
+   passed  582/716  omnivox-library-removal-finds-inactive-mbrola-choices-without-editing (0.009857 sec)
+  skipped  583/716  omnivox-library-removal-graphical-review-preserves-origin-and-return (0.000086 sec)
+Uninstall partial: 40 bytes removed; 50 remain; some deletion amounts unconfirmed
+   passed  584/716  omnivox-library-removal-keeps-correlated-partial-results-and-uncertainty (0.000202 sec)
+   passed  585/716  omnivox-library-removal-rechecks-target-after-confirmation (0.000062 sec)
+   passed  586/716  omnivox-library-removal-refusal-and-blockers-never-submit-deletion (0.000076 sec)
+   passed  587/716  omnivox-library-removal-refuses-a-row-from-a-previous-target (0.000051 sec)
+   passed  588/716  omnivox-library-removal-review-includes-shared-speakers-and-kept-references (0.000069 sec)
+   passed  589/716  omnivox-library-reply-may-arrive-before-send-returns (0.000279 sec)
+   passed  590/716  omnivox-library-retains-an-attempt-that-exits-before-initialization (0.000188 sec)
+   passed  591/716  omnivox-library-retirement-is-bound-to-native-owner (0.000089 sec)
+   passed  592/716  omnivox-library-review-exposes-installed-but-disabled-provider (0.000077 sec)
+   passed  593/716  omnivox-library-rhvoice-apply-preserves-external-voices (0.000153 sec)
+   passed  594/716  omnivox-library-rollback-policy-preserves-wire-arrays (0.000057 sec)
+   passed  595/716  omnivox-library-runtime-load-is-independent-of-editors (0.174718 sec)
+   passed  596/716  omnivox-library-selection-keeps-import-and-enablement-separate-from-apply (0.000305 sec)
+   passed  597/716  omnivox-library-selection-rejects-changed-target-and-releases-service (0.000116 sec)
+   passed  598/716  omnivox-native-preview-accepted-audio-is-not-started-playback (0.001610 sec)
+   passed  599/716  omnivox-native-preview-choice-wire-matches-independent-fixture (0.000691 sec)
+   passed  600/716  omnivox-native-preview-common-fallback-cannot-inherit-native-evidence (0.000943 sec)
+   passed  601/716  omnivox-native-preview-duplicate-voices-retain-choice-and-plan-identity (0.000576 sec)
+   passed  602/716  omnivox-native-preview-editor-freezes-comparison-with-private-evidence (0.002042 sec)
+   passed  603/716  omnivox-native-preview-native-and-common-comparison-negotiate-each-entry (0.001639 sec)
+   passed  604/716  omnivox-native-preview-preflights-every-capability-and-comparison-half (0.001558 sec)
+   passed  605/716  omnivox-native-preview-qualified-fixture-and-version-separation (0.000568 sec)
+   passed  606/716  omnivox-native-preview-rejects-unqualified-or-common-only-evidence (0.004948 sec)
+   passed  607/716  omnivox-native-preview-requires-application-field-and-execution-for-native-row (0.001891 sec)
+   passed  608/716  omnivox-native-preview-same-voice-with-distinct-plans-is-not-deduplicated (0.000509 sec)
+   passed  609/716  omnivox-native-preview-started-plan-must-match-all-qualified-evidence (0.002235 sec)
+   passed  610/716  omnivox-native-preview-unconfirmed-first-half-stops-comparison (0.002208 sec)
+   passed  611/716  omnivox-native-preview-wire-preserves-false-zero-default-and-string-ids (0.000146 sec)
+   passed  612/716  omnivox-native-runtime-capability-loss-refuses-an-old-native-snapshot (0.014863 sec)
+Some voice settings are not applied on notification; supported settings remain active
+Some voice settings are not applied on speaker; supported settings remain active
+Some voice settings are not applied on notification; supported settings remain active
+Some voice settings are not applied on speaker; supported settings remain active
+   passed  613/716  omnivox-native-runtime-deferred-registration-never-claims-full-application (0.010614 sec)
+   passed  614/716  omnivox-native-runtime-independent-registration-and-marker-fixtures (0.001067 sec)
+Invalid Omnivox marker event: Native choice omitted its application status
+Invalid Omnivox marker event: Native receipt disagrees with its choice
+Invalid Omnivox marker event: Native receipt masked an absent parameter
+Invalid Omnivox marker event: Native receipt requires one application member
+Invalid Omnivox marker event: Native receipt requires one application member
+   passed  615/716  omnivox-native-runtime-invalid-evidence-does-not-consume-the-marker-sequence (0.164958 sec)
+   passed  616/716  omnivox-native-runtime-invalid-or-stale-ack-cannot-enable-native-timeline (0.002361 sec)
+Some voice settings are not applied on notification; supported settings remain active
+   passed  617/716  omnivox-native-runtime-mixed-lanes-preserve-native-with-honest-save-result (0.002548 sec)
+   passed  618/716  omnivox-native-runtime-ordinary-main-and-notification-use-acknowledged-native-registry (0.019239 sec)
+Invalid Omnivox marker event: Native application has no owning choice
+   passed  619/716  omnivox-native-runtime-policy-fallback-never-borrows-native-settings (0.016365 sec)
+   passed  620/716  omnivox-native-runtime-receipt-belongs-to-its-frozen-registration-and-lane (0.023002 sec)
+   passed  621/716  omnivox-native-runtime-receipts-distinguish-applied-and-common-only (0.033177 sec)
+Some voice settings are not applied on speaker; supported settings remain active
+   passed  622/716  omnivox-native-runtime-refresh-updates-status-without-rewriting-old-evidence (0.005339 sec)
+   passed  623/716  omnivox-native-runtime-registration-statuses-are-complete-and-owned (0.004523 sec)
+   passed  624/716  omnivox-native-runtime-timeline-preserves-context-and-versioned-modes (0.018500 sec)
+   passed  625/716  omnivox-native-runtime-timeout-rejects-invalid-or-obsolete-evidence (0.006567 sec)
+   passed  626/716  omnivox-native-runtime-timeout-repairs-speech-without-reopening-apply (0.020254 sec)
+   passed  627/716  omnivox-native-storage-preview-refuses-before-either-comparison-half (0.000611 sec)
+Some voice settings are not applied on notification; supported settings remain active
+Some voice settings are not applied on speaker; supported settings remain active
+   passed  628/716  omnivox-native-storage-registers-supported-settings-with-degradation (0.002374 sec)
+   passed  629/716  omnivox-preferences-does-not-reload-a-different-editor-target (0.000171 sec)
+   passed  630/716  omnivox-preferences-host-does-not-mistake-another-scope-for-success (0.000113 sec)
+   passed  631/716  omnivox-preferences-host-reload-negotiates-scope-independently (0.000140 sec)
+   passed  632/716  omnivox-preferences-independent-profiles-ignore-secondary-divergence (0.000095 sec)
+   passed  633/716  omnivox-preferences-lost-reply-observes-completion-without-replaying (0.035630 sec)
+   passed  634/716  omnivox-preferences-main-applies-while-notifications-are-unavailable (0.000204 sec)
+   passed  635/716  omnivox-preferences-stale-worker-is-not-replayed (0.000112 sec)
+   passed  636/716  omnivox-preferences-updated-profile-base-preserves-selected-id (0.000081 sec)
+   passed  637/716  omnivox-preview-early-response-advances-after-write-only (0.013063 sec)
+   passed  638/716  omnivox-preview-early-response-then-failure-never-starts-next (0.000764 sec)
+   passed  639/716  omnivox-preview-either-mode-can-supersede-startup (0.000791 sec)
+   passed  640/716  omnivox-preview-input-strings-are-frozen (0.000808 sec)
+   passed  641/716  omnivox-preview-invalid-later-exact-entry-does-not-interrupt (0.000239 sec)
+   passed  642/716  omnivox-preview-nonlocal-exits-release-every-reservation (0.002307 sec)
+   passed  643/716  omnivox-preview-overlapping-heartbeat-prevents-advancement (0.001480 sec)
+   passed  644/716  omnivox-preview-public-stop-in-own-stop-hook-cancels (0.000385 sec)
+   passed  645/716  omnivox-preview-public-stop-nonlocal-exits-retire-waiting-sample (0.000808 sec)
+   passed  646/716  omnivox-preview-rejects-cycle-and-capacity-before-stop (0.000491 sec)
+   passed  647/716  omnivox-preview-startup-clears-framed-pending-queue (0.000707 sec)
+   passed  648/716  omnivox-preview-startup-grant-cannot-send-speech-or-clear-twice (0.000258 sec)
+   passed  649/716  omnivox-preview-stop-callback-runs-after-interrupt-in-independent-capture (0.000615 sec)
+   passed  650/716  omnivox-preview-stop-during-preflight-cancels-startup (0.000302 sec)
+   passed  651/716  omnivox-preview-timeout-before-reentrant-exact-replacement (0.000489 sec)
+   passed  652/716  omnivox-preview-unproven-boundary-rejects-before-stop (0.000244 sec)
+   passed  653/716  omnivox-preview-v2-accepts-the-paired-server-terminal-fixture (0.000664 sec)
+Invalid Omnivox control event: Missing or duplicate control identity :request_id
+   passed  654/716  omnivox-preview-v2-ambiguous-envelope-keeps-deadline-and-reservations (0.000780 sec)
+   passed  655/716  omnivox-preview-v2-checks-original-row-and-exact-physical-identity (0.001008 sec)
+   passed  656/716  omnivox-preview-v2-control-error-and-policy-change-stop-comparison (0.003010 sec)
+   passed  657/716  omnivox-preview-v2-correlatable-invalid-response-fails-only-its-entry (0.000780 sec)
+   passed  658/716  omnivox-preview-v2-decoder-retains-null-false-and-array (0.000089 sec)
+   passed  659/716  omnivox-preview-v2-freezes-comparison-and-keeps-private-evidence (0.001223 sec)
+   passed  660/716  omnivox-preview-v2-policy-substitutes-retain-null-choice-id (0.000251 sec)
+   passed  661/716  omnivox-preview-v2-preflights-both-halves-and-complete-bundle (0.002576 sec)
+   passed  662/716  omnivox-preview-v2-projects-full-rows-and-sparse-context (0.000306 sec)
+   passed  663/716  omnivox-preview-v2-rejects-malformed-terminal-types-and-duplicates (0.000809 sec)
+   passed  664/716  omnivox-preview-v2-supersedes-legacy-and-local-stop-cannot-invent-evidence (0.001017 sec)
+   passed  665/716  omnivox-preview-v2-validates-started-evidence-independently-of-accept-order (0.000434 sec)
+   passed  666/716  omnivox-profiles-editor-inherits-drafts-and-removes-profiles-safely (0.276519 sec)
+  skipped  667/716  omnivox-profiles-graphical-create-edit-and-switch (0.000067 sec)
+   passed  668/716  omnivox-profiles-mode-policy-and-explicit-level-override-round-trip (0.000112 sec)
+  skipped  669/716  omnivox-profiles-native-workers-negotiate-frozen-catalogues (0.000047 sec)
+   passed  670/716  omnivox-profiles-old-missing-and-dead-workers-use-saved-fallback (0.000170 sec)
+   passed  671/716  omnivox-profiles-require-matching-worker-content-and-fallback (0.000087 sec)
+   passed  672/716  omnivox-profiles-sync-and-set-remain-valid-queue-and-frame-commands (0.000155 sec)
+   passed  673/716  omnivox-punctuation-drafts-keep-levels-independent-and-restore-defaults (0.000562 sec)
+  skipped  674/716  omnivox-punctuation-graphical-navigation-edit-and-return (0.000060 sec)
+  skipped  675/716  omnivox-punctuation-native-service-round-trip (0.000043 sec)
+   passed  676/716  omnivox-punctuation-old-host-fails-without-reading-or-saving (0.000091 sec)
+   passed  677/716  omnivox-punctuation-refresh-and-restart-respect-drafts-and-targets (0.000278 sec)
+   passed  678/716  omnivox-punctuation-save-retains-failed-draft-and-never-restarts (0.000428 sec)
+   passed  679/716  omnivox-punctuation-validates-names-and-keeps-explicit-preservation (0.000344 sec)
+   passed  680/716  omnivox-recovery-automatic-path-cannot-bypass-missing-native-cleanup (0.000165 sec)
+   passed  681/716  omnivox-recovery-dead-prepared-bridge-is-replaced-once (0.000082 sec)
+   passed  682/716  omnivox-recovery-explicit-repair-requires-native-retirement (0.000136 sec)
+   passed  683/716  omnivox-recovery-failed-prepared-attach-retains-unconfirmed-authority (0.000085 sec)
+   passed  684/716  omnivox-recovery-guard-bounds-incomplete-responses (0.000089 sec)
+   passed  685/716  omnivox-recovery-guard-capacity-does-not-infer-proof-from-owner-exit (0.000067 sec)
+   passed  686/716  omnivox-recovery-guard-capacity-preserves-received-emergency-proof (0.000089 sec)
+   passed  687/716  omnivox-recovery-guard-descriptors-require-exact-local-transports (0.000095 sec)
+   passed  688/716  omnivox-recovery-guard-does-not-retire-owner-before-native-tree (0.000088 sec)
+   passed  689/716  omnivox-recovery-guard-failed-reattach-closes-only-new-bridge (0.000113 sec)
+   passed  690/716  omnivox-recovery-guard-filters-stale-and-foreign-replies (0.000068 sec)
+   passed  691/716  omnivox-recovery-guard-outlives-owner-without-inventing-durable-proof (0.000139 sec)
+   passed  692/716  omnivox-recovery-guard-reconnects-only-the-retained-authority (0.000132 sec)
+   passed  693/716  omnivox-recovery-guard-tree-proof-does-not-substitute-for-io-proof (0.000096 sec)
+   passed  694/716  omnivox-recovery-lost-final-reply-requires-persisted-native-proof (0.000119 sec)
+   passed  695/716  omnivox-recovery-notification-fallback-retains-the-real-foreground-owner (0.000057 sec)
+   passed  696/716  omnivox-recovery-notification-race-does-not-create-an-unreachable-owner (0.000062 sec)
+Emacsvox speech server recovery replacement exited: finished
+Emacsvox speech server recovery replacement exited: finished
+   passed  697/716  omnivox-recovery-ordinary-start-prepares-and-cleans-unused-bridge (0.000349 sec)
+   passed  698/716  omnivox-recovery-readiness-waits-only-for-own-speech-initialization (0.000162 sec)
+   passed  699/716  omnivox-recovery-reconciliation-binds-old-launch-and-exact-receipt (0.000862 sec)
+   passed  700/716  omnivox-recovery-retired-native-owner-does-not-mask-worker-failure (0.000099 sec)
+Emacsvox speech server recovery main exited: finished
+   passed  701/716  omnivox-recovery-sentinel-retains-unconfirmed-native-owner (0.000166 sec)
+   passed  702/716  omnivox-recovery-startup-registration-does-not-reconfigure-its-peer (0.273097 sec)
+   passed  703/716  omnivox-recovery-unconfirmed-cleanup-never-starts-replacement (0.000223 sec)
+   passed  704/716  omnivox-restart-failed-foreground-preparation-preserves-old-speech (0.000230 sec)
+Notification speech server unavailable; using available speech: Notification unavailable
+   passed  705/716  omnivox-restart-prepares-foreground-before-retirement-and-notification (0.000475 sec)
+   passed  706/716  tts-queue-state-advised-creation-remains-unproven (0.271419 sec)
+   passed  707/716  tts-queue-state-alias-region-eof-and-other-process (0.000361 sec)
+   passed  708/716  tts-queue-state-bookkeeping-failure-and-malformed-state-stay-unknown (0.000174 sec)
+   passed  709/716  tts-queue-state-command-mutation-and-observer-coverage (0.000193 sec)
+   passed  710/716  tts-queue-state-creation-auth-and-generation-handoff (0.141061 sec)
+   passed  711/716  tts-queue-state-encoding-bounds-and-rollover (0.017183 sec)
+   passed  712/716  tts-queue-state-guarded-write-rejects-overlap-and-argument-rewriting (0.000281 sec)
+   passed  713/716  tts-queue-state-guards-require-exact-own-stop-and-registry (0.000240 sec)
+   passed  714/716  tts-queue-state-independent-framing-fixture (0.153218 sec)
+   passed  715/716  tts-queue-state-neutral-overlap-and-nonlocal-outcomes (0.000987 sec)
+   passed  716/716  tts-queue-state-queue-effects-at-known-boundary (0.002747 sec)
+
+Ran 716 tests, 707 results as expected, 0 unexpected, 9 skipped (2026-11-13 03:07:02+1100, 15.589686 sec)
+
+9 skipped results:
+  SKIPPED  omnivox-engine-configuration-graphical-navigation-retains-draft
+  SKIPPED  omnivox-engine-configuration-native-service-round-trip
+  SKIPPED  omnivox-engine-settings-graphical-customize-returns-to-details
+  SKIPPED  omnivox-library-engine-native-pair-freezes-and-recovers
+  SKIPPED  omnivox-library-removal-graphical-review-preserves-origin-and-return
+  SKIPPED  omnivox-profiles-graphical-create-edit-and-switch
+  SKIPPED  omnivox-profiles-native-workers-negotiate-frozen-catalogues
+  SKIPPED  omnivox-punctuation-graphical-navigation-edit-and-return
+  SKIPPED  omnivox-punctuation-native-service-round-trip
+

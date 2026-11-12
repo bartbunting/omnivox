@@ -282,14 +282,26 @@ recovery checks. The user subsequently confirmed that Eloquence works in the
 corrected prototype; broader interaction and recovery listening checks remain
 separate.
 
+The [native Windows client follow-up](../benchmarks/2026-11-13-native-windows-client-reload.md)
+separates local ownership negotiation from the POSIX engine-file provider. Native
+Emacs now exercises independent preference reload and guarded recovery using the
+same qualified Windows runtime. Compiled WinRT/Flite/Eloquence/DECtalk lifecycle checks and the
+full graphical personal profile pass. The native shortcut retains eager startup:
+an additional early-discovery run exposed a registry-generation admission race,
+which remains a separate correction before enabling that opt-in there.
+
 Next slices:
 
 1. The Development shortcut now uses the
    [normal personal profile](../benchmarks/2026-11-11-personal-development-launch.md)
-   with the qualified runtime. Use the [isolated listening profile](../benchmarks/data/2026-11-10-early-speech-refresh/listening/start.py)
-   to assess character navigation, replacement, simultaneous notifications,
-   reload and restart on real output. Source markers and null output do not
-   establish listening acceptance or physical-device recovery.
+   with the qualified runtime. Bart's
+   [2026-11-13 daily-use confirmation](../benchmarks/2026-11-11-personal-development-launch.md#daily-use-confirmation-2026-11-13)
+   closes general interactive acceptance for that setup: he reports continued use
+   with no issues. Per-scenario coverage was not itemised. Use the
+   [isolated listening profile](../benchmarks/data/2026-11-10-early-speech-refresh/listening/start.py)
+   for targeted real-output checks of reload, restart and recovery, including
+   concurrent navigation, replacement and notifications. Physical timing and
+   device recovery remain separate qualification gaps.
 2. Qualify remaining engines and platforms: Windows Piper needs its model and
    companion; MBROLA and external wrappers need supported child creation and
    native qualification. Preserve their ordinary launch paths. Qualify native

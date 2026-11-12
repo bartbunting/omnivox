@@ -18,7 +18,8 @@ acceptance on every platform.
 | Concern | Retained comparison / reproduction source | Measurement boundary |
 | --- | --- | --- |
 | Early selected speech | [Optional discovery prototype](2026-11-10-early-speech.md), [automatic client observation](2026-11-10-early-speech-refresh.md) | Controlled delayed-helper availability, fallback, active cancellation, native retirement, compiled client late selection and matched warm startup. |
-| Personal Development profile | [Normal configuration handoff](2026-11-11-personal-development-launch.md) | Qualified early speech with the normal Emacsvox profile; launcher and guarded source checks. |
+| Personal Development profile | [Normal configuration handoff](2026-11-11-personal-development-launch.md) | Qualified early speech with the normal Emacsvox profile; launcher and guarded source checks, plus user-reported daily use without issues on 2026-11-13. |
+| Native Windows client reload | [Native Emacs ownership and personal shortcut](2026-11-13-native-windows-client-reload.md) | Compiled native WinRT/Flite/Eloquence/DECtalk reload and guarded recovery, graphical personal-profile checks, and separate failed early-discovery observations; functional checks only. |
 | Slow initial startup | [Selected speech versus complete discovery](2026-11-10-startup-investigation.md) | Real slow-launch events and 36 matched warm ordinary/guarded startup controls; no acoustic or cold-start causality claim. |
 | Windows startup contention | [Independent helper queue deadline](2026-11-10-helper-queue.md) | Observed Eloquence/Flite exclusion, bounded queue regression, native ownership checks and isolated GUI source completion. |
 | Foreground settings timeout | [Delayed registration acknowledgement](2026-11-10-foreground-registration.md) | Functional startup failure reproduction, bounded client repair and isolated desktop profile; source completion only. |

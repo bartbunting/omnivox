@@ -35,7 +35,8 @@ normally. This does not add engine qualification or change native ownership.
 
 The automated speech check uses disposable Emacs resources and null output;
 it does not load personal integrations or start a personal Emacs server.
-The complete personal profile will be exercised on the next interactive launch.
+At handoff, the complete personal profile still awaited an interactive launch;
+the [daily-use follow-up](#daily-use-confirmation-2026-11-13) records the later result.
 Existing Emacs sessions were not restarted. `--batch-check` and `--gui-check`
 continue to use the previously qualified disposable test profile, keeping
 recovery-test changes away from personal settings.
@@ -59,3 +60,15 @@ output. The [startup result](data/2026-11-11-personal-development-launch/eloquen
 and [desktop check](data/2026-11-11-personal-development-launch/eloquence-desktop-check.log)
 are retained separately from the original Flite qualification. No running user
 session or saved personal voice preferences were changed.
+
+## Daily-use confirmation, 2026-11-13
+
+Bart confirmed that he has been using the Emacsvox Development shortcut running
+this version and that it is "working well with no issues". This closes the
+outstanding general interactive-use confirmation for the personal Development
+setup described above.
+
+This is user-reported real-use evidence. No fresh runtime hash, exact usage
+duration or per-scenario coverage was collected with the report. Targeted
+reload/recovery fault checks, physical onset and Stop-to-silence measurements,
+and other engine/platform qualification remain separate.

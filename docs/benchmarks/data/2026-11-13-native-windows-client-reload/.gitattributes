@@ -1,0 +1,3 @@
+# Preserve exact native logs and source snapshots, including CRLF.
+# Source and report whitespace checks remain enabled outside this evidence pack.
+** -text -whitespace
