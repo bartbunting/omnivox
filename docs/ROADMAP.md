@@ -59,9 +59,6 @@ Outstanding items are listed without a priority ranking:
   table, negotiate support across both workers, and specify old-server fallback
   before extending saved settings, commands and the Emacsvox editor. Preserve
   the existing three levels; apostrophes remain at `all` by default.
-- **Pause and resume for long reading:** resume a bounded reading session with
-  defined behavior for intervening navigation, cancellation, and engines without
-  precise markers.
 - **Linux ARM64 main-server distribution:** native runtime acceptance and
   main-server archives/Debian packages, beyond existing ARM64 companion coverage.
 - **Another compact neural engine:** evaluate an isolated sherpa-onnx helper,
