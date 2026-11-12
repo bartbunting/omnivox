@@ -1,0 +1,164 @@
+diff --git a/lisp/speech/omnivox-voices.el b/lisp/speech/omnivox-voices.el
+index ae19826c0..d0d2fa67e 100644
+--- a/lisp/speech/omnivox-voices.el
++++ b/lisp/speech/omnivox-voices.el
+@@ -416,6 +416,15 @@ response on timeout or process exit.  TIMEOUT overrides the ordinary deadline;
+                   (setf (omnivox--control-request-timer entry) timer)
+                 (cancel-timer timer))))
+           (when (eq entry (gethash identifier pending))
++            ;; A write can install a registry even if its reply is delayed or
++            ;; lost. Never reuse an older acknowledged generation afterward.
++            (when (member (plist-get request :type)
++                          '("register_logical_voices" "register_logical_voices_v2"
++                            "register_logical_voices_v3"))
++              (when-let* ((generation (plist-get request :registry_generation))
++                          ((integerp generation)))
++                (process-put process 'omnivox--highest-sent-registry-generation
++                             (max generation (or (process-get process 'omnivox--highest-sent-registry-generation) 0)))))
+             (tts-queue--send-typed
+              process
+              (format "omnivox_control {%s}\n"
+@@ -1711,6 +1720,20 @@ may supply complete frozen registrations, which need no current palette data."
+         (emacsvox-aural-voice-runtime--call-with-resolution-snapshot prepare)
+       (funcall prepare))))
+ 
++(defun omnivox--unchanged-native-registry-generation (process content)
++  "Reuse PROCESS's acknowledged generation for unchanged native CONTENT.
++Discovery can refresh availability without changing the definitions used by
++speech awaiting that reply. A newer unconfirmed write prevents this reuse."
++  (let* ((old (process-get process omnivox--choice-registration-property))
++         (generation (plist-get old :registry-generation)))
++    (when (and (equal (plist-get content :type) "register_logical_voices_v3")
++               (integerp generation) (> generation 0)
++               (eql generation (process-get process 'omnivox--highest-sent-registry-generation))
++               (equal (plist-get old :process-generation)
++                      (process-get process 'tts--speech-process-generation))
++               (omnivox--native-registration-content-equal-p content (plist-get old :content)))
++      generation)))
++
+ (defun omnivox--register-logical-voices (processes)
+   "Register logical voices on PROCESSES and return the number sent.
+ Startup responses target their own worker; explicit client edits can target all."
+@@ -1718,8 +1741,10 @@ Startup responses target their own worker; explicit client edits can target all.
+     (omnivox--update-logical-registry-generation
+      (mapcar #'cdr registrations))
+     (dolist (registration registrations)
+-      (let ((generation omnivox--logical-registry-generation)
+-            (content (tts--dispatch-copy-data (cdr registration))))
++      (let* ((content (tts--dispatch-copy-data (cdr registration)))
++             (generation (or (omnivox--unchanged-native-registry-generation
++                              (car registration) content)
++                             omnivox--logical-registry-generation)))
+         (omnivox--send-control-request
+          (car registration) (omnivox--registration-request generation content)
+          (lambda (process response)
+diff --git a/test/omnivox-discovery-refresh-tests.el b/test/omnivox-discovery-refresh-tests.el
+index 48982c5be..d7a821d79 100644
+--- a/test/omnivox-discovery-refresh-tests.el
++++ b/test/omnivox-discovery-refresh-tests.el
+@@ -143,5 +143,70 @@
+       (should-not (omnivox--discovery-pending-p omnivox-engine-inventory))
+       (should-not (process-get main 'omnivox--discovery-timer)))))
+ 
++(ert-deftest omnivox-discovery-refresh-keeps-speech-generation-until-availability-reply ()
++  "Discovery must not invalidate speech while its registry reply is in transit."
++  (omnivox-native-runtime-test--with-speech
++    (let* ((before (omnivox--choice-current-registration speaker))
++           (peer (omnivox--choice-current-registration notification))
++           (tts-voice-inventory-changed-hook nil)
++           ;; A different lane or a previous two-lane apply changed the global
++           ;; signature; the main lane's acknowledged definitions still match.
++           (omnivox--logical-registry-signature nil)
++           requests)
++      (process-put speaker omnivox--control-inventory-property
++                   (omnivox-discovery-test--inventory 'pending))
++      (cl-letf (((symbol-function 'omnivox--set-process-routing-policy) #'ignore)
++                ((symbol-function 'process-send-string)
++                 (lambda (process text)
++                   (push (cons process (omnivox--decode-control-response
++                                        (substring text (length "omnivox_control {") -2) t)) requests))))
++        (omnivox--handle-discovery-response speaker (omnivox-discovery-test--inventory 'ready)))
++      (should (= 1 (length requests)))
++      (let ((request (cdar requests)))
++        (should (eq speaker (caar requests)))
++        (should (eq before (omnivox--choice-current-registration speaker)))
++        (tts-speak (propertize "Speaking before discovery acknowledgement." 'personality 'bolden))
++        (should (= (plist-get (omnivox-choice-consumer-test--timeline (car writes)) :registry_generation)
++                   (plist-get request :registry_generation)))
++        (let ((reply (omnivox-native-runtime-test--ack request)))
++          (setf (plist-get reply :inventory_generation) 13)
++          (omnivox-preview-test--control-line speaker reply))
++        (let ((after (omnivox--choice-current-registration speaker)))
++          (should (= 13 (plist-get (plist-get after :response) :inventory_generation)))
++          (should (= (plist-get before :registry-generation) (plist-get after :registry-generation)))))
++      (should (eq peer (omnivox--choice-current-registration notification))))))
++
++(ert-deftest omnivox-discovery-refresh-does-not-reuse-an-unconfirmed-older-generation ()
++  "An unanswered newer registration can already be installed on the server."
++  (dolist (expire '(nil t))
++    (omnivox-native-runtime-test--with-speech
++      (let ((omnivox--logical-registry-signature nil) requests)
++        (cl-letf (((symbol-function 'process-send-string)
++                   (lambda (process text)
++                     (push (cons process (omnivox--decode-control-response
++                                          (substring text (length "omnivox_control {") -2) t)) requests))))
++          ;; A real explicit apply takes a new generation. Delay its replies.
++          (omnivox-apply-voice-configuration #'ignore)
++          (let* ((request (cdr (assq speaker requests)))
++                 (generation (plist-get request :registry_generation))
++                 (id (plist-get request :request_id)))
++            ;; A delayed older apply may submit after the newer one. It must
++            ;; not erase the record that the newer generation was sent.
++            (let ((old (omnivox--choice-current-registration speaker)))
++              (omnivox--send-control-request
++               speaker (omnivox--registration-request
++                        (plist-get old :registry-generation) (plist-get old :content))
++               #'ignore))
++            (when expire
++              (omnivox--control-request-expired
++               speaker id (gethash id (omnivox--pending-requests speaker))))
++            (omnivox--register-logical-voices (list speaker))
++            (should (> (plist-get (cdar requests) :registry_generation) generation))
++            ;; Settle the newest result first; late older replies cannot roll it back.
++            (dolist (write requests)
++              (omnivox-preview-test--control-line
++               (car write) (omnivox-native-runtime-test--ack (cdr write))))))
++        (should (zerop (hash-table-count (omnivox--pending-requests speaker))))))))
++
+ (provide 'omnivox-discovery-refresh-tests)
+ ;;; omnivox-discovery-refresh-tests.el ends here
+diff --git a/test/run-native-windows-reload.el b/test/run-native-windows-reload.el
+index 8771d3c92..deb717ef8 100644
+--- a/test/run-native-windows-reload.el
++++ b/test/run-native-windows-reload.el
+@@ -112,6 +112,30 @@
+                 (error "Missing native Windows owner/guard"))
+               (native-reload--speech process expected))
+             (native-reload--record "two guarded lanes" :engine expected)
++            (let* ((main tts-speaker-process)
++                   (before (omnivox--choice-current-registration main))
++                   (omnivox--logical-registry-signature nil)
++                   replies
++                   (hold (lambda (original process response)
++                           (if (and (eq process main)
++                                    (equal (plist-get response :type) "logical_voices_registered_v3"))
++                               (push response replies)
++                             (funcall original process response)))))
++              ;; The server installs before acknowledging. Delay only this
++              ;; test client's registry observation, while real speech continues.
++              (advice-add 'omnivox--dispatch-control-response :around hold)
++              (unwind-protect
++                  (progn
++                    (omnivox--register-logical-voices (list main))
++                    (native-reload--wait (lambda () replies) "delayed registry acknowledgement")
++                    (native-reload--speech main expected)
++                    (unless (= (plist-get before :registry-generation)
++                               (plist-get (car replies) :registry_generation))
++                      (error "Discovery changed unchanged registry identity")))
++                (advice-remove 'omnivox--dispatch-control-response hold)
++                (dolist (reply (nreverse replies))
++                  (omnivox--dispatch-control-response main reply)))
++              (native-reload--record "speech during delayed registry acknowledgement"))
+             (unless (stringp (plist-get (omnivox-punctuation--request '(:command "punctuation-review")) :path))
+               (error "Native settings service did not return its selected configuration"))
+             (let* ((main tts-speaker-process) (notify tts-notify-process)

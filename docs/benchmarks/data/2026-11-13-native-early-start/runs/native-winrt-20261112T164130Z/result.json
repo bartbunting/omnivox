@@ -1,0 +1,1 @@
+{"result":"failed","error":"Speech failed: failed nil, expected winrt; events: nil","emacs":"31.1","engine":"winrt","client":"c:/Users/bart/AppData/Local/Emacsvox/NativeLightweight/native-early-20261113/client/lisp/speech/omnivox-library-runtime.elc","observations":[{"step":"two guarded lanes","engine":"winrt"}]}

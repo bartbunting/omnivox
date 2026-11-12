@@ -1,0 +1,20 @@
+[
+  {
+    "file": "early-init.el",
+    "wsl_sha256": "88dbdf15c4f9731a08dc742c6265d2731f9b7d9900a345405e91b791b3ba7025",
+    "windows_sha256": "88dbdf15c4f9731a08dc742c6265d2731f9b7d9900a345405e91b791b3ba7025",
+    "identical": true
+  },
+  {
+    "file": "init.el",
+    "wsl_sha256": "812b9d9a9f3fbf01cf41ee7354ee41a93002eaa37ba70e4ef2b1b67dd83acbf4",
+    "windows_sha256": "812b9d9a9f3fbf01cf41ee7354ee41a93002eaa37ba70e4ef2b1b67dd83acbf4",
+    "identical": true
+  },
+  {
+    "file": "emacsvox-config.org",
+    "wsl_sha256": "e7f518c72dee1187b7c4b902a6cbabc79a5208291b0b8be2c128f9a43567cadb",
+    "windows_sha256": "e7f518c72dee1187b7c4b902a6cbabc79a5208291b0b8be2c128f9a43567cadb",
+    "identical": true
+  }
+]

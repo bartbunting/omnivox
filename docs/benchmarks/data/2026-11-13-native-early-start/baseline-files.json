@@ -1,0 +1,14 @@
+[
+  {
+    "path": "client/lisp/speech/omnivox-voices.el",
+    "sha256": "378a50100de5a9922b04447ec78e385adf1e50aaa8b1914e69a9004d6456908e"
+  },
+  {
+    "path": "client/lisp/speech/omnivox-voices.elc",
+    "sha256": "98779e75de033fe14251c0284e13f2d725c3e810c4ce5bd1daef862e99389445"
+  },
+  {
+    "path": "runtime/omnivox.exe",
+    "sha256": "529499252023e106b0329e670b13f85fb9cb3a6b729acddabe394b92208dee28"
+  }
+]

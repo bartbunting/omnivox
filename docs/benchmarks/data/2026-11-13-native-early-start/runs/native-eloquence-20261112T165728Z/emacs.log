@@ -1,0 +1,22 @@
+PASS two guarded lanes
+PASS speech during delayed registry acknowledgement
+PASS in-place policy installation
+PASS malformed settings and retained recovery
+PASS same-guard control reconnection
+PASS owner loss and guarded emergency recovery
+PASS return to saved startup
+PASS foreground reload with absent notifications
+Loading c:/Users/bart/AppData/Local/Emacsvox/NativeLightweight/native-early-20261113/client/lisp/emacsvox-setup.el (source)...
+Loading voice-defs...
+
+Loading voice-defs...
+
+Emacsvox speech server Speaker exited: killed
+Loading voice-defs...
+
+Loading voice-defs...
+
+Emacsvox speech server Notify<1> exited: exited abnormally with code 1
+
+Emacsvox speech server Speaker exited: exited abnormally with code 1
+Omnivox control error on Speaker, request 71: Omnivox speech connection closed

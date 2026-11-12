@@ -1,0 +1,58 @@
+Running 1 tests (2026-11-13 03:55:33+1100, selector ‘"omnivox-discovery-refresh-does-not-reuse"’)
+Omnivox control error on choice-main, request 5: Omnivox speech connection closed
+Omnivox control error on choice-main, request 7: Omnivox speech connection closed
+Omnivox control error on choice-main, request 8: Omnivox speech connection closed
+Omnivox control error on choice-notify, request 6: Omnivox speech connection closed
+Test omnivox-discovery-refresh-does-not-reuse-an-unconfirmed-older-generation backtrace:
+  ert-fail(((should (> (plist-get (cdar requests) :registry_generation
+  (if (unwind-protect (setq value-14192 (apply fn-14190 args-14191)) (
+  (let (form-description-14194) (if (unwind-protect (setq value-14192 
+  (let ((value-14192 'ert-form-evaluation-aborted-14193)) (let (form-d
+  (let* ((fn-14190 #'>) (args-14191 (condition-case err (list (plist-g
+  (let* ((request (cdr (assq speaker requests))) (generation (plist-ge
+  (progn (fset 'process-send-string vnew) (omnivox-apply-voice-configu
+  (unwind-protect (progn (fset 'process-send-string vnew) (omnivox-app
+  (let* ((vnew #'(lambda (process text) (setq requests (cons (cons pro
+  (let ((omnivox--logical-registry-signature nil) requests) (let* ((vn
+  (let ((emacsvox-aural-voice-palette-registry (emacsvox-test--voice-d
+  (progn (fset 'tts-get-voice-command vnew) (fset 'voice-from-acss vne
+  (unwind-protect (progn (fset 'tts-get-voice-command vnew) (fset 'voi
+  (let* ((vnew #'(lambda (process command) (setq writes (cons (cons pr
+  (let ((tts-program "omnivox") (tts-quiet nil) (tts-stop-immediately 
+  (progn (let ((tail (list speaker notification))) (while tail (let ((
+  (unwind-protect (progn (let ((tail (list speaker notification))) (wh
+  (let ((tts--tracked-dispatch-sequence 0) (tts--tracked-dispatches (m
+  (progn (fset 'omnivox--logical-voice-ids vnew) (fset 'process-send-s
+  (unwind-protect (progn (fset 'omnivox--logical-voice-ids vnew) (fset
+  (let* ((vnew #'(lambda (process command) (setq requests (cons (cons 
+  (unwind-protect (let* ((vnew #'(lambda (process command) (setq reque
+  (let* ((speaker (make-pipe-process :name "choice-main" :noquery t)) 
+  (let ((emacsvox-aural-voice-palette-registry (emacsvox-test--voice-d
+  (let* ((emacsvox-aural-scheme-registry (make-hash-table :test #'eq))
+  (let ((expire (car tail))) (let* ((emacsvox-aural-scheme-registry (m
+  (while tail (let ((expire (car tail))) (let* ((emacsvox-aural-scheme
+  (let ((tail '(nil t))) (while tail (let ((expire (car tail))) (let* 
+  #f(lambda () [t] (let ((tail '...)) (while tail (let (...) (let* ...
+  #f(compiled-function () #<bytecode 0x1952225e26fcb74c>)()
+  handler-bind-1(#f(compiled-function () #<bytecode 0x1952225e26fcb74c
+  ert--run-test-internal(#s(ert--test-execution-info :test ... :result
+  ert-run-test(#s(ert-test :name omnivox-discovery-refresh-does-not-re
+  ert-run-or-rerun-test(#s(ert--stats :selector "omnivox-discovery-ref
+  ert-run-tests("omnivox-discovery-refresh-does-not-reuse" #f(compiled
+  ert-run-tests-batch("omnivox-discovery-refresh-does-not-reuse")
+  ert-run-tests-batch-and-exit("omnivox-discovery-refresh-does-not-reu
+  eval((ert-run-tests-batch-and-exit "omnivox-discovery-refresh-does-n
+  command-line-1(("--eval" "(setq load-prefer-newer t)" "-L" "lisp" "-
+  command-line()
+  normal-top-level()
+Test omnivox-discovery-refresh-does-not-reuse-an-unconfirmed-older-generation condition:
+    (ert-test-failed
+     ((should (> (plist-get ... :registry_generation) generation)) :form
+      (> 2 3) :value nil))
+   FAILED  1/1  omnivox-discovery-refresh-does-not-reuse-an-unconfirmed-older-generation (0.034406 sec) at test/omnivox-discovery-refresh-tests.el:179
+
+Ran 1 tests, 0 results as expected, 1 unexpected (2026-11-13 03:55:33+1100, 0.243451 sec)
+
+1 unexpected results:
+   FAILED  omnivox-discovery-refresh-does-not-reuse-an-unconfirmed-older-generation
+

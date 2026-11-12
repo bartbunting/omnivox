@@ -85,9 +85,11 @@ optional discovery replaced the voice registry. The
 [captured diagnostics](data/2026-11-13-native-windows-client-reload/runs/native-winrt-20261112T161736Z/diagnostics.txt)
 report `timeline registry generation is not current` after a restart and reload.
 The existing native shortcut already disabled early speech; the accepted runs
-and deployment preserve that eager-startup setting. The separate discovery
-admission race remains unresolved and must be fixed before enabling that opt-in
-in this native profile. No claim is made that all other platforms are unaffected.
+and deployment preserved that eager-startup setting. The separate discovery
+admission race remained unresolved at this checkpoint. The
+[subsequent correction](2026-11-13-native-early-start.md) records its resolution
+before enabling the opt-in in the native profile. No claim is made that all other
+platforms were unaffected.
 
 One [intermediate test](data/2026-11-13-native-windows-client-reload/runs/native-winrt-20261112T161432Z/result.json)
 also assumed callback completion order matched lane order. The fixture now
@@ -121,7 +123,9 @@ host-preference changes use reload. Existing running sessions are not changed.
 The [runner](data/2026-11-13-native-windows-client-reload/run-native.ps1)
 accepts `-Engine winrt`, `flite`, `eloquence` or `dectalk`. It requires the staged
 client/runtime and local native installation metadata. `-EarlySpeech` reproduces
-the separate experimental mode, which is not the deployed default.
+the separate experimental mode, which was not the default at this checkpoint.
+The subsequent [early-start correction](2026-11-13-native-early-start.md)
+records the generation fix and the native launcher's Eloquence default.
 The [personal launcher](data/2026-11-13-native-windows-client-reload/evox-windows.ps1)
 supports `-Check` for a disposable graphical process using the personal profile.
 The [provenance](data/2026-11-13-native-windows-client-reload/provenance.json)

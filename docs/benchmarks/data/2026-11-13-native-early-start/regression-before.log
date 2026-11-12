@@ -1,0 +1,51 @@
+Running 1 tests (2026-11-13 03:39:14+1100, selector ‘"omnivox-discovery-refresh-keeps-speech"’)
+Omnivox control error on choice-main, request 5: Omnivox speech connection closed
+Test omnivox-discovery-refresh-keeps-speech-generation-until-availability-reply backtrace:
+  ert-fail(((should (= (plist-get (omnivox-choice-consumer-test--timel
+  (if (unwind-protect (setq value-14172 (apply fn-14170 args-14171)) (
+  (let (form-description-14174) (if (unwind-protect (setq value-14172 
+  (let ((value-14172 'ert-form-evaluation-aborted-14173)) (let (form-d
+  (let* ((fn-14170 #'=) (args-14171 (condition-case err (list (plist-g
+  (let ((request (cdr (car requests)))) (let* ((fn-14160 #'eq) (args-1
+  (let* ((before (omnivox--choice-current-registration speaker)) (peer
+  (let ((emacsvox-aural-voice-palette-registry (emacsvox-test--voice-d
+  (progn (fset 'tts-get-voice-command vnew) (fset 'voice-from-acss vne
+  (unwind-protect (progn (fset 'tts-get-voice-command vnew) (fset 'voi
+  (let* ((vnew #'(lambda (process command) (setq writes (cons (cons pr
+  (let ((tts-program "omnivox") (tts-quiet nil) (tts-stop-immediately 
+  (progn (let ((tail (list speaker notification))) (while tail (let ((
+  (unwind-protect (progn (let ((tail (list speaker notification))) (wh
+  (let ((tts--tracked-dispatch-sequence 0) (tts--tracked-dispatches (m
+  (progn (fset 'omnivox--logical-voice-ids vnew) (fset 'process-send-s
+  (unwind-protect (progn (fset 'omnivox--logical-voice-ids vnew) (fset
+  (let* ((vnew #'(lambda (process command) (setq requests (cons (cons 
+  (unwind-protect (let* ((vnew #'(lambda (process command) (setq reque
+  (let* ((speaker (make-pipe-process :name "choice-main" :noquery t)) 
+  (let ((emacsvox-aural-voice-palette-registry (emacsvox-test--voice-d
+  (let* ((emacsvox-aural-scheme-registry (make-hash-table :test #'eq))
+  #f(lambda () [t] (let* ((emacsvox-aural-scheme-registry (make-hash-t
+  #f(compiled-function () #<bytecode -0x86b7122103cdd91>)()
+  handler-bind-1(#f(compiled-function () #<bytecode -0x86b7122103cdd91
+  ert--run-test-internal(#s(ert--test-execution-info :test ... :result
+  ert-run-test(#s(ert-test :name omnivox-discovery-refresh-keeps-speec
+  ert-run-or-rerun-test(#s(ert--stats :selector "omnivox-discovery-ref
+  ert-run-tests("omnivox-discovery-refresh-keeps-speech" #f(compiled-f
+  ert-run-tests-batch("omnivox-discovery-refresh-keeps-speech")
+  ert-run-tests-batch-and-exit("omnivox-discovery-refresh-keeps-speech
+  eval((ert-run-tests-batch-and-exit "omnivox-discovery-refresh-keeps-
+  command-line-1(("--eval" "(setq load-prefer-newer t)" "-L" "lisp" "-
+  command-line()
+  normal-top-level()
+Test omnivox-discovery-refresh-keeps-speech-generation-until-availability-reply condition:
+    (ert-test-failed
+     ((should
+       (= (plist-get ... :registry_generation)
+	  (plist-get request :registry_generation)))
+      :form (= 2 3) :value nil))
+   FAILED  1/1  omnivox-discovery-refresh-keeps-speech-generation-until-availability-reply (0.027302 sec) at test/omnivox-discovery-refresh-tests.el:146
+
+Ran 1 tests, 0 results as expected, 1 unexpected (2026-11-13 03:39:14+1100, 0.171318 sec)
+
+1 unexpected results:
+   FAILED  omnivox-discovery-refresh-keeps-speech-generation-until-availability-reply
+

@@ -286,9 +286,14 @@ The [native Windows client follow-up](../benchmarks/2026-11-13-native-windows-cl
 separates local ownership negotiation from the POSIX engine-file provider. Native
 Emacs now exercises independent preference reload and guarded recovery using the
 same qualified Windows runtime. Compiled WinRT/Flite/Eloquence/DECtalk lifecycle checks and the
-full graphical personal profile pass. The native shortcut retains eager startup:
-an additional early-discovery run exposed a registry-generation admission race,
-which remains a separate correction before enabling that opt-in there.
+full graphical personal profile pass. An additional early-discovery run exposed
+a registry-generation admission race. The
+[early-start follow-up](../benchmarks/2026-11-13-native-early-start.md) corrects
+unnecessary generation changes while preserving newer unconfirmed writes.
+Final native WinRT/Flite/Eloquence/DECtalk checks, the full Windows profile and
+WSL Eloquence/DECtalk checks pass with early startup. The native launcher now
+defaults to Eloquence, matching Development; shared startup files were already
+identical. Acoustic timing and new early-start listening acceptance remain separate.
 
 Next slices:
 

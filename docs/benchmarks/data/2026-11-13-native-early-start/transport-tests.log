@@ -1,0 +1,145 @@
+Running 53 tests (2026-11-13 03:57:07+1100, selector ‘"\\(control-lifetime-\\|tts-queue-\\)"’)
+Omnivox control error on control-main, request 65: Omnivox speech connection closed
+Omnivox control error on control-main, request 2: Omnivox speech connection closed
+Omnivox control error on control-main, request 3: Omnivox speech connection closed
+Omnivox control error on control-main, request 4: Omnivox speech connection closed
+Omnivox control error on control-main, request 5: Omnivox speech connection closed
+Omnivox control error on control-main, request 6: Omnivox speech connection closed
+Omnivox control error on control-main, request 7: Omnivox speech connection closed
+Omnivox control error on control-main, request 8: Omnivox speech connection closed
+Omnivox control error on control-main, request 9: Omnivox speech connection closed
+Omnivox control error on control-main, request 10: Omnivox speech connection closed
+Omnivox control error on control-main, request 11: Omnivox speech connection closed
+Omnivox control error on control-main, request 12: Omnivox speech connection closed
+Omnivox control error on control-main, request 13: Omnivox speech connection closed
+Omnivox control error on control-main, request 14: Omnivox speech connection closed
+Omnivox control error on control-main, request 15: Omnivox speech connection closed
+Omnivox control error on control-main, request 16: Omnivox speech connection closed
+Omnivox control error on control-main, request 17: Omnivox speech connection closed
+Omnivox control error on control-main, request 18: Omnivox speech connection closed
+Omnivox control error on control-main, request 19: Omnivox speech connection closed
+Omnivox control error on control-main, request 20: Omnivox speech connection closed
+Omnivox control error on control-main, request 21: Omnivox speech connection closed
+Omnivox control error on control-main, request 22: Omnivox speech connection closed
+Omnivox control error on control-main, request 23: Omnivox speech connection closed
+Omnivox control error on control-main, request 24: Omnivox speech connection closed
+Omnivox control error on control-main, request 25: Omnivox speech connection closed
+Omnivox control error on control-main, request 26: Omnivox speech connection closed
+Omnivox control error on control-main, request 27: Omnivox speech connection closed
+Omnivox control error on control-main, request 28: Omnivox speech connection closed
+Omnivox control error on control-main, request 29: Omnivox speech connection closed
+Omnivox control error on control-main, request 30: Omnivox speech connection closed
+Omnivox control error on control-main, request 31: Omnivox speech connection closed
+Omnivox control error on control-main, request 32: Omnivox speech connection closed
+Omnivox control error on control-main, request 33: Omnivox speech connection closed
+Omnivox control error on control-main, request 34: Omnivox speech connection closed
+Omnivox control error on control-main, request 35: Omnivox speech connection closed
+Omnivox control error on control-main, request 36: Omnivox speech connection closed
+Omnivox control error on control-main, request 37: Omnivox speech connection closed
+Omnivox control error on control-main, request 38: Omnivox speech connection closed
+Omnivox control error on control-main, request 39: Omnivox speech connection closed
+Omnivox control error on control-main, request 40: Omnivox speech connection closed
+Omnivox control error on control-main, request 41: Omnivox speech connection closed
+Omnivox control error on control-main, request 42: Omnivox speech connection closed
+Omnivox control error on control-main, request 43: Omnivox speech connection closed
+Omnivox control error on control-main, request 44: Omnivox speech connection closed
+Omnivox control error on control-main, request 45: Omnivox speech connection closed
+Omnivox control error on control-main, request 46: Omnivox speech connection closed
+Omnivox control error on control-main, request 47: Omnivox speech connection closed
+Omnivox control error on control-main, request 48: Omnivox speech connection closed
+Omnivox control error on control-main, request 49: Omnivox speech connection closed
+Omnivox control error on control-main, request 50: Omnivox speech connection closed
+Omnivox control error on control-main, request 51: Omnivox speech connection closed
+Omnivox control error on control-main, request 52: Omnivox speech connection closed
+Omnivox control error on control-main, request 53: Omnivox speech connection closed
+Omnivox control error on control-main, request 54: Omnivox speech connection closed
+Omnivox control error on control-main, request 55: Omnivox speech connection closed
+Omnivox control error on control-main, request 56: Omnivox speech connection closed
+Omnivox control error on control-main, request 57: Omnivox speech connection closed
+Omnivox control error on control-main, request 58: Omnivox speech connection closed
+Omnivox control error on control-main, request 59: Omnivox speech connection closed
+Omnivox control error on control-main, request 60: Omnivox speech connection closed
+Omnivox control error on control-main, request 61: Omnivox speech connection closed
+Omnivox control error on control-main, request 62: Omnivox speech connection closed
+Omnivox control error on control-main, request 63: Omnivox speech connection closed
+Omnivox control error on control-main, request 64: Omnivox speech connection closed
+   passed   1/53  emacsvox-tts-control-lifetime-bounds-admission (0.001562 sec)
+Omnivox control error on control-notify, request 2: Omnivox inventory request timed out
+Omnivox control error on control-main, request 1: Omnivox inventory request timed out
+Omnivox control error on control-main, request 3: Omnivox speech connection closed
+Omnivox control error on control-notify, request 4: Omnivox speech connection closed
+   passed   2/53  emacsvox-tts-control-lifetime-coalesces-background-inventory (0.000562 sec)
+Omnivox control error on control-main, request 1: Omnivox inventory request timed out
+   passed   3/53  emacsvox-tts-control-lifetime-deadline-before-write (0.000185 sec)
+Omnivox control error on control-main, request 1: Omnivox capabilities request timed out
+   passed   4/53  emacsvox-tts-control-lifetime-late-capabilities-do-not-revive-startup (0.000177 sec)
+   passed   5/53  emacsvox-tts-control-lifetime-library-keeps-its-own-wait (0.000230 sec)
+Omnivox control error on control-main, request 1: Omnivox speech connection closed
+   passed   6/53  emacsvox-tts-control-lifetime-navigation-stop-keeps-requests (0.000265 sec)
+Omnivox control error on control-main, request 1: Omnivox speech connection closed
+   passed   7/53  emacsvox-tts-control-lifetime-original-sentinel-error-cleans-up (0.000214 sec)
+Omnivox control error on control-main, request 1: Omnivox speech connection closed
+Omnivox control error on control-notify, request 2: Omnivox speech connection closed
+   passed   8/53  emacsvox-tts-control-lifetime-process-exit-is-independent (0.000250 sec)
+Omnivox control error on control-real-deadline, request 1: Omnivox inventory request timed out
+   passed   9/53  emacsvox-tts-control-lifetime-real-timer (0.012655 sec)
+Omnivox control error on control-main, request 1: Omnivox inventory request timed out
+Omnivox control error on control-main, request 2: Omnivox speech connection closed
+   passed  10/53  emacsvox-tts-control-lifetime-reentrant-retry-owns-new-deadline (0.000334 sec)
+   passed  11/53  emacsvox-tts-control-lifetime-response-wins-deadline (0.000194 sec)
+Omnivox control error on control-main, request 1: Omnivox speech connection closed
+Omnivox control callback 1 on control-main failed: observer failed
+Omnivox control error on control-main, request 2: Omnivox speech connection closed
+   passed  12/53  emacsvox-tts-control-lifetime-retirement-survives-callback-errors (0.000290 sec)
+   passed  13/53  emacsvox-tts-control-lifetime-send-failure-releases-reservation (0.000188 sec)
+Omnivox control error on control-main, request 1: Omnivox inventory request timed out
+   passed  14/53  emacsvox-tts-control-lifetime-silent-worker-times-out-once (0.000186 sec)
+   passed  15/53  emacsvox-tts-control-lifetime-synchronous-startup-reply (0.000267 sec)
+   passed  16/53  tts-queue-adjacent-ordinary-keeps-one-timeline (0.029223 sec)
+   passed  17/53  tts-queue-bare-concrete-fallback-does-not-invent-dispatch (0.012155 sec)
+   passed  18/53  tts-queue-binding-faults-and-bounds-release-reservations (0.000850 sec)
+   passed  19/53  tts-queue-capture-bound-failure-does-not-fall-back-or-write (0.014454 sec)
+   passed  20/53  tts-queue-caught-capacity-error-still-cancels-the-capture (0.011742 sec)
+   passed  21/53  tts-queue-deferred-binding-is-one-shot-and-charges-only-the-delta (0.000381 sec)
+   passed  22/53  tts-queue-distinct-callbacks-keep-dispatches-and-immediate-delivery (0.018541 sec)
+   passed  23/53  tts-queue-explicit-callback-owner-reused-by-concrete-timeline (0.024512 sec)
+   passed  24/53  tts-queue-fixture-preserves-flushes-tails-and-state (0.389919 sec)
+   passed  25/53  tts-queue-frame-validator-checks-grammar-and-bounds (0.000338 sec)
+Emacsvox discarded speech delivery to choice-main: Cannot compile or queue an Emacsvox aural presentation: "Legacy replacement requires one complete supported frame ending in one plain dispatch"
+Emacsvox discarded speech delivery to choice-main: Cannot compile or queue an Emacsvox aural presentation: "Legacy replacement requires one complete supported frame ending in one plain dispatch"
+Emacsvox discarded speech delivery to choice-main: Cannot compile or queue an Emacsvox aural presentation: "Legacy replacement requires one complete supported frame ending in one plain dispatch"
+Emacsvox discarded speech delivery to choice-main: Cannot compile or queue an Emacsvox aural presentation: "Legacy replacement requires one complete supported frame ending in one plain dispatch"
+Emacsvox discarded speech delivery to choice-main: Cannot compile or queue an Emacsvox aural presentation: "Legacy replacement requires one complete supported frame ending in one plain dispatch"
+   passed  26/53  tts-queue-invalid-frame-fails-before-stop-and-effects (0.074165 sec)
+   passed  27/53  tts-queue-late-capture-during-finalization-aborts-without-dropping-speech (0.022731 sec)
+   passed  28/53  tts-queue-named-closing-callback-reuses-owner-on-both-lanes (0.026906 sec)
+Emacsvox discarded speech delivery to choice-main: Speech command changed before delivery admission
+   passed  29/53  tts-queue-named-command-mutation-fails-before-policy-stop (0.025812 sec)
+   passed  30/53  tts-queue-named-diagnostic-is-bounded-and-published-only-after-send (0.012854 sec)
+   passed  31/53  tts-queue-named-fixture-promotes-only-complete-empty-captures (0.210704 sec)
+   passed  32/53  tts-queue-named-future-stop-cannot-justify-promotion (0.048284 sec)
+   passed  33/53  tts-queue-named-intervening-output-aborts-without-legacy-replay (0.034441 sec)
+   passed  34/53  tts-queue-named-limits-preserve-original-helper-behavior (0.067144 sec)
+Emacsvox discarded speech delivery to choice-main: Speech input changed during preparation
+   passed  35/53  tts-queue-named-overlap-at-primitive-is-ambiguous-without-replay (0.020232 sec)
+   passed  36/53  tts-queue-named-own-stop-hooks-recheck-prepared-projection (0.111622 sec)
+   passed  37/53  tts-queue-named-registration-mismatch-fails-before-stop (0.041972 sec)
+   passed  38/53  tts-queue-nested-callback-id-survives-structured-and-legacy-selection (0.058181 sec)
+   passed  39/53  tts-queue-observed-producers-and-packets-preserve-queue-knowledge (0.013338 sec)
+   passed  40/53  tts-queue-own-stop-guard-advances-before-independent-hooks (0.073145 sec)
+   passed  41/53  tts-queue-presented-hook-speech-uses-an-independent-capture (0.058195 sec)
+   passed  42/53  tts-queue-state-advised-creation-remains-unproven (0.590465 sec)
+   passed  43/53  tts-queue-state-alias-region-eof-and-other-process (0.000327 sec)
+   passed  44/53  tts-queue-state-bookkeeping-failure-and-malformed-state-stay-unknown (0.000185 sec)
+   passed  45/53  tts-queue-state-command-mutation-and-observer-coverage (0.000257 sec)
+   passed  46/53  tts-queue-state-creation-auth-and-generation-handoff (0.219907 sec)
+   passed  47/53  tts-queue-state-encoding-bounds-and-rollover (0.020728 sec)
+   passed  48/53  tts-queue-state-guarded-write-rejects-overlap-and-argument-rewriting (0.000329 sec)
+   passed  49/53  tts-queue-state-guards-require-exact-own-stop-and-registry (0.000242 sec)
+   passed  50/53  tts-queue-state-independent-framing-fixture (0.140395 sec)
+   passed  51/53  tts-queue-state-neutral-overlap-and-nonlocal-outcomes (0.001151 sec)
+   passed  52/53  tts-queue-state-queue-effects-at-known-boundary (0.001463 sec)
+   passed  53/53  tts-queue-untyped-sync-and-changing-capitalization-stay-legacy (0.029489 sec)
+
+Ran 53 tests, 53 results as expected, 0 unexpected (2026-11-13 03:57:09+1100, 2.427531 sec)
+

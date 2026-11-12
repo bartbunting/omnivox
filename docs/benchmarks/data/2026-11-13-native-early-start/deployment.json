@@ -1,0 +1,55 @@
+{
+    "deployed_utc":  "2026-11-12T17:02:50.4338411Z",
+    "shortcut":  "C:\\Users\\bart\\OneDrive - Ursys Pty Ltd\\Desktop\\Emacsvox Windows.lnk",
+    "target":  "C:\\Users\\bart\\AppData\\Local\\Emacsvox\\NativeLightweight\\native-early-20261113\\evox-windows-launcher.exe",
+    "working_directory":  "C:\\Users\\bart\\AppData\\Local\\Emacsvox\\NativeLightweight\\native-early-20261113",
+    "backup":  "C:\\Users\\bart\\AppData\\Local\\Emacsvox\\NativeLightweight\\native-early-20261113\\backups\\Emacsvox Windows.before-20261112T170250Z.lnk",
+    "previous":  {
+                     "icon":  "C:\\Users\\bart\\AppData\\Local\\Emacsvox\\Windows Install Test\\installation\\Emacs\\31.1-ucrt64\\bin\\emacs.exe,0",
+                     "description":  "Native Windows Emacsvox development build with preference reload and guarded recovery",
+                     "arguments":  "",
+                     "target":  "C:\\Users\\bart\\AppData\\Local\\Emacsvox\\NativeLightweight\\native-reload-20261113\\evox-windows-launcher.exe",
+                     "working_directory":  "C:\\Users\\bart\\AppData\\Local\\Emacsvox\\NativeLightweight\\native-reload-20261113"
+                 },
+    "source":  {
+                   "source_commit":  "0acf2deae811a920b49db325eaaa3f9b31a7e8ce",
+                   "baseline_commit":  "a366a7fe9fd1ba2cb6bb29dec8a9bff9a4b458a8",
+                   "client_patch_sha256":  "4dbf8c657711ddecc27d0fd7369edea6354f76cd7a21a49405fdbb647b63b4a7",
+                   "runtime_build":  "4e1c1561f51908a6",
+                   "runtime_sha256":  "529499252023e106b0329e670b13f85fb9cb3a6b729acddabe394b92208dee28",
+                   "native_emacs":  "31.1",
+                   "data_files_verified":  812,
+                   "early_speech":  true,
+                   "default_engine":  "eloquence",
+                   "workstation_default_commit":  "80cd555128285473c0cde077ca398af3246df470",
+                   "final_native_engines":  [
+                                                "winrt",
+                                                "flite",
+                                                "eloquence",
+                                                "dectalk"
+                                            ],
+                   "native_personal_engines":  [
+                                                   "eloquence",
+                                                   "dectalk",
+                                                   "winrt"
+                                               ],
+                   "wsl_engines":  [
+                                       "eloquence",
+                                       "dectalk"
+                                   ],
+                   "focused_tests":  {
+                                         "expected":  709,
+                                         "skipped":  9,
+                                         "unexpected":  0
+                                     },
+                   "targeted_control_queue_tests":  53,
+                   "phase_notes":  "First seven candidate native runs preceded the highest-generation correction; four runs from 16:57 UTC qualify the final code. Profile harness waits for actual saved definitions; delayed-ack fixture does not wait before speaking."
+               },
+    "launcher_sha256":  "09729ccc8bc076404e09c6b5a88c1f009c3a9ce8aaf1dc44a9ecb56539ab0a43",
+    "startup_sha256":  "4833f344be93ca3079835a953eb6f535ae814b318394b853da974f711cc98a30",
+    "early_speech":  true,
+    "default_engine":  "eloquence",
+    "runtime_processes_after_tests":  0,
+    "personal_settings":  "Preserved existing 0c72147cc engine-config and voices",
+    "running_sessions":  "Unchanged; fresh shortcut launch loads new client"
+}
