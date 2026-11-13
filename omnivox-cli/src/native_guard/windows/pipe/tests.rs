@@ -311,25 +311,41 @@ fn native_acl_is_private_handles_do_not_inherit_and_restricted_user_is_denied() 
         0
     );
     let _descriptor = security::Local(descriptor);
-    let mut text = null_mut();
-    let mut length = 0;
+    fn descriptor_text(descriptor: *const c_void) -> String {
+        let mut text = null_mut();
+        let mut length = 0;
+        check(unsafe {
+            ConvertSecurityDescriptorToStringSecurityDescriptorW(
+                descriptor,
+                1,
+                5,
+                &mut text,
+                &mut length,
+            )
+        })
+        .unwrap();
+        let _text = security::Local(text.cast());
+        String::from_utf16(unsafe { std::slice::from_raw_parts(text, length as usize - 1) })
+            .unwrap()
+    }
+    let sid = security::user_sid().unwrap();
+    // Windows expands generic-all to file-all (FA), and may abbreviate a
+    // well-known account SID (for example the CI administrator) as LA. Render
+    // the independently expected owner and protected DACL through the same
+    // native conversion before comparing, without accepting other trustees.
+    let expected_sddl = wide(&format!("O:{sid}D:P(A;;FA;;;{sid})"));
+    let mut expected = null_mut();
     check(unsafe {
-        ConvertSecurityDescriptorToStringSecurityDescriptorW(
-            descriptor,
+        ConvertStringSecurityDescriptorToSecurityDescriptorW(
+            expected_sddl.as_ptr(),
             1,
-            5,
-            &mut text,
-            &mut length,
+            &mut expected,
+            null_mut(),
         )
     })
     .unwrap();
-    let _text = security::Local(text.cast());
-    let actual =
-        String::from_utf16(unsafe { std::slice::from_raw_parts(text, length as usize - 1) })
-            .unwrap();
-    let sid = security::user_sid().unwrap();
-    // Windows expands generic-all into the file-all mask (FA) in returned SDDL.
-    assert_eq!(actual, format!("O:{sid}D:P(A;;FA;;;{sid})"));
+    let _expected = security::Local(expected);
+    assert_eq!(descriptor_text(descriptor), descriptor_text(expected));
 
     let mut token = null_mut();
     check(unsafe { OpenProcessToken(GetCurrentProcess(), 14, &mut token) }).unwrap();
