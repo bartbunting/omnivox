@@ -6,8 +6,11 @@
   Windows discovery, live Apply, host-scoped startup choices and the paired
   Emacsvox Apply/Save editor are implemented. The
   [Windows/client qualification](../benchmarks/2026-11-13-audio-device-selection.md)
-  records full development staging, native and WSL checks, and remaining physical
-  disconnect/listening acceptance. The feature is not a published release.
+  records full development staging and native and WSL checks. Windows
+  main/notification device switching and Left/Right listening are
+  [accepted](../benchmarks/2026-11-13-audio-device-listening.md); physical disconnect
+  and broader hardware/platform qualification remain open. The feature is not a
+  published release.
 - Scope: Local independent main/notification destinations, explicit Apply/Save,
   and recovery that preserves the intended output.
 - Entry: [Roadmap](../ROADMAP.md#feature-backlog).
