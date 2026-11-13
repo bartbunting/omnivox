@@ -13,6 +13,12 @@ on:
   pull_request:
     branches: [main]
 
+# The pinned eSpeak headers use undefined __has_include_next on MSVC.
+# Retain the traditional preprocessing used by the qualified Windows builds.
+# CL is interpreted by MSVC only; GCC and Apple Clang ignore it.
+env:
+  CL: /Zc:preprocessor-
+
 jobs:
   format:
     name: Formatting
@@ -94,12 +100,17 @@ jobs:
           key: ${{ runner.os }}-${{ matrix.target }}-registry-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-${{ matrix.target }}-registry-
 
+      - name: Identify native build cache environment
+        id: native_cache
+        shell: bash
+        run: echo "image=${ImageVersion:?runner image version is required}" >> "$GITHUB_OUTPUT"
+
       - name: Cache cargo build
         uses: actions/cache@v6
         with:
           path: target
-          key: ${{ matrix.os }}-${{ matrix.target }}-build-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ matrix.os }}-${{ matrix.target }}-build-
+          key: ${{ matrix.os }}-${{ matrix.target }}-build-${{ steps.native_cache.outputs.image }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ matrix.os }}-${{ matrix.target }}-build-${{ steps.native_cache.outputs.image }}-
 
       - name: Build release binary
         run: >-
@@ -249,12 +260,17 @@ jobs:
           key: ${{ runner.os }}-${{ matrix.name }}-registry-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: ${{ runner.os }}-${{ matrix.name }}-registry-
 
+      - name: Identify native build cache environment
+        id: native_cache
+        shell: bash
+        run: echo "image=${ImageVersion:?runner image version is required}" >> "$GITHUB_OUTPUT"
+
       - name: Cache cargo build
         uses: actions/cache@v6
         with:
           path: target
-          key: ${{ matrix.os }}-${{ matrix.name }}-test-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: ${{ matrix.os }}-${{ matrix.name }}-test-
+          key: ${{ matrix.os }}-${{ matrix.name }}-test-${{ steps.native_cache.outputs.image }}-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ matrix.os }}-${{ matrix.name }}-test-${{ steps.native_cache.outputs.image }}-
 
       - name: Run tests
         run: cargo test --locked
@@ -317,12 +333,17 @@ jobs:
           key: flite-${{ runner.os }}-${{ matrix.target }}-${{ hashFiles('Cargo.lock') }}
           restore-keys: flite-${{ runner.os }}-${{ matrix.target }}-
 
+      - name: Identify native build cache environment
+        id: native_cache
+        shell: bash
+        run: echo "image=${ImageVersion:?runner image version is required}" >> "$GITHUB_OUTPUT"
+
       - name: Cache Cargo build
         uses: actions/cache@v6
         with:
           path: target
-          key: flite-${{ matrix.os }}-${{ matrix.target }}-build-${{ hashFiles('Cargo.lock') }}
-          restore-keys: flite-${{ matrix.os }}-${{ matrix.target }}-build-
+          key: flite-${{ matrix.os }}-${{ matrix.target }}-build-${{ steps.native_cache.outputs.image }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: flite-${{ matrix.os }}-${{ matrix.target }}-build-${{ steps.native_cache.outputs.image }}-
 
       - name: Build and stage companion
         run: python tools/build_flite.py --release
@@ -413,12 +434,17 @@ jobs:
           key: rutts-${{ runner.os }}-${{ matrix.target }}-${{ hashFiles('Cargo.lock') }}
           restore-keys: rutts-${{ runner.os }}-${{ matrix.target }}-
 
+      - name: Identify native build cache environment
+        id: native_cache
+        shell: bash
+        run: echo "image=${ImageVersion:?runner image version is required}" >> "$GITHUB_OUTPUT"
+
       - name: Cache Cargo build
         uses: actions/cache@v6
         with:
           path: target
-          key: rutts-${{ matrix.os }}-${{ matrix.target }}-build-${{ hashFiles('Cargo.lock') }}
-          restore-keys: rutts-${{ matrix.os }}-${{ matrix.target }}-build-
+          key: rutts-${{ matrix.os }}-${{ matrix.target }}-build-${{ steps.native_cache.outputs.image }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: rutts-${{ matrix.os }}-${{ matrix.target }}-build-${{ steps.native_cache.outputs.image }}-
 
       - name: Build and stage companion
         run: python tools/build_rutts.py --release
@@ -623,12 +649,17 @@ jobs:
           key: tgspeechbox-${{ runner.os }}-${{ matrix.target }}-${{ hashFiles('Cargo.lock') }}
           restore-keys: tgspeechbox-${{ runner.os }}-${{ matrix.target }}-
 
+      - name: Identify native build cache environment
+        id: native_cache
+        shell: bash
+        run: echo "image=${ImageVersion:?runner image version is required}" >> "$GITHUB_OUTPUT"
+
       - name: Cache Cargo build
         uses: actions/cache@v6
         with:
           path: target
-          key: tgspeechbox-${{ runner.os }}-${{ matrix.target }}-build-${{ hashFiles('Cargo.lock') }}
-          restore-keys: tgspeechbox-${{ runner.os }}-${{ matrix.target }}-build-
+          key: tgspeechbox-${{ runner.os }}-${{ matrix.target }}-build-${{ steps.native_cache.outputs.image }}-${{ hashFiles('Cargo.lock') }}
+          restore-keys: tgspeechbox-${{ runner.os }}-${{ matrix.target }}-build-${{ steps.native_cache.outputs.image }}-
 
       - name: Build and stage companion
         run: python tools/build_tgspeechbox.py --release
