@@ -1,0 +1,25 @@
+{
+  "omnivox_base": "2a254606f008d1fed656219d112c21c52bd9eaca",
+  "emacsvox_base": "25cc0e24b094d163a77565a63e3d978ed91c39b2",
+  "toolchain": "1.97.1",
+  "emacs": "31.0.90",
+  "linux_payload_sha256": "b06f827455a8b71bf2330f1d00f07088f29e4598a91b4a524f2f0adfb1aac8c4",
+  "windows_payload_sha256": "5755a16d9a340c0db3e14c5801d1deee591d4183752b4dda4e16da31fbc67dc4",
+  "windows_runtime": "0ee8352d7961bea6",
+  "baseline_client": {
+    "tts-speak.elc": "e9c0376723d6c85259d65405361610caa109d1cb411ab35da59e9533228f7f69",
+    "omnivox-library-runtime.el": "adda3a1ee702af79d896d13d590e73f40c35667d1701701d3e14f9db54b00a62",
+    "omnivox-library-runtime.elc": "6157510eeda7bb2357295f1a9cbf00298b918a4fe856aca347369c443b2de823",
+    "tts-speak.el": "73f22bdc6c1d731a59f4976472c98ad33636f52c6b30c00d254dad5c6468bee8"
+  },
+  "candidate_client": {
+    "omnivox-library-runtime.el": "6cb28abdd241a25c0c5fd81c61c4f610e4b5879538d54303ca571fcce9912209",
+    "omnivox-library-runtime.elc": "73abd81b67715ce870da9bcfea56ff1a9edb693357e857a540b14655c9763ff1",
+    "tts-speak.el": "bf2104e27ce9396e5a5f12146f87ade1dcdbd2c8046746ab1ddaa17c2b1d36d5",
+    "tts-speak.elc": "67f43541a20757949774ca91fca30031265b04ad2647d3feb469ef688360f89a"
+  },
+  "native_output": "null",
+  "native_windows_emacs": false,
+  "acoustic": false,
+  "macos": false
+}

@@ -1,0 +1,1926 @@
+{
+  "runtime": {
+    "stage": "/home/bart/src/emacsvox-lightweight-reload/servers/omnivox-bin/versions/ea5d6dfb93dd575d",
+    "executable": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-lightweight-20261110/Emacsvox/Omnivox/runtime/4e1c1561f51908a6/omnivox.exe",
+    "sha256": "f5fc9ce3b5f4a9f4723079e2964dbf6e58e180973056d9c1dfbbe308a936b0b8",
+    "data": "C:\\Users\\bart\\AppData\\Local\\Temp\\omnivox-lightweight-20261110\\Emacsvox\\Omnivox\\espeak-data\\9a2e176369cfe0b982737abf6c26037f21d2b9af2a2fabcc08062864d0157718",
+    "rhvoice_library": "C:\\Users\\bart\\AppData\\Local\\Emacsvox\\RHVoice\\1.14.0-wrapper-0.5.0-slt\\RHVoice.dll",
+    "rhvoice_data": "C:\\Users\\bart\\AppData\\Local\\Emacsvox\\RHVoice\\1.14.0-wrapper-0.5.0-slt\\data",
+    "client_commit": "5fc22ec71b6576eea1fe5b26c5fac9f7bc7dea56",
+    "implementation_base_commit": "6c5678cc8579231f30246f05e942af5839760cc7",
+    "modified_source": "omnivox-cli/src/native_guard/windows/helper_client.rs",
+    "modified_source_sha256": "1131681e220d8ff6166a17d0eba620455e306aa5b7b80bbc5fc9a200dbb873cc",
+    "implementation_commit": "ac9ee0a129f12e120ce2af822387cfa6fa225129"
+  },
+  "runs": [
+    {
+      "name": "0",
+      "early": false,
+      "ready_ms": 5040.870681,
+      "first_source_ms": 5085.528526,
+      "initial_optional": {
+        "id": "rutts",
+        "display_name": "Delayed fixture",
+        "version": null,
+        "availability": {
+          "status": "available"
+        },
+        "health": {
+          "status": "healthy"
+        },
+        "capabilities": {
+          "acss": {
+            "rate": true,
+            "average_pitch": true,
+            "pitch_range": false,
+            "stress": false,
+            "richness": false,
+            "volume": true
+          },
+          "audio_output": "buffered_pcm",
+          "cancellation": "synthesis_and_playback",
+          "concurrency": {
+            "mode": "serialized"
+          },
+          "markers": {
+            "word": true,
+            "sentence": true,
+            "phoneme": false,
+            "native_index": true,
+            "requested_anchors": "word_boundary"
+          },
+          "language_switching": true,
+          "text_repertoire": "unicode",
+          "post_synthesis_dimensions": [
+            "gain",
+            "low_pass",
+            "high_pass",
+            "pan",
+            "chorus",
+            "reverb",
+            "echo"
+          ],
+          "native_extensions": []
+        },
+        "voices": [
+          {
+            "id": {
+              "engine_id": "rutts",
+              "voice_id": "voice"
+            },
+            "display_name": "David",
+            "language": "en-US",
+            "gender": "male",
+            "quality": "enhanced",
+            "availability": {
+              "status": "available"
+            }
+          }
+        ],
+        "default_voice_id": "voice"
+      },
+      "during": [],
+      "final_optional": {
+        "id": "rutts",
+        "display_name": "Delayed fixture",
+        "version": null,
+        "availability": {
+          "status": "available"
+        },
+        "health": {
+          "status": "healthy"
+        },
+        "capabilities": {
+          "acss": {
+            "rate": true,
+            "average_pitch": true,
+            "pitch_range": false,
+            "stress": false,
+            "richness": false,
+            "volume": true
+          },
+          "audio_output": "buffered_pcm",
+          "cancellation": "synthesis_and_playback",
+          "concurrency": {
+            "mode": "serialized"
+          },
+          "markers": {
+            "word": true,
+            "sentence": true,
+            "phoneme": false,
+            "native_index": true,
+            "requested_anchors": "word_boundary"
+          },
+          "language_switching": true,
+          "text_repertoire": "unicode",
+          "post_synthesis_dimensions": [
+            "gain",
+            "low_pass",
+            "high_pass",
+            "pan",
+            "chorus",
+            "reverb",
+            "echo"
+          ],
+          "native_extensions": []
+        },
+        "voices": [
+          {
+            "id": {
+              "engine_id": "rutts",
+              "voice_id": "voice"
+            },
+            "display_name": "David",
+            "language": "en-US",
+            "gender": "male",
+            "quality": "enhanced",
+            "availability": {
+              "status": "available"
+            }
+          }
+        ],
+        "default_voice_id": "voice"
+      },
+      "passed": true,
+      "exit": 0,
+      "retire_ms": 63.28526900006182
+    },
+    {
+      "name": "1",
+      "early": true,
+      "ready_ms": 826.49352,
+      "first_source_ms": 846.9889989999999,
+      "initial_optional": {
+        "id": "rutts",
+        "display_name": "rutts",
+        "version": null,
+        "availability": {
+          "status": "unavailable",
+          "reason": "Runtime rescan in progress"
+        },
+        "health": {
+          "status": "failed",
+          "reason": "Optional engine discovery pending"
+        },
+        "capabilities": {
+          "acss": {
+            "rate": false,
+            "average_pitch": false,
+            "pitch_range": false,
+            "stress": false,
+            "richness": false,
+            "volume": false
+          },
+          "audio_output": "buffered_pcm",
+          "cancellation": "none",
+          "concurrency": {
+            "mode": "serialized"
+          },
+          "markers": {
+            "word": false,
+            "sentence": false,
+            "phoneme": false,
+            "native_index": false,
+            "requested_anchors": "none"
+          },
+          "language_switching": false,
+          "text_repertoire": "unknown",
+          "post_synthesis_dimensions": [],
+          "native_extensions": []
+        },
+        "voices": [],
+        "default_voice_id": null
+      },
+      "during": [
+        {
+          "id": 2,
+          "start_ns": 2712641955780,
+          "end_ns": 2712651786226,
+          "source_ms": 6.230368,
+          "terminal_ms": 9.830446
+        },
+        {
+          "id": 3,
+          "start_ns": 2712724204273,
+          "end_ns": 2712734978461,
+          "source_ms": 4.78165,
+          "terminal_ms": 10.774188
+        },
+        {
+          "id": 4,
+          "start_ns": 2712805462305,
+          "end_ns": 2712816833915,
+          "source_ms": 5.369826,
+          "terminal_ms": 11.37161
+        },
+        {
+          "id": 5,
+          "start_ns": 2712891315308,
+          "end_ns": 2712899944826,
+          "source_ms": 5.502542,
+          "terminal_ms": 8.629518
+        },
+        {
+          "id": 6,
+          "start_ns": 2712972549628,
+          "end_ns": 2712984521566,
+          "source_ms": 6.692122,
+          "terminal_ms": 11.971938
+        },
+        {
+          "id": 7,
+          "start_ns": 2713055438439,
+          "end_ns": 2713065179324,
+          "source_ms": 5.483317,
+          "terminal_ms": 9.740885
+        },
+        {
+          "id": 8,
+          "start_ns": 2713138344420,
+          "end_ns": 2713148231226,
+          "source_ms": 4.947221,
+          "terminal_ms": 9.886806
+        },
+        {
+          "id": 9,
+          "start_ns": 2713218848182,
+          "end_ns": 2713230530481,
+          "source_ms": 8.308293,
+          "terminal_ms": 11.682299
+        },
+        {
+          "id": 10,
+          "start_ns": 2713298403663,
+          "end_ns": 2713306551487,
+          "source_ms": 4.829108,
+          "terminal_ms": 8.147824
+        },
+        {
+          "id": 11,
+          "start_ns": 2713379728631,
+          "end_ns": 2713387709693,
+          "source_ms": 4.719332,
+          "terminal_ms": 7.981062
+        },
+        {
+          "id": 12,
+          "start_ns": 2713458174898,
+          "end_ns": 2713468407310,
+          "source_ms": 6.282403,
+          "terminal_ms": 10.232412
+        },
+        {
+          "id": 13,
+          "start_ns": 2713538914497,
+          "end_ns": 2713550903636,
+          "source_ms": 8.466264,
+          "terminal_ms": 11.989139
+        },
+        {
+          "id": 14,
+          "start_ns": 2713620217372,
+          "end_ns": 2713628927071,
+          "source_ms": 5.639205,
+          "terminal_ms": 8.709699
+        },
+        {
+          "id": 15,
+          "start_ns": 2713696820549,
+          "end_ns": 2713706706539,
+          "source_ms": 4.9252,
+          "terminal_ms": 9.88599
+        },
+        {
+          "id": 16,
+          "start_ns": 2713776285532,
+          "end_ns": 2713788289964,
+          "source_ms": 7.235916,
+          "terminal_ms": 12.004432
+        },
+        {
+          "id": 17,
+          "start_ns": 2713859716811,
+          "end_ns": 2713867049283,
+          "source_ms": 4.336365,
+          "terminal_ms": 7.332472
+        },
+        {
+          "id": 18,
+          "start_ns": 2713934365463,
+          "end_ns": 2713942555488,
+          "source_ms": 5.366521,
+          "terminal_ms": 8.190025
+        },
+        {
+          "id": 19,
+          "start_ns": 2714015649438,
+          "end_ns": 2714032642109,
+          "source_ms": 8.226139,
+          "terminal_ms": 16.992671
+        },
+        {
+          "id": 20,
+          "start_ns": 2714105887696,
+          "end_ns": 2714116907300,
+          "source_ms": 6.674467,
+          "terminal_ms": 11.019604
+        },
+        {
+          "id": 21,
+          "start_ns": 2714188619040,
+          "end_ns": 2714199732661,
+          "source_ms": 6.420289,
+          "terminal_ms": 11.113621
+        },
+        {
+          "id": 22,
+          "start_ns": 2714272572240,
+          "end_ns": 2714282109734,
+          "source_ms": 4.847128,
+          "terminal_ms": 9.537494
+        },
+        {
+          "id": 23,
+          "start_ns": 2714354576220,
+          "end_ns": 2714364513553,
+          "source_ms": 4.532944,
+          "terminal_ms": 9.937333
+        },
+        {
+          "id": 24,
+          "start_ns": 2714435047187,
+          "end_ns": 2714444501031,
+          "source_ms": 5.292169,
+          "terminal_ms": 9.453844
+        },
+        {
+          "id": 25,
+          "start_ns": 2714512241107,
+          "end_ns": 2714520025551,
+          "source_ms": 4.649559,
+          "terminal_ms": 7.784444
+        },
+        {
+          "id": 26,
+          "start_ns": 2714590727227,
+          "end_ns": 2714598811330,
+          "source_ms": 4.662021,
+          "terminal_ms": 8.084103
+        },
+        {
+          "id": 27,
+          "start_ns": 2714672815595,
+          "end_ns": 2714681843585,
+          "source_ms": 5.697608,
+          "terminal_ms": 9.02799
+        },
+        {
+          "id": 28,
+          "start_ns": 2714753511809,
+          "end_ns": 2714760680016,
+          "source_ms": 4.114872,
+          "terminal_ms": 7.168207
+        },
+        {
+          "id": 29,
+          "start_ns": 2714833056760,
+          "end_ns": 2714843903770,
+          "source_ms": 5.225674,
+          "terminal_ms": 10.84701
+        },
+        {
+          "id": 30,
+          "start_ns": 2714913142950,
+          "end_ns": 2714922883552,
+          "source_ms": 6.554069,
+          "terminal_ms": 9.740602
+        },
+        {
+          "id": 31,
+          "start_ns": 2714995049035,
+          "end_ns": 2715003011499,
+          "source_ms": 4.802728,
+          "terminal_ms": 7.962464
+        },
+        {
+          "id": 32,
+          "start_ns": 2715075513278,
+          "end_ns": 2715083144813,
+          "source_ms": 4.481349,
+          "terminal_ms": 7.631535
+        },
+        {
+          "id": 33,
+          "start_ns": 2715151939136,
+          "end_ns": 2715161687917,
+          "source_ms": 4.721513,
+          "terminal_ms": 9.748781
+        },
+        {
+          "id": 34,
+          "start_ns": 2715231495377,
+          "end_ns": 2715244060636,
+          "source_ms": 7.57039,
+          "terminal_ms": 12.565259
+        },
+        {
+          "id": 35,
+          "start_ns": 2715314690528,
+          "end_ns": 2715324975510,
+          "source_ms": 6.24769,
+          "terminal_ms": 10.284982
+        },
+        {
+          "id": 36,
+          "start_ns": 2715396289455,
+          "end_ns": 2715404492000,
+          "source_ms": 5.19571,
+          "terminal_ms": 8.202545
+        },
+        {
+          "id": 37,
+          "start_ns": 2715475948534,
+          "end_ns": 2715483545966,
+          "source_ms": 4.658454,
+          "terminal_ms": 7.597432
+        },
+        {
+          "id": 38,
+          "start_ns": 2715560736899,
+          "end_ns": 2715568577988,
+          "source_ms": 4.883516,
+          "terminal_ms": 7.841089
+        },
+        {
+          "id": 39,
+          "start_ns": 2715638082558,
+          "end_ns": 2715656827940,
+          "source_ms": 9.53047,
+          "terminal_ms": 18.745382
+        },
+        {
+          "id": 40,
+          "start_ns": 2715724755686,
+          "end_ns": 2715746784183,
+          "source_ms": 9.997332,
+          "terminal_ms": 22.028497
+        },
+        {
+          "id": 41,
+          "start_ns": 2715817433709,
+          "end_ns": 2715830829572,
+          "source_ms": 7.694459,
+          "terminal_ms": 13.395863
+        },
+        {
+          "id": 42,
+          "start_ns": 2715900507652,
+          "end_ns": 2715916817938,
+          "source_ms": 7.748104,
+          "terminal_ms": 16.310286
+        },
+        {
+          "id": 43,
+          "start_ns": 2715984346195,
+          "end_ns": 2716009349143,
+          "source_ms": 13.229822,
+          "terminal_ms": 25.002948
+        },
+        {
+          "id": 44,
+          "start_ns": 2716080959511,
+          "end_ns": 2716093750025,
+          "source_ms": 7.964597,
+          "terminal_ms": 12.790514
+        },
+        {
+          "id": 45,
+          "start_ns": 2716167880042,
+          "end_ns": 2716187486187,
+          "source_ms": 10.172212,
+          "terminal_ms": 19.606145
+        },
+        {
+          "id": 46,
+          "start_ns": 2716258792417,
+          "end_ns": 2716279692977,
+          "source_ms": 11.568967,
+          "terminal_ms": 20.90056
+        },
+        {
+          "id": 47,
+          "start_ns": 2716352466397,
+          "end_ns": 2716371181786,
+          "source_ms": 9.573022,
+          "terminal_ms": 18.715389
+        },
+        {
+          "id": 48,
+          "start_ns": 2716442137865,
+          "end_ns": 2716464390467,
+          "source_ms": 12.30513,
+          "terminal_ms": 22.252602
+        },
+        {
+          "id": 49,
+          "start_ns": 2716538634391,
+          "end_ns": 2716551981399,
+          "source_ms": 6.49368,
+          "terminal_ms": 13.347008
+        },
+        {
+          "id": 50,
+          "start_ns": 2716626780575,
+          "end_ns": 2716651505112,
+          "source_ms": 12.865588,
+          "terminal_ms": 24.724537
+        },
+        {
+          "id": 51,
+          "start_ns": 2716719587494,
+          "end_ns": 2716740397762,
+          "source_ms": 10.129413,
+          "terminal_ms": 20.810268
+        }
+      ],
+      "final_optional": {
+        "id": "rutts",
+        "display_name": "Delayed fixture",
+        "version": null,
+        "availability": {
+          "status": "available"
+        },
+        "health": {
+          "status": "healthy"
+        },
+        "capabilities": {
+          "acss": {
+            "rate": true,
+            "average_pitch": true,
+            "pitch_range": false,
+            "stress": false,
+            "richness": false,
+            "volume": true
+          },
+          "audio_output": "buffered_pcm",
+          "cancellation": "synthesis_and_playback",
+          "concurrency": {
+            "mode": "serialized"
+          },
+          "markers": {
+            "word": true,
+            "sentence": true,
+            "phoneme": false,
+            "native_index": true,
+            "requested_anchors": "word_boundary"
+          },
+          "language_switching": true,
+          "text_repertoire": "unicode",
+          "post_synthesis_dimensions": [
+            "gain",
+            "low_pass",
+            "high_pass",
+            "pan",
+            "chorus",
+            "reverb",
+            "echo"
+          ],
+          "native_extensions": []
+        },
+        "voices": [
+          {
+            "id": {
+              "engine_id": "rutts",
+              "voice_id": "voice"
+            },
+            "display_name": "David",
+            "language": "en-US",
+            "gender": "male",
+            "quality": "enhanced",
+            "availability": {
+              "status": "available"
+            }
+          }
+        ],
+        "default_voice_id": "voice"
+      },
+      "passed": true,
+      "exit": 0,
+      "retire_ms": 54.36202000009871
+    },
+    {
+      "name": "2",
+      "early": true,
+      "ready_ms": 810.888807,
+      "first_source_ms": 829.112727,
+      "initial_optional": {
+        "id": "rutts",
+        "display_name": "rutts",
+        "version": null,
+        "availability": {
+          "status": "unavailable",
+          "reason": "Runtime rescan in progress"
+        },
+        "health": {
+          "status": "failed",
+          "reason": "Optional engine discovery pending"
+        },
+        "capabilities": {
+          "acss": {
+            "rate": false,
+            "average_pitch": false,
+            "pitch_range": false,
+            "stress": false,
+            "richness": false,
+            "volume": false
+          },
+          "audio_output": "buffered_pcm",
+          "cancellation": "none",
+          "concurrency": {
+            "mode": "serialized"
+          },
+          "markers": {
+            "word": false,
+            "sentence": false,
+            "phoneme": false,
+            "native_index": false,
+            "requested_anchors": "none"
+          },
+          "language_switching": false,
+          "text_repertoire": "unknown",
+          "post_synthesis_dimensions": [],
+          "native_extensions": []
+        },
+        "voices": [],
+        "default_voice_id": null
+      },
+      "during": [
+        {
+          "id": 2,
+          "start_ns": 2717782961579,
+          "end_ns": 2717789626880,
+          "source_ms": 3.63315,
+          "terminal_ms": 6.665301
+        },
+        {
+          "id": 3,
+          "start_ns": 2717857898110,
+          "end_ns": 2717867144480,
+          "source_ms": 4.310857,
+          "terminal_ms": 9.24637
+        },
+        {
+          "id": 4,
+          "start_ns": 2717935168461,
+          "end_ns": 2717946811763,
+          "source_ms": 6.253643,
+          "terminal_ms": 11.643302
+        },
+        {
+          "id": 5,
+          "start_ns": 2718020166100,
+          "end_ns": 2718029771957,
+          "source_ms": 4.502465,
+          "terminal_ms": 9.605857
+        },
+        {
+          "id": 6,
+          "start_ns": 2718101879753,
+          "end_ns": 2718110055295,
+          "source_ms": 4.825485,
+          "terminal_ms": 8.175542
+        },
+        {
+          "id": 7,
+          "start_ns": 2718193206375,
+          "end_ns": 2718200561075,
+          "source_ms": 4.442507,
+          "terminal_ms": 7.3547
+        },
+        {
+          "id": 8,
+          "start_ns": 2718273358136,
+          "end_ns": 2718284909319,
+          "source_ms": 4.541812,
+          "terminal_ms": 11.551183
+        },
+        {
+          "id": 9,
+          "start_ns": 2718354077329,
+          "end_ns": 2718362555304,
+          "source_ms": 4.288192,
+          "terminal_ms": 8.477975
+        },
+        {
+          "id": 10,
+          "start_ns": 2718430356731,
+          "end_ns": 2718436890038,
+          "source_ms": 3.662971,
+          "terminal_ms": 6.533307
+        },
+        {
+          "id": 11,
+          "start_ns": 2718513133901,
+          "end_ns": 2718521453309,
+          "source_ms": 4.392054,
+          "terminal_ms": 8.319408
+        },
+        {
+          "id": 12,
+          "start_ns": 2718590341089,
+          "end_ns": 2718600068305,
+          "source_ms": 5.893617,
+          "terminal_ms": 9.727216
+        },
+        {
+          "id": 13,
+          "start_ns": 2718670454479,
+          "end_ns": 2718678639915,
+          "source_ms": 5.266698,
+          "terminal_ms": 8.185436
+        },
+        {
+          "id": 14,
+          "start_ns": 2718750219431,
+          "end_ns": 2718761627948,
+          "source_ms": 6.661463,
+          "terminal_ms": 11.408517
+        },
+        {
+          "id": 15,
+          "start_ns": 2718834469063,
+          "end_ns": 2718843606476,
+          "source_ms": 4.704383,
+          "terminal_ms": 9.137413
+        },
+        {
+          "id": 16,
+          "start_ns": 2718916666705,
+          "end_ns": 2718925467132,
+          "source_ms": 4.681347,
+          "terminal_ms": 8.800427
+        },
+        {
+          "id": 17,
+          "start_ns": 2718999416396,
+          "end_ns": 2719008218774,
+          "source_ms": 4.870677,
+          "terminal_ms": 8.802378
+        },
+        {
+          "id": 18,
+          "start_ns": 2719079112825,
+          "end_ns": 2719087321470,
+          "source_ms": 4.787731,
+          "terminal_ms": 8.208645
+        },
+        {
+          "id": 19,
+          "start_ns": 2719164832982,
+          "end_ns": 2719172544457,
+          "source_ms": 4.671281,
+          "terminal_ms": 7.711475
+        },
+        {
+          "id": 20,
+          "start_ns": 2719251366973,
+          "end_ns": 2719260066434,
+          "source_ms": 4.778631,
+          "terminal_ms": 8.699461
+        },
+        {
+          "id": 21,
+          "start_ns": 2719335164370,
+          "end_ns": 2719342268404,
+          "source_ms": 4.298979,
+          "terminal_ms": 7.104034
+        },
+        {
+          "id": 22,
+          "start_ns": 2719414706418,
+          "end_ns": 2719423251835,
+          "source_ms": 3.809943,
+          "terminal_ms": 8.545417
+        },
+        {
+          "id": 23,
+          "start_ns": 2719494779179,
+          "end_ns": 2719501607063,
+          "source_ms": 3.84987,
+          "terminal_ms": 6.827884
+        },
+        {
+          "id": 24,
+          "start_ns": 2719573609911,
+          "end_ns": 2719580995958,
+          "source_ms": 4.770995,
+          "terminal_ms": 7.386047
+        },
+        {
+          "id": 25,
+          "start_ns": 2719656120344,
+          "end_ns": 2719664316114,
+          "source_ms": 4.740091,
+          "terminal_ms": 8.19577
+        },
+        {
+          "id": 26,
+          "start_ns": 2719741959704,
+          "end_ns": 2719751562177,
+          "source_ms": 5.019851,
+          "terminal_ms": 9.602473
+        },
+        {
+          "id": 27,
+          "start_ns": 2719826065138,
+          "end_ns": 2719835663608,
+          "source_ms": 6.269011,
+          "terminal_ms": 9.59847
+        },
+        {
+          "id": 28,
+          "start_ns": 2719903381378,
+          "end_ns": 2719912434259,
+          "source_ms": 4.175858,
+          "terminal_ms": 9.052881
+        },
+        {
+          "id": 29,
+          "start_ns": 2719983625862,
+          "end_ns": 2719990809747,
+          "source_ms": 4.265839,
+          "terminal_ms": 7.183885
+        },
+        {
+          "id": 30,
+          "start_ns": 2720058984527,
+          "end_ns": 2720066552113,
+          "source_ms": 4.857633,
+          "terminal_ms": 7.567586
+        },
+        {
+          "id": 31,
+          "start_ns": 2720133909293,
+          "end_ns": 2720143275952,
+          "source_ms": 5.001199,
+          "terminal_ms": 9.366659
+        },
+        {
+          "id": 32,
+          "start_ns": 2720214186396,
+          "end_ns": 2720226133729,
+          "source_ms": 10.871291,
+          "terminal_ms": 11.947333
+        },
+        {
+          "id": 33,
+          "start_ns": 2720295362913,
+          "end_ns": 2720304279999,
+          "source_ms": 6.190787,
+          "terminal_ms": 8.917086
+        },
+        {
+          "id": 34,
+          "start_ns": 2720371246487,
+          "end_ns": 2720378419078,
+          "source_ms": 4.533257,
+          "terminal_ms": 7.172591
+        },
+        {
+          "id": 35,
+          "start_ns": 2720446616186,
+          "end_ns": 2720453852595,
+          "source_ms": 4.385275,
+          "terminal_ms": 7.236409
+        },
+        {
+          "id": 36,
+          "start_ns": 2720521463787,
+          "end_ns": 2720534718040,
+          "source_ms": 6.996976,
+          "terminal_ms": 13.254253
+        },
+        {
+          "id": 37,
+          "start_ns": 2720605165913,
+          "end_ns": 2720612827980,
+          "source_ms": 5.134757,
+          "terminal_ms": 7.662067
+        },
+        {
+          "id": 38,
+          "start_ns": 2720681812469,
+          "end_ns": 2720691345502,
+          "source_ms": 4.866466,
+          "terminal_ms": 9.533033
+        },
+        {
+          "id": 39,
+          "start_ns": 2720758026439,
+          "end_ns": 2720781368926,
+          "source_ms": 11.003835,
+          "terminal_ms": 23.342487
+        },
+        {
+          "id": 40,
+          "start_ns": 2720849212906,
+          "end_ns": 2720867883197,
+          "source_ms": 8.239298,
+          "terminal_ms": 18.670291
+        },
+        {
+          "id": 41,
+          "start_ns": 2720937516399,
+          "end_ns": 2720960250777,
+          "source_ms": 9.260755,
+          "terminal_ms": 22.734378
+        },
+        {
+          "id": 42,
+          "start_ns": 2721029942113,
+          "end_ns": 2721047082210,
+          "source_ms": 8.037969,
+          "terminal_ms": 17.140097
+        },
+        {
+          "id": 43,
+          "start_ns": 2721117494169,
+          "end_ns": 2721137309035,
+          "source_ms": 9.747007,
+          "terminal_ms": 19.814866
+        },
+        {
+          "id": 44,
+          "start_ns": 2721212291042,
+          "end_ns": 2721228694160,
+          "source_ms": 9.692477,
+          "terminal_ms": 16.403118
+        },
+        {
+          "id": 45,
+          "start_ns": 2721299218451,
+          "end_ns": 2721311679042,
+          "source_ms": 7.276381,
+          "terminal_ms": 12.460591
+        },
+        {
+          "id": 46,
+          "start_ns": 2721381674261,
+          "end_ns": 2721399640799,
+          "source_ms": 7.802535,
+          "terminal_ms": 17.966538
+        },
+        {
+          "id": 47,
+          "start_ns": 2721479843971,
+          "end_ns": 2721503057933,
+          "source_ms": 12.125387,
+          "terminal_ms": 23.213962
+        },
+        {
+          "id": 48,
+          "start_ns": 2721575688403,
+          "end_ns": 2721592975503,
+          "source_ms": 8.212683,
+          "terminal_ms": 17.2871
+        },
+        {
+          "id": 49,
+          "start_ns": 2721662717973,
+          "end_ns": 2721681084995,
+          "source_ms": 10.174501,
+          "terminal_ms": 18.367022
+        },
+        {
+          "id": 50,
+          "start_ns": 2721753154075,
+          "end_ns": 2721771935511,
+          "source_ms": 8.67589,
+          "terminal_ms": 18.781436
+        },
+        {
+          "id": 51,
+          "start_ns": 2721839717955,
+          "end_ns": 2721861016147,
+          "source_ms": 9.957316,
+          "terminal_ms": 21.298192
+        }
+      ],
+      "final_optional": {
+        "id": "rutts",
+        "display_name": "Delayed fixture",
+        "version": null,
+        "availability": {
+          "status": "available"
+        },
+        "health": {
+          "status": "healthy"
+        },
+        "capabilities": {
+          "acss": {
+            "rate": true,
+            "average_pitch": true,
+            "pitch_range": false,
+            "stress": false,
+            "richness": false,
+            "volume": true
+          },
+          "audio_output": "buffered_pcm",
+          "cancellation": "synthesis_and_playback",
+          "concurrency": {
+            "mode": "serialized"
+          },
+          "markers": {
+            "word": true,
+            "sentence": true,
+            "phoneme": false,
+            "native_index": true,
+            "requested_anchors": "word_boundary"
+          },
+          "language_switching": true,
+          "text_repertoire": "unicode",
+          "post_synthesis_dimensions": [
+            "gain",
+            "low_pass",
+            "high_pass",
+            "pan",
+            "chorus",
+            "reverb",
+            "echo"
+          ],
+          "native_extensions": []
+        },
+        "voices": [
+          {
+            "id": {
+              "engine_id": "rutts",
+              "voice_id": "voice"
+            },
+            "display_name": "David",
+            "language": "en-US",
+            "gender": "male",
+            "quality": "enhanced",
+            "availability": {
+              "status": "available"
+            }
+          }
+        ],
+        "default_voice_id": "voice"
+      },
+      "passed": true,
+      "exit": 0,
+      "retire_ms": 52.616626000144606
+    },
+    {
+      "name": "3",
+      "early": false,
+      "ready_ms": 4900.341947,
+      "first_source_ms": 4938.941775,
+      "initial_optional": {
+        "id": "rutts",
+        "display_name": "Delayed fixture",
+        "version": null,
+        "availability": {
+          "status": "available"
+        },
+        "health": {
+          "status": "healthy"
+        },
+        "capabilities": {
+          "acss": {
+            "rate": true,
+            "average_pitch": true,
+            "pitch_range": false,
+            "stress": false,
+            "richness": false,
+            "volume": true
+          },
+          "audio_output": "buffered_pcm",
+          "cancellation": "synthesis_and_playback",
+          "concurrency": {
+            "mode": "serialized"
+          },
+          "markers": {
+            "word": true,
+            "sentence": true,
+            "phoneme": false,
+            "native_index": true,
+            "requested_anchors": "word_boundary"
+          },
+          "language_switching": true,
+          "text_repertoire": "unicode",
+          "post_synthesis_dimensions": [
+            "gain",
+            "low_pass",
+            "high_pass",
+            "pan",
+            "chorus",
+            "reverb",
+            "echo"
+          ],
+          "native_extensions": []
+        },
+        "voices": [
+          {
+            "id": {
+              "engine_id": "rutts",
+              "voice_id": "voice"
+            },
+            "display_name": "David",
+            "language": "en-US",
+            "gender": "male",
+            "quality": "enhanced",
+            "availability": {
+              "status": "available"
+            }
+          }
+        ],
+        "default_voice_id": "voice"
+      },
+      "during": [],
+      "final_optional": {
+        "id": "rutts",
+        "display_name": "Delayed fixture",
+        "version": null,
+        "availability": {
+          "status": "available"
+        },
+        "health": {
+          "status": "healthy"
+        },
+        "capabilities": {
+          "acss": {
+            "rate": true,
+            "average_pitch": true,
+            "pitch_range": false,
+            "stress": false,
+            "richness": false,
+            "volume": true
+          },
+          "audio_output": "buffered_pcm",
+          "cancellation": "synthesis_and_playback",
+          "concurrency": {
+            "mode": "serialized"
+          },
+          "markers": {
+            "word": true,
+            "sentence": true,
+            "phoneme": false,
+            "native_index": true,
+            "requested_anchors": "word_boundary"
+          },
+          "language_switching": true,
+          "text_repertoire": "unicode",
+          "post_synthesis_dimensions": [
+            "gain",
+            "low_pass",
+            "high_pass",
+            "pan",
+            "chorus",
+            "reverb",
+            "echo"
+          ],
+          "native_extensions": []
+        },
+        "voices": [
+          {
+            "id": {
+              "engine_id": "rutts",
+              "voice_id": "voice"
+            },
+            "display_name": "David",
+            "language": "en-US",
+            "gender": "male",
+            "quality": "enhanced",
+            "availability": {
+              "status": "available"
+            }
+          }
+        ],
+        "default_voice_id": "voice"
+      },
+      "passed": true,
+      "exit": 0,
+      "retire_ms": 41.02388000001156
+    },
+    {
+      "name": "retire-pending",
+      "early": true,
+      "ready_ms": 843.659423,
+      "first_source_ms": 865.5253809999999,
+      "initial_optional": {
+        "id": "rutts",
+        "display_name": "rutts",
+        "version": null,
+        "availability": {
+          "status": "unavailable",
+          "reason": "Runtime rescan in progress"
+        },
+        "health": {
+          "status": "failed",
+          "reason": "Optional engine discovery pending"
+        },
+        "capabilities": {
+          "acss": {
+            "rate": false,
+            "average_pitch": false,
+            "pitch_range": false,
+            "stress": false,
+            "richness": false,
+            "volume": false
+          },
+          "audio_output": "buffered_pcm",
+          "cancellation": "none",
+          "concurrency": {
+            "mode": "serialized"
+          },
+          "markers": {
+            "word": false,
+            "sentence": false,
+            "phoneme": false,
+            "native_index": false,
+            "requested_anchors": "none"
+          },
+          "language_switching": false,
+          "text_repertoire": "unknown",
+          "post_synthesis_dimensions": [],
+          "native_extensions": []
+        },
+        "voices": [],
+        "default_voice_id": null
+      },
+      "retired_while_pending": true,
+      "passed": true,
+      "exit": 0,
+      "retire_ms": 40.77286699975957
+    },
+    {
+      "name": "optional-fails",
+      "early": true,
+      "ready_ms": 752.185143,
+      "first_source_ms": 770.139904,
+      "initial_optional": {
+        "id": "rutts",
+        "display_name": "rutts",
+        "version": null,
+        "availability": {
+          "status": "unavailable",
+          "reason": "Runtime rescan in progress"
+        },
+        "health": {
+          "status": "failed",
+          "reason": "Optional engine discovery pending"
+        },
+        "capabilities": {
+          "acss": {
+            "rate": false,
+            "average_pitch": false,
+            "pitch_range": false,
+            "stress": false,
+            "richness": false,
+            "volume": false
+          },
+          "audio_output": "buffered_pcm",
+          "cancellation": "none",
+          "concurrency": {
+            "mode": "serialized"
+          },
+          "markers": {
+            "word": false,
+            "sentence": false,
+            "phoneme": false,
+            "native_index": false,
+            "requested_anchors": "none"
+          },
+          "language_switching": false,
+          "text_repertoire": "unknown",
+          "post_synthesis_dimensions": [],
+          "native_extensions": []
+        },
+        "voices": [],
+        "default_voice_id": null
+      },
+      "during": [
+        {
+          "id": 2,
+          "start_ns": 2728912584712,
+          "end_ns": 2728920552795,
+          "source_ms": 3.93937,
+          "terminal_ms": 7.968083
+        },
+        {
+          "id": 3,
+          "start_ns": 2728987923900,
+          "end_ns": 2728995010447,
+          "source_ms": 4.187166,
+          "terminal_ms": 7.086547
+        },
+        {
+          "id": 4,
+          "start_ns": 2729065707192,
+          "end_ns": 2729074943173,
+          "source_ms": 5.604163,
+          "terminal_ms": 9.235981
+        },
+        {
+          "id": 5,
+          "start_ns": 2729146374014,
+          "end_ns": 2729153318915,
+          "source_ms": 4.123315,
+          "terminal_ms": 6.944901
+        },
+        {
+          "id": 6,
+          "start_ns": 2729225655701,
+          "end_ns": 2729237949045,
+          "source_ms": 5.964339,
+          "terminal_ms": 12.293344
+        },
+        {
+          "id": 7,
+          "start_ns": 2729311427508,
+          "end_ns": 2729320084296,
+          "source_ms": 5.472872,
+          "terminal_ms": 8.656788
+        },
+        {
+          "id": 8,
+          "start_ns": 2729391536083,
+          "end_ns": 2729400118973,
+          "source_ms": 4.451233,
+          "terminal_ms": 8.58289
+        },
+        {
+          "id": 9,
+          "start_ns": 2729471395811,
+          "end_ns": 2729479894376,
+          "source_ms": 4.77586,
+          "terminal_ms": 8.498565
+        },
+        {
+          "id": 10,
+          "start_ns": 2729559058311,
+          "end_ns": 2729566733159,
+          "source_ms": 4.438206,
+          "terminal_ms": 7.674848
+        },
+        {
+          "id": 11,
+          "start_ns": 2729637844652,
+          "end_ns": 2729646951051,
+          "source_ms": 4.260928,
+          "terminal_ms": 9.106399
+        },
+        {
+          "id": 12,
+          "start_ns": 2729717512798,
+          "end_ns": 2729726327341,
+          "source_ms": 5.532091,
+          "terminal_ms": 8.814543
+        },
+        {
+          "id": 13,
+          "start_ns": 2729795709036,
+          "end_ns": 2729805340189,
+          "source_ms": 6.05574,
+          "terminal_ms": 9.631153
+        },
+        {
+          "id": 14,
+          "start_ns": 2729876239104,
+          "end_ns": 2729883311344,
+          "source_ms": 5.034317,
+          "terminal_ms": 7.07224
+        }
+      ],
+      "final_optional": {
+        "id": "rutts",
+        "display_name": "rutts",
+        "version": null,
+        "availability": {
+          "status": "unavailable",
+          "reason": "helper timed out while waiting for helper initialization"
+        },
+        "health": {
+          "status": "failed",
+          "reason": "helper timed out while waiting for helper initialization"
+        },
+        "capabilities": {
+          "acss": {
+            "rate": false,
+            "average_pitch": false,
+            "pitch_range": false,
+            "stress": false,
+            "richness": false,
+            "volume": false
+          },
+          "audio_output": "buffered_pcm",
+          "cancellation": "none",
+          "concurrency": {
+            "mode": "serialized"
+          },
+          "markers": {
+            "word": false,
+            "sentence": false,
+            "phoneme": false,
+            "native_index": false,
+            "requested_anchors": "none"
+          },
+          "language_switching": false,
+          "text_repertoire": "unknown",
+          "post_synthesis_dimensions": [],
+          "native_extensions": []
+        },
+        "voices": [],
+        "default_voice_id": null
+      },
+      "passed": true,
+      "exit": 0,
+      "retire_ms": 38.03580400017381
+    },
+    {
+      "name": "preferred-fails",
+      "early": true,
+      "ready_ms": 796.389893,
+      "first_source_ms": 811.866817,
+      "initial_optional": {
+        "id": "rutts",
+        "display_name": "rutts",
+        "version": null,
+        "availability": {
+          "status": "unavailable",
+          "reason": "Runtime rescan in progress"
+        },
+        "health": {
+          "status": "failed",
+          "reason": "Optional engine discovery pending"
+        },
+        "capabilities": {
+          "acss": {
+            "rate": false,
+            "average_pitch": false,
+            "pitch_range": false,
+            "stress": false,
+            "richness": false,
+            "volume": false
+          },
+          "audio_output": "buffered_pcm",
+          "cancellation": "none",
+          "concurrency": {
+            "mode": "serialized"
+          },
+          "markers": {
+            "word": false,
+            "sentence": false,
+            "phoneme": false,
+            "native_index": false,
+            "requested_anchors": "none"
+          },
+          "language_switching": false,
+          "text_repertoire": "unknown",
+          "post_synthesis_dimensions": [],
+          "native_extensions": []
+        },
+        "voices": [],
+        "default_voice_id": null
+      },
+      "during": [
+        {
+          "id": 2,
+          "start_ns": 2730881448248,
+          "end_ns": 2730888194289,
+          "source_ms": 2.55289,
+          "terminal_ms": 6.746041
+        },
+        {
+          "id": 3,
+          "start_ns": 2730962057892,
+          "end_ns": 2730967730600,
+          "source_ms": 3.222636,
+          "terminal_ms": 5.672708
+        },
+        {
+          "id": 4,
+          "start_ns": 2731042299474,
+          "end_ns": 2731046339709,
+          "source_ms": 2.907268,
+          "terminal_ms": 4.040235
+        },
+        {
+          "id": 5,
+          "start_ns": 2731115405654,
+          "end_ns": 2731121261822,
+          "source_ms": 3.054895,
+          "terminal_ms": 5.856168
+        },
+        {
+          "id": 6,
+          "start_ns": 2731192268531,
+          "end_ns": 2731198386859,
+          "source_ms": 3.576773,
+          "terminal_ms": 6.118328
+        },
+        {
+          "id": 7,
+          "start_ns": 2731272069522,
+          "end_ns": 2731277527900,
+          "source_ms": 2.8443,
+          "terminal_ms": 5.458378
+        },
+        {
+          "id": 8,
+          "start_ns": 2731349482336,
+          "end_ns": 2731354492935,
+          "source_ms": 2.863657,
+          "terminal_ms": 5.010599
+        },
+        {
+          "id": 9,
+          "start_ns": 2731426429307,
+          "end_ns": 2731433332332,
+          "source_ms": 4.561168,
+          "terminal_ms": 6.903025
+        },
+        {
+          "id": 10,
+          "start_ns": 2731508654266,
+          "end_ns": 2731514895121,
+          "source_ms": 4.291959,
+          "terminal_ms": 6.240855
+        },
+        {
+          "id": 11,
+          "start_ns": 2731583632482,
+          "end_ns": 2731589412074,
+          "source_ms": 2.674569,
+          "terminal_ms": 5.779592
+        },
+        {
+          "id": 12,
+          "start_ns": 2731658226271,
+          "end_ns": 2731663346951,
+          "source_ms": 2.971567,
+          "terminal_ms": 5.12068
+        },
+        {
+          "id": 13,
+          "start_ns": 2731735201032,
+          "end_ns": 2731740718560,
+          "source_ms": 2.636841,
+          "terminal_ms": 5.517528
+        },
+        {
+          "id": 14,
+          "start_ns": 2731810780507,
+          "end_ns": 2731820560747,
+          "source_ms": 2.761272,
+          "terminal_ms": 9.78024
+        },
+        {
+          "id": 15,
+          "start_ns": 2731889456326,
+          "end_ns": 2731894616442,
+          "source_ms": 2.986136,
+          "terminal_ms": 5.160116
+        },
+        {
+          "id": 16,
+          "start_ns": 2731971490508,
+          "end_ns": 2731976975984,
+          "source_ms": 2.928892,
+          "terminal_ms": 5.485476
+        },
+        {
+          "id": 17,
+          "start_ns": 2732047217211,
+          "end_ns": 2732053752824,
+          "source_ms": 3.476403,
+          "terminal_ms": 6.535613
+        },
+        {
+          "id": 18,
+          "start_ns": 2732124165562,
+          "end_ns": 2732129731636,
+          "source_ms": 3.002184,
+          "terminal_ms": 5.566074
+        },
+        {
+          "id": 19,
+          "start_ns": 2732203479815,
+          "end_ns": 2732209076921,
+          "source_ms": 3.045939,
+          "terminal_ms": 5.597106
+        },
+        {
+          "id": 20,
+          "start_ns": 2732279495443,
+          "end_ns": 2732285553286,
+          "source_ms": 3.823926,
+          "terminal_ms": 6.057843
+        },
+        {
+          "id": 21,
+          "start_ns": 2732355442058,
+          "end_ns": 2732362178929,
+          "source_ms": 4.375055,
+          "terminal_ms": 6.736871
+        },
+        {
+          "id": 22,
+          "start_ns": 2732435016891,
+          "end_ns": 2732440843360,
+          "source_ms": 2.823384,
+          "terminal_ms": 5.826469
+        },
+        {
+          "id": 23,
+          "start_ns": 2732510297556,
+          "end_ns": 2732514521256,
+          "source_ms": 3.40156,
+          "terminal_ms": 4.2237
+        },
+        {
+          "id": 24,
+          "start_ns": 2732585214931,
+          "end_ns": 2732590254271,
+          "source_ms": 2.152191,
+          "terminal_ms": 5.03934
+        },
+        {
+          "id": 25,
+          "start_ns": 2732672792973,
+          "end_ns": 2732678348558,
+          "source_ms": 2.516506,
+          "terminal_ms": 5.555585
+        },
+        {
+          "id": 26,
+          "start_ns": 2732754414509,
+          "end_ns": 2732760496114,
+          "source_ms": 2.888985,
+          "terminal_ms": 6.081605
+        },
+        {
+          "id": 27,
+          "start_ns": 2732833229699,
+          "end_ns": 2732838915104,
+          "source_ms": 3.069961,
+          "terminal_ms": 5.685405
+        },
+        {
+          "id": 28,
+          "start_ns": 2732908623029,
+          "end_ns": 2732913637989,
+          "source_ms": 2.38641,
+          "terminal_ms": 5.01496
+        },
+        {
+          "id": 29,
+          "start_ns": 2732983242451,
+          "end_ns": 2732987509895,
+          "source_ms": 2.807349,
+          "terminal_ms": 4.267444
+        },
+        {
+          "id": 30,
+          "start_ns": 2733062179528,
+          "end_ns": 2733067602465,
+          "source_ms": 2.626898,
+          "terminal_ms": 5.422937
+        },
+        {
+          "id": 31,
+          "start_ns": 2733139852332,
+          "end_ns": 2733144658576,
+          "source_ms": 3.203724,
+          "terminal_ms": 4.806244
+        },
+        {
+          "id": 32,
+          "start_ns": 2733210856563,
+          "end_ns": 2733216237937,
+          "source_ms": 2.594817,
+          "terminal_ms": 5.381374
+        },
+        {
+          "id": 33,
+          "start_ns": 2733283425572,
+          "end_ns": 2733286992289,
+          "source_ms": 2.880418,
+          "terminal_ms": 3.566717
+        },
+        {
+          "id": 34,
+          "start_ns": 2733357924536,
+          "end_ns": 2733363861082,
+          "source_ms": 3.445303,
+          "terminal_ms": 5.936546
+        },
+        {
+          "id": 35,
+          "start_ns": 2733434287978,
+          "end_ns": 2733440558729,
+          "source_ms": 3.069885,
+          "terminal_ms": 6.270751
+        },
+        {
+          "id": 36,
+          "start_ns": 2733507429593,
+          "end_ns": 2733513368546,
+          "source_ms": 2.68389,
+          "terminal_ms": 5.938953
+        },
+        {
+          "id": 37,
+          "start_ns": 2733583638965,
+          "end_ns": 2733589054093,
+          "source_ms": 2.876494,
+          "terminal_ms": 5.415128
+        },
+        {
+          "id": 38,
+          "start_ns": 2733660655434,
+          "end_ns": 2733666704336,
+          "source_ms": 3.297676,
+          "terminal_ms": 6.048902
+        },
+        {
+          "id": 39,
+          "start_ns": 2733734660981,
+          "end_ns": 2733739025786,
+          "source_ms": 3.29102,
+          "terminal_ms": 4.364805
+        },
+        {
+          "id": 40,
+          "start_ns": 2733806875477,
+          "end_ns": 2733816104776,
+          "source_ms": 4.753306,
+          "terminal_ms": 9.229299
+        },
+        {
+          "id": 41,
+          "start_ns": 2733883600289,
+          "end_ns": 2733889901921,
+          "source_ms": 3.178182,
+          "terminal_ms": 6.301632
+        },
+        {
+          "id": 42,
+          "start_ns": 2733956891218,
+          "end_ns": 2733965456548,
+          "source_ms": 4.099544,
+          "terminal_ms": 8.56533
+        },
+        {
+          "id": 43,
+          "start_ns": 2734036625615,
+          "end_ns": 2734042594319,
+          "source_ms": 3.223794,
+          "terminal_ms": 5.968704
+        },
+        {
+          "id": 44,
+          "start_ns": 2734111753965,
+          "end_ns": 2734118477977,
+          "source_ms": 3.959943,
+          "terminal_ms": 6.724012
+        },
+        {
+          "id": 45,
+          "start_ns": 2734193553141,
+          "end_ns": 2734202958549,
+          "source_ms": 4.818487,
+          "terminal_ms": 9.405408
+        },
+        {
+          "id": 46,
+          "start_ns": 2734276247845,
+          "end_ns": 2734286001494,
+          "source_ms": 4.090458,
+          "terminal_ms": 9.753649
+        },
+        {
+          "id": 47,
+          "start_ns": 2734352915695,
+          "end_ns": 2734361658486,
+          "source_ms": 5.099621,
+          "terminal_ms": 8.742791
+        },
+        {
+          "id": 48,
+          "start_ns": 2734428655155,
+          "end_ns": 2734437321106,
+          "source_ms": 3.198744,
+          "terminal_ms": 8.665951
+        },
+        {
+          "id": 49,
+          "start_ns": 2734509009211,
+          "end_ns": 2734515692986,
+          "source_ms": 3.740997,
+          "terminal_ms": 6.683775
+        },
+        {
+          "id": 50,
+          "start_ns": 2734594170153,
+          "end_ns": 2734604782016,
+          "source_ms": 4.9116,
+          "terminal_ms": 10.611863
+        },
+        {
+          "id": 51,
+          "start_ns": 2734683549274,
+          "end_ns": 2734692910511,
+          "source_ms": 4.389642,
+          "terminal_ms": 9.361237
+        },
+        {
+          "id": 52,
+          "start_ns": 2734764790013,
+          "end_ns": 2734775679536,
+          "source_ms": 4.841208,
+          "terminal_ms": 10.889523
+        },
+        {
+          "id": 53,
+          "start_ns": 2734845279877,
+          "end_ns": 2734852541316,
+          "source_ms": 2.987176,
+          "terminal_ms": 7.261439
+        },
+        {
+          "id": 54,
+          "start_ns": 2734920503373,
+          "end_ns": 2734931267556,
+          "source_ms": 6.143003,
+          "terminal_ms": 10.764183
+        }
+      ],
+      "final_optional": {
+        "id": "rutts",
+        "display_name": "Delayed fixture",
+        "version": null,
+        "availability": {
+          "status": "available"
+        },
+        "health": {
+          "status": "healthy"
+        },
+        "capabilities": {
+          "acss": {
+            "rate": true,
+            "average_pitch": true,
+            "pitch_range": false,
+            "stress": false,
+            "richness": false,
+            "volume": true
+          },
+          "audio_output": "buffered_pcm",
+          "cancellation": "synthesis_and_playback",
+          "concurrency": {
+            "mode": "serialized"
+          },
+          "markers": {
+            "word": true,
+            "sentence": true,
+            "phoneme": false,
+            "native_index": true,
+            "requested_anchors": "word_boundary"
+          },
+          "language_switching": true,
+          "text_repertoire": "unicode",
+          "post_synthesis_dimensions": [
+            "gain",
+            "low_pass",
+            "high_pass",
+            "pan",
+            "chorus",
+            "reverb",
+            "echo"
+          ],
+          "native_extensions": []
+        },
+        "voices": [
+          {
+            "id": {
+              "engine_id": "rutts",
+              "voice_id": "voice"
+            },
+            "display_name": "David",
+            "language": "en-US",
+            "gender": "male",
+            "quality": "enhanced",
+            "availability": {
+              "status": "available"
+            }
+          }
+        ],
+        "default_voice_id": "voice"
+      },
+      "passed": true,
+      "exit": 0,
+      "retire_ms": 49.37020699981076
+    }
+  ]
+}

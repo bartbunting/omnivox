@@ -91,6 +91,7 @@ pub enum Reply {
         punctuation_profiles_configuration_version: u32,
         engine_settings_version: u32,
         removal_version: u32,
+        retirement_receipts_version: u32,
         catalogue_providers: Vec<String>,
         root: String,
         target_id: String,
@@ -104,9 +105,27 @@ pub enum Reply {
         retired: bool,
         startup_error: Option<String>,
         activation_id: Option<String>,
+        native_retirement_version: u32,
+        emergency: bool,
+        deferred_start_version: u32,
+        prepared: bool,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        guard: Option<GuardEndpoint>,
+    },
+    Started {
+        worker: String,
     },
     Retired {
         worker: String,
+    },
+    NativeRetired {
+        worker: String,
+        retirement_recorded: bool,
+    },
+    RetirementStatus {
+        worker: String,
+        startup_sha256: String,
+        retired: bool,
     },
     Snapshot {
         startup: String,
@@ -153,6 +172,18 @@ pub enum Reply {
     Error {
         message: String,
     },
+}
+
+/// Private cleanup-only endpoint, disclosed solely over the owned local channel.
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct GuardEndpoint {
+    pub version: u32,
+    pub guard: String,
+    pub worker: String,
+    pub transport: String,
+    pub address: String,
+    pub token: String,
 }
 impl Reply {
     pub fn line(&self, request_id: u64) -> Result<String, LibraryError> {
@@ -278,6 +309,7 @@ impl Host {
             punctuation_profiles_configuration_version: 1,
             engine_settings_version: 1,
             removal_version: 1,
+            retirement_receipts_version: 1,
             catalogue_providers: vec![
                 "piper".into(),
                 "flite".into(),
@@ -305,6 +337,34 @@ pub struct Startup {
     pub engines: Option<LaunchSnapshot>,
 }
 impl Startup {
+    /// In-memory bundled speech startup; never opens a management host or files.
+    pub fn emergency(environment: LaunchEnvironment, output: &str) -> Result<Self, LibraryError> {
+        require(
+            matches!(output, "device" | "null") || (cfg!(target_os = "linux") && output == "pulse"),
+            "emergency output must be device, null, or pulse on Linux",
+        )?;
+        let executable = std::env::current_exe()?.canonicalize()?;
+        let working_directory = executable
+            .parent()
+            .ok_or(LibraryError::Invalid("executable lacks parent"))?
+            .to_owned();
+        let engines = LaunchSnapshot::prepare(
+            crate::engine_configuration::ResolvedConfiguration::emergency(environment.clone()),
+            None,
+            "espeak".into(),
+            false,
+        )
+        .map_err(|_| LibraryError::Invalid("invalid emergency startup"))?;
+        Ok(Self {
+            executable: identify(&executable)?,
+            arguments: vec!["--audio-output".into(), output.into()],
+            working_directory,
+            environment,
+            configuration: None,
+            engines: Some(engines),
+        })
+    }
+
     pub fn capture(host: &Host) -> Result<Self, LibraryError> {
         let executable = std::env::current_exe()?.canonicalize()?;
         let mut environment = LaunchEnvironment::capture();

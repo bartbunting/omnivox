@@ -1,0 +1,995 @@
+{
+  "speech": {
+    "espeak": [
+      {
+        "guarded": false,
+        "source_ms": {
+          "n": 160,
+          "median": 3.4820115,
+          "min": 2.279676,
+          "max": 9.056024,
+          "empirical_p95": 5.8295
+        },
+        "block_medians": [
+          3.0400595,
+          3.4821695,
+          3.380795,
+          3.591304
+        ]
+      },
+      {
+        "guarded": true,
+        "source_ms": {
+          "n": 160,
+          "median": 3.1166935000000002,
+          "min": 2.042945,
+          "max": 7.847799,
+          "empirical_p95": 4.683481
+        },
+        "block_medians": [
+          3.20607,
+          2.8331115000000002,
+          3.1895249999999997,
+          2.9219765
+        ]
+      }
+    ],
+    "flite": [
+      {
+        "guarded": false,
+        "source_ms": {
+          "n": 160,
+          "median": 6.2107589999999995,
+          "min": 3.404122,
+          "max": 14.41144,
+          "empirical_p95": 10.240838
+        },
+        "block_medians": [
+          5.8137799999999995,
+          5.741942,
+          6.366960499999999,
+          7.6641255
+        ]
+      },
+      {
+        "guarded": true,
+        "source_ms": {
+          "n": 160,
+          "median": 5.8440535,
+          "min": 3.396097,
+          "max": 11.820779,
+          "empirical_p95": 9.138313
+        },
+        "block_medians": [
+          5.725002999999999,
+          6.230035,
+          5.9980645,
+          5.7706935
+        ]
+      }
+    ],
+    "winrt": [
+      {
+        "guarded": false,
+        "source_ms": {
+          "n": 160,
+          "median": 103.218028,
+          "min": 49.685744,
+          "max": 169.876483,
+          "empirical_p95": 131.496573
+        },
+        "block_medians": [
+          99.179814,
+          102.8944325,
+          110.424638,
+          104.9986095
+        ]
+      },
+      {
+        "guarded": true,
+        "source_ms": {
+          "n": 160,
+          "median": 106.4969535,
+          "min": 56.476132,
+          "max": 150.370586,
+          "empirical_p95": 139.086233
+        },
+        "block_medians": [
+          107.0868865,
+          110.8187835,
+          99.3580305,
+          107.1167845
+        ]
+      }
+    ],
+    "eloquence": [
+      {
+        "guarded": false,
+        "source_ms": {
+          "n": 160,
+          "median": 4.910379000000001,
+          "min": 3.726825,
+          "max": 11.016062,
+          "empirical_p95": 6.940646
+        },
+        "block_medians": [
+          5.2741625,
+          4.693104999999999,
+          4.705676,
+          5.081578
+        ]
+      },
+      {
+        "guarded": true,
+        "source_ms": {
+          "n": 160,
+          "median": 4.7137585,
+          "min": 3.573333,
+          "max": 8.781639,
+          "empirical_p95": 6.203944
+        },
+        "block_medians": [
+          4.7231855,
+          4.6555025,
+          4.8755939999999995,
+          4.61685
+        ]
+      }
+    ],
+    "dectalk": [
+      {
+        "guarded": false,
+        "source_ms": {
+          "n": 160,
+          "median": 4.10378,
+          "min": 2.448979,
+          "max": 11.296114,
+          "empirical_p95": 5.894339
+        },
+        "block_medians": [
+          4.255202499999999,
+          4.0526805,
+          4.239276,
+          3.738658
+        ]
+      },
+      {
+        "guarded": true,
+        "source_ms": {
+          "n": 160,
+          "median": 3.9221494999999997,
+          "min": 2.42801,
+          "max": 11.587634,
+          "empirical_p95": 5.254031
+        },
+        "block_medians": [
+          4.010365999999999,
+          4.161058,
+          3.795258,
+          3.6361825000000003
+        ]
+      }
+    ],
+    "rutts": [
+      {
+        "guarded": false,
+        "source_ms": {
+          "n": 160,
+          "median": 3.6845204999999996,
+          "min": 2.078816,
+          "max": 6.471082,
+          "empirical_p95": 4.61094
+        },
+        "block_medians": [
+          3.7984955,
+          3.5446175,
+          3.555377,
+          3.7976855
+        ]
+      },
+      {
+        "guarded": true,
+        "source_ms": {
+          "n": 160,
+          "median": 3.4277015,
+          "min": 1.950731,
+          "max": 5.242094,
+          "empirical_p95": 4.396961
+        },
+        "block_medians": [
+          3.447153,
+          3.4522515,
+          3.4431909999999997,
+          3.27036
+        ]
+      }
+    ],
+    "tgspeechbox": [
+      {
+        "guarded": false,
+        "source_ms": {
+          "n": 160,
+          "median": 11.6555485,
+          "min": 7.072949,
+          "max": 16.819018,
+          "empirical_p95": 15.272704
+        },
+        "block_medians": [
+          11.905004,
+          11.777994,
+          11.568022,
+          11.2654315
+        ]
+      },
+      {
+        "guarded": true,
+        "source_ms": {
+          "n": 160,
+          "median": 11.401865,
+          "min": 8.217036,
+          "max": 16.370884,
+          "empirical_p95": 14.805154
+        },
+        "block_medians": [
+          11.1363675,
+          11.225261,
+          11.518983500000001,
+          11.626251
+        ]
+      }
+    ],
+    "rhvoice": [
+      {
+        "guarded": false,
+        "source_ms": {
+          "n": 160,
+          "median": 8.520285000000001,
+          "min": 5.797422,
+          "max": 14.378428,
+          "empirical_p95": 11.795634
+        },
+        "block_medians": [
+          8.9094285,
+          8.032007499999999,
+          8.0851305,
+          8.624418
+        ]
+      },
+      {
+        "guarded": true,
+        "source_ms": {
+          "n": 160,
+          "median": 8.438364,
+          "min": 5.892277,
+          "max": 17.141406,
+          "empirical_p95": 12.151155
+        },
+        "block_medians": [
+          8.6661215,
+          8.4203915,
+          8.401462,
+          8.053289
+        ]
+      }
+    ]
+  },
+  "interaction": [
+    {
+      "engine": "espeak",
+      "guarded": false,
+      "stop_ms": {
+        "n": 20,
+        "median": 2.5943455,
+        "min": 1.020985,
+        "max": 7.456075,
+        "empirical_p95": 6.492948
+      },
+      "after_stop_source_ms": {
+        "n": 20,
+        "median": 4.686427,
+        "min": 3.045646,
+        "max": 8.633312,
+        "empirical_p95": 7.328431
+      },
+      "replacement_source_ms": {
+        "n": 20,
+        "median": 7.874161,
+        "min": 5.835516,
+        "max": 11.490822,
+        "empirical_p95": 10.60365
+      },
+      "old_outcomes": [
+        "cancelled"
+      ]
+    },
+    {
+      "engine": "espeak",
+      "guarded": true,
+      "stop_ms": {
+        "n": 20,
+        "median": 2.0535045,
+        "min": 1.153769,
+        "max": 9.318376,
+        "empirical_p95": 7.495103
+      },
+      "after_stop_source_ms": {
+        "n": 20,
+        "median": 6.951086999999999,
+        "min": 3.700487,
+        "max": 9.872625,
+        "empirical_p95": 8.791836
+      },
+      "replacement_source_ms": {
+        "n": 20,
+        "median": 8.0952135,
+        "min": 5.820966,
+        "max": 13.777408,
+        "empirical_p95": 12.050582
+      },
+      "old_outcomes": [
+        "cancelled"
+      ]
+    },
+    {
+      "engine": "flite",
+      "guarded": false,
+      "stop_ms": {
+        "n": 20,
+        "median": 1.474695,
+        "min": 1.128595,
+        "max": 4.982358,
+        "empirical_p95": 3.351124
+      },
+      "after_stop_source_ms": {
+        "n": 20,
+        "median": 10.359009499999999,
+        "min": 6.229807,
+        "max": 14.846367,
+        "empirical_p95": 12.601037
+      },
+      "replacement_source_ms": {
+        "n": 20,
+        "median": 35.195511499999995,
+        "min": 11.190975,
+        "max": 95.293027,
+        "empirical_p95": 94.067856
+      },
+      "old_outcomes": [
+        "cancelled"
+      ]
+    },
+    {
+      "engine": "flite",
+      "guarded": true,
+      "stop_ms": {
+        "n": 20,
+        "median": 1.5043739999999999,
+        "min": 1.093261,
+        "max": 3.291154,
+        "empirical_p95": 3.062264
+      },
+      "after_stop_source_ms": {
+        "n": 20,
+        "median": 8.761888500000001,
+        "min": 6.597278,
+        "max": 12.839827,
+        "empirical_p95": 11.737799
+      },
+      "replacement_source_ms": {
+        "n": 20,
+        "median": 82.527907,
+        "min": 11.389353,
+        "max": 93.898933,
+        "empirical_p95": 92.466093
+      },
+      "old_outcomes": [
+        "cancelled"
+      ]
+    },
+    {
+      "engine": "winrt",
+      "guarded": false,
+      "stop_ms": {
+        "n": 20,
+        "median": 117.7662895,
+        "min": 14.426412,
+        "max": 176.864976,
+        "empirical_p95": 144.771527
+      },
+      "after_stop_source_ms": {
+        "n": 20,
+        "median": 290.7195615,
+        "min": 97.243043,
+        "max": 371.453397,
+        "empirical_p95": 354.412636
+      },
+      "replacement_source_ms": {
+        "n": 20,
+        "median": 234.2544785,
+        "min": 177.910333,
+        "max": 266.280693,
+        "empirical_p95": 264.204082
+      },
+      "old_outcomes": [
+        "cancelled"
+      ]
+    },
+    {
+      "engine": "winrt",
+      "guarded": true,
+      "stop_ms": {
+        "n": 20,
+        "median": 122.6820085,
+        "min": 21.535198,
+        "max": 167.761638,
+        "empirical_p95": 160.782334
+      },
+      "after_stop_source_ms": {
+        "n": 20,
+        "median": 296.696049,
+        "min": 110.603216,
+        "max": 363.932167,
+        "empirical_p95": 349.535952
+      },
+      "replacement_source_ms": {
+        "n": 20,
+        "median": 220.342086,
+        "min": 185.49388,
+        "max": 281.153755,
+        "empirical_p95": 268.660256
+      },
+      "old_outcomes": [
+        "cancelled"
+      ]
+    },
+    {
+      "engine": "eloquence",
+      "guarded": false,
+      "stop_ms": {
+        "n": 20,
+        "median": 2.1237205,
+        "min": 1.218773,
+        "max": 12.551186,
+        "empirical_p95": 12.22432
+      },
+      "after_stop_source_ms": {
+        "n": 20,
+        "median": 19.933353,
+        "min": 7.918052,
+        "max": 30.909593,
+        "empirical_p95": 27.151653
+      },
+      "replacement_source_ms": {
+        "n": 20,
+        "median": 18.689317,
+        "min": 10.061248,
+        "max": 60.508394,
+        "empirical_p95": 50.836091
+      },
+      "old_outcomes": [
+        "cancelled"
+      ]
+    },
+    {
+      "engine": "eloquence",
+      "guarded": true,
+      "stop_ms": {
+        "n": 20,
+        "median": 5.738199,
+        "min": 1.353628,
+        "max": 20.05412,
+        "empirical_p95": 19.98807
+      },
+      "after_stop_source_ms": {
+        "n": 20,
+        "median": 24.565334,
+        "min": 6.022083,
+        "max": 36.448556,
+        "empirical_p95": 29.445062
+      },
+      "replacement_source_ms": {
+        "n": 20,
+        "median": 14.5103645,
+        "min": 6.906516,
+        "max": 50.548145,
+        "empirical_p95": 50.467592
+      },
+      "old_outcomes": [
+        "cancelled"
+      ]
+    },
+    {
+      "engine": "dectalk",
+      "guarded": false,
+      "stop_ms": {
+        "n": 20,
+        "median": 20.2242355,
+        "min": 3.735637,
+        "max": 68.246585,
+        "empirical_p95": 46.330465
+      },
+      "after_stop_source_ms": {
+        "n": 20,
+        "median": 46.139945499999996,
+        "min": 13.628287,
+        "max": 119.955119,
+        "empirical_p95": 68.725793
+      },
+      "replacement_source_ms": {
+        "n": 20,
+        "median": 97.7873565,
+        "min": 37.483645,
+        "max": 239.701019,
+        "empirical_p95": 165.098483
+      },
+      "old_outcomes": [
+        "cancelled"
+      ]
+    },
+    {
+      "engine": "dectalk",
+      "guarded": true,
+      "stop_ms": {
+        "n": 20,
+        "median": 18.6571165,
+        "min": 11.675304,
+        "max": 38.619273,
+        "empirical_p95": 25.759992
+      },
+      "after_stop_source_ms": {
+        "n": 20,
+        "median": 48.3940145,
+        "min": 20.019711,
+        "max": 139.524538,
+        "empirical_p95": 128.91899
+      },
+      "replacement_source_ms": {
+        "n": 20,
+        "median": 144.558158,
+        "min": 51.911524,
+        "max": 263.276534,
+        "empirical_p95": 223.551213
+      },
+      "old_outcomes": [
+        "cancelled"
+      ]
+    },
+    {
+      "engine": "rutts",
+      "guarded": false,
+      "stop_ms": {
+        "n": 20,
+        "median": 1.803538,
+        "min": 1.202963,
+        "max": 4.379082,
+        "empirical_p95": 4.090952
+      },
+      "after_stop_source_ms": {
+        "n": 20,
+        "median": 4.989875,
+        "min": 3.558648,
+        "max": 7.472919,
+        "empirical_p95": 7.396501
+      },
+      "replacement_source_ms": {
+        "n": 20,
+        "median": 8.898561,
+        "min": 5.739543,
+        "max": 28.569563,
+        "empirical_p95": 26.973885
+      },
+      "old_outcomes": [
+        "cancelled"
+      ]
+    },
+    {
+      "engine": "rutts",
+      "guarded": true,
+      "stop_ms": {
+        "n": 20,
+        "median": 1.5328635,
+        "min": 1.09901,
+        "max": 6.275362,
+        "empirical_p95": 4.657144
+      },
+      "after_stop_source_ms": {
+        "n": 20,
+        "median": 4.992123,
+        "min": 3.813954,
+        "max": 7.264261,
+        "empirical_p95": 7.12985
+      },
+      "replacement_source_ms": {
+        "n": 20,
+        "median": 16.9591785,
+        "min": 7.019618,
+        "max": 47.605341,
+        "empirical_p95": 45.750368
+      },
+      "old_outcomes": [
+        "cancelled"
+      ]
+    },
+    {
+      "engine": "tgspeechbox",
+      "guarded": false,
+      "stop_ms": {
+        "n": 20,
+        "median": 7.5216555,
+        "min": 1.731598,
+        "max": 13.306475,
+        "empirical_p95": 12.644095
+      },
+      "after_stop_source_ms": {
+        "n": 20,
+        "median": 30.140036000000002,
+        "min": 13.745811,
+        "max": 50.652248,
+        "empirical_p95": 45.917871
+      },
+      "replacement_source_ms": {
+        "n": 20,
+        "median": 138.863815,
+        "min": 44.883297,
+        "max": 166.229133,
+        "empirical_p95": 158.458059
+      },
+      "old_outcomes": [
+        "cancelled"
+      ]
+    },
+    {
+      "engine": "tgspeechbox",
+      "guarded": true,
+      "stop_ms": {
+        "n": 20,
+        "median": 4.9002365,
+        "min": 1.924548,
+        "max": 13.358657,
+        "empirical_p95": 11.938404
+      },
+      "after_stop_source_ms": {
+        "n": 20,
+        "median": 26.376558,
+        "min": 14.420694,
+        "max": 44.753813,
+        "empirical_p95": 42.973618
+      },
+      "replacement_source_ms": {
+        "n": 20,
+        "median": 139.3677465,
+        "min": 107.197345,
+        "max": 158.275009,
+        "empirical_p95": 158.239884
+      },
+      "old_outcomes": [
+        "cancelled"
+      ]
+    },
+    {
+      "engine": "rhvoice",
+      "guarded": false,
+      "stop_ms": {
+        "n": 20,
+        "median": 1.62976,
+        "min": 0.73275,
+        "max": 2.603769,
+        "empirical_p95": 2.514204
+      },
+      "after_stop_source_ms": {
+        "n": 20,
+        "median": 7.647538,
+        "min": 4.514931,
+        "max": 11.225324,
+        "empirical_p95": 9.558843
+      },
+      "replacement_source_ms": {
+        "n": 20,
+        "median": 94.87873450000001,
+        "min": 15.314758,
+        "max": 102.667402,
+        "empirical_p95": 101.884331
+      },
+      "old_outcomes": [
+        "cancelled"
+      ]
+    },
+    {
+      "engine": "rhvoice",
+      "guarded": true,
+      "stop_ms": {
+        "n": 20,
+        "median": 1.826491,
+        "min": 1.002894,
+        "max": 4.674254,
+        "empirical_p95": 4.246727
+      },
+      "after_stop_source_ms": {
+        "n": 20,
+        "median": 8.0439765,
+        "min": 4.381879,
+        "max": 11.682468,
+        "empirical_p95": 10.701954
+      },
+      "replacement_source_ms": {
+        "n": 20,
+        "median": 94.614316,
+        "min": 13.845699,
+        "max": 104.824054,
+        "empirical_p95": 100.898237
+      },
+      "old_outcomes": [
+        "cancelled"
+      ]
+    }
+  ],
+  "startup": {
+    "baseline": {
+      "operation_ms": {
+        "n": 8,
+        "median": 3548.9403009414673,
+        "min": 2952.388048171997,
+        "max": 4133.700609207153,
+        "empirical_p95": 4133.700609207153
+      },
+      "first_source_ms": {
+        "n": 8,
+        "median": 3635.7336044311523,
+        "min": 3055.7992458343506,
+        "max": 4219.352006912231,
+        "empirical_p95": 4219.352006912231
+      },
+      "spans": {
+        "make-process": {
+          "n": 52,
+          "median": 0.4589557647705078,
+          "min": 0.28133392333984375,
+          "max": 0.6604194641113281,
+          "empirical_p95": 0.6165504455566406
+        },
+        "omnivox-library--acknowledge-engines": {
+          "n": 20,
+          "median": 402.7295112609863,
+          "min": 285.54320335388184,
+          "max": 503.7214756011963,
+          "empirical_p95": 488.5210990905762
+        },
+        "omnivox-library--control": {
+          "n": 40,
+          "median": 143.40198040008545,
+          "min": 0.926971435546875,
+          "max": 502.4073123931885,
+          "empirical_p95": 486.8006706237793
+        },
+        "omnivox-library--owner": {
+          "n": 20,
+          "median": 754.6632289886475,
+          "min": 478.61528396606445,
+          "max": 1006.8912506103516,
+          "empirical_p95": 967.6036834716797
+        },
+        "omnivox-library--prepare-engines": {
+          "n": 10,
+          "median": 677.2795915603638,
+          "min": 449.16749000549316,
+          "max": 807.7383041381836,
+          "empirical_p95": 807.7383041381836
+        },
+        "omnivox-library--request": {
+          "n": 60,
+          "median": 231.85038566589355,
+          "min": 64.07785415649414,
+          "max": 1006.864070892334,
+          "empirical_p95": 931.9939613342285
+        },
+        "omnivox-native-guard--connect": {
+          "n": 20,
+          "median": 165.24183750152588,
+          "min": 134.39559936523438,
+          "max": 204.41317558288574,
+          "empirical_p95": 200.6540298461914
+        },
+        "omnivox-native-guard--request": {
+          "n": 42,
+          "median": 1.492142677307129,
+          "min": 0.4203319549560547,
+          "max": 203.80759239196777,
+          "empirical_p95": 179.62908744812012
+        },
+        "tts--retire-process": {
+          "n": 16,
+          "median": 0.12576580047607422,
+          "min": 0.08082389831542969,
+          "max": 0.20456314086914062,
+          "empirical_p95": 0.20456314086914062
+        },
+        "tts-make-process": {
+          "n": 20,
+          "median": 1437.1962547302246,
+          "min": 1088.03391456604,
+          "max": 1691.068410873413,
+          "empirical_p95": 1639.6207809448242
+        },
+        "voice-setup": {
+          "n": 10,
+          "median": 3.9714574813842773,
+          "min": 2.576112747192383,
+          "max": 5.196094512939453,
+          "empirical_p95": 5.196094512939453
+        }
+      }
+    },
+    "candidate": {
+      "operation_ms": {
+        "n": 8,
+        "median": 3181.1745166778564,
+        "min": 2530.8680534362793,
+        "max": 3736.462116241455,
+        "empirical_p95": 3736.462116241455
+      },
+      "first_source_ms": {
+        "n": 8,
+        "median": 3267.953038215637,
+        "min": 2634.8509788513184,
+        "max": 3840.5890464782715,
+        "empirical_p95": 3840.5890464782715
+      },
+      "spans": {
+        "make-process": {
+          "n": 52,
+          "median": 0.4127025604248047,
+          "min": 0.2722740173339844,
+          "max": 0.9045600891113281,
+          "empirical_p95": 0.6954669952392578
+        },
+        "omnivox-library--acknowledge-engines": {
+          "n": 20,
+          "median": 358.20889472961426,
+          "min": 252.80070304870605,
+          "max": 489.34292793273926,
+          "empirical_p95": 459.2733383178711
+        },
+        "omnivox-library--control": {
+          "n": 40,
+          "median": 126.79755687713623,
+          "min": 1.077890396118164,
+          "max": 488.02947998046875,
+          "empirical_p95": 454.69117164611816
+        },
+        "omnivox-library--owner": {
+          "n": 20,
+          "median": 755.3602457046509,
+          "min": 516.4618492126465,
+          "max": 1054.2137622833252,
+          "empirical_p95": 990.4344081878662
+        },
+        "omnivox-library--prepare-engines": {
+          "n": 10,
+          "median": 680.630087852478,
+          "min": 448.6825466156006,
+          "max": 823.9834308624268,
+          "empirical_p95": 823.9834308624268
+        },
+        "omnivox-library--request": {
+          "n": 60,
+          "median": 215.0033712387085,
+          "min": 58.895111083984375,
+          "max": 1054.1839599609375,
+          "empirical_p95": 903.7885665893555
+        },
+        "omnivox-native-guard--connect": {
+          "n": 20,
+          "median": 1.6829967498779297,
+          "min": 1.1661052703857422,
+          "max": 2.0089149475097656,
+          "empirical_p95": 1.9845962524414062
+        },
+        "omnivox-native-guard--prepare-bridge": {
+          "n": 20,
+          "median": 0.4012584686279297,
+          "min": 0.29730796813964844,
+          "max": 0.5521774291992188,
+          "empirical_p95": 0.5450248718261719
+        },
+        "omnivox-native-guard--request": {
+          "n": 42,
+          "median": 1.0383129119873047,
+          "min": 0.4150867462158203,
+          "max": 1.9440650939941406,
+          "empirical_p95": 1.9276142120361328
+        },
+        "tts--retire-process": {
+          "n": 16,
+          "median": 0.11277198791503906,
+          "min": 0.07796287536621094,
+          "max": 0.16641616821289062,
+          "empirical_p95": 0.16641616821289062
+        },
+        "tts-make-process": {
+          "n": 20,
+          "median": 1211.6152048110962,
+          "min": 911.7903709411621,
+          "max": 1487.3864650726318,
+          "empirical_p95": 1474.3304252624512
+        },
+        "voice-setup": {
+          "n": 10,
+          "median": 3.197789192199707,
+          "min": 1.4455318450927734,
+          "max": 3.760099411010742,
+          "empirical_p95": 3.760099411010742
+        }
+      }
+    }
+  },
+  "availability": {
+    "baseline": [
+      {
+        "trial": 0,
+        "operation_ms": 3187.0341300964355,
+        "samples": 236,
+        "cancelled": 2,
+        "main_handover_source_gap_ms": 1511.0948085784912,
+        "notification_handover_source_gap_ms": 111.87219619750977
+      },
+      {
+        "trial": 1,
+        "operation_ms": 3702.049732208252,
+        "samples": 266,
+        "cancelled": 2,
+        "main_handover_source_gap_ms": 1690.8299922943115,
+        "notification_handover_source_gap_ms": 112.45203018188477
+      },
+      {
+        "trial": 2,
+        "operation_ms": 3772.1168994903564,
+        "samples": 271,
+        "cancelled": 0,
+        "main_handover_source_gap_ms": 1647.8650569915771,
+        "notification_handover_source_gap_ms": 102.84829139709473
+      },
+      {
+        "trial": 3,
+        "operation_ms": 4205.18684387207,
+        "samples": 304,
+        "cancelled": 2,
+        "main_handover_source_gap_ms": 1710.7675075531006,
+        "notification_handover_source_gap_ms": 91.01510047912598
+      }
+    ],
+    "candidate": [
+      {
+        "trial": 0,
+        "operation_ms": 2911.515235900879,
+        "samples": 222,
+        "cancelled": 2,
+        "main_handover_source_gap_ms": 1359.2166900634766,
+        "notification_handover_source_gap_ms": 108.99996757507324
+      },
+      {
+        "trial": 1,
+        "operation_ms": 3230.6571006774902,
+        "samples": 239,
+        "cancelled": 1,
+        "main_handover_source_gap_ms": 1513.3793354034424,
+        "notification_handover_source_gap_ms": 115.92626571655273
+      },
+      {
+        "trial": 2,
+        "operation_ms": 3908.684492111206,
+        "samples": 288,
+        "cancelled": 2,
+        "main_handover_source_gap_ms": 1589.186668395996,
+        "notification_handover_source_gap_ms": 111.86003684997559
+      },
+      {
+        "trial": 3,
+        "operation_ms": 4063.8270378112793,
+        "samples": 297,
+        "cancelled": 1,
+        "main_handover_source_gap_ms": 1615.0627136230469,
+        "notification_handover_source_gap_ms": 118.23868751525879
+      }
+    ]
+  }
+}

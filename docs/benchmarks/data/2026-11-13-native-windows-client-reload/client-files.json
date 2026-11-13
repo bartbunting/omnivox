@@ -1,0 +1,22 @@
+[
+  {
+    "path": "client/lisp/speech/omnivox-library-runtime.el",
+    "sha256": "4836004dd2df10d6b66ea6af9be575cf242f968a1cd8dec6f1785b3b261d9c3f"
+  },
+  {
+    "path": "client/lisp/speech/omnivox-library-runtime.elc",
+    "sha256": "731206ebb96ee5f980d4301caff3161c369563dd16221965cf82cc80ce6c0e4b"
+  },
+  {
+    "path": "evox-windows.ps1",
+    "sha256": "805b7e6733776093dfbe9272f236edeb4e81d7e3b2e59706dba5a7cb89223911"
+  },
+  {
+    "path": "evox-windows-launcher.exe",
+    "sha256": "09729ccc8bc076404e09c6b5a88c1f009c3a9ce8aaf1dc44a9ecb56539ab0a43"
+  },
+  {
+    "path": "native-check.el",
+    "sha256": "c882d41bf0bdf86bc716f933cace4fbbc2ff6cc3996d2e669ef97403d966f0c0"
+  }
+]

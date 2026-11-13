@@ -1,0 +1,22 @@
+[
+  {
+    "file": "omnivox",
+    "sha256": "4f74d784ef0622bb8299beb6f1a5e5478d8d98ba2d95206095f80d263e9614c8",
+    "bytes": 18266488
+  },
+  {
+    "file": "flite/omnivox-flite-helper",
+    "sha256": "e6db6e01135d731060ee2f1b2e9ac1f62969b97a6e636284bdd7590ad91e469e",
+    "bytes": 8574128
+  },
+  {
+    "file": "flite/SOURCE-PROVENANCE.json",
+    "sha256": "06df0d554bf0d24da119e1caf637aeae7cdf7d6c1b31806a24e7c78517fbc9e7",
+    "bytes": 720
+  },
+  {
+    "file": "flite/SHA256SUMS",
+    "sha256": "6378242e9e3271a42f1d7e27de249ef637de067119df16283d126ad1cdceaed8",
+    "bytes": 701
+  }
+]

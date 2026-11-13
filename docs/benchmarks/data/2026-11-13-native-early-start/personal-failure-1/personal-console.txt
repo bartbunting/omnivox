@@ -1,0 +1,12 @@
+Timed out running C:\Users\bart\AppData\Local\Emacsvox\Windows Install 
+Test\installation\Emacs\31.1-ucrt64\bin\emacs.exe; inspect 
+C:\Users\bart\AppData\Local\Emacsvox\NativeLightweight\native-early-20261113\logs\native-guarded-personal-check.log
+At C:\Users\bart\AppData\Local\Emacsvox\NativeLightweight\native-early-20261113\client\utils\emacsvox-windows-common.ps
+1:70 char:13
++             throw "Timed out running $Program; inspect $Log"
++             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (Timed out runni...sonal-check.log:String) [], RuntimeException
+    + FullyQualifiedErrorId : Timed out running C:\Users\bart\AppData\Local\Emacsvox\Windows Install Test\installation 
+   \Emacs\31.1-ucrt64\bin\emacs.exe; inspect C:\Users\bart\AppData\Local\Emacsvox\NativeLightweight\native-early-2026  
+  1113\logs\native-guarded-personal-check.log
+ 

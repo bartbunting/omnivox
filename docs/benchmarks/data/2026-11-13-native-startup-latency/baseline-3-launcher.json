@@ -1,0 +1,30 @@
+﻿[
+    {
+        "epoch":  1794503697.535,
+        "event":  "powershell-script"
+    },
+    {
+        "epoch":  1794503697.605,
+        "event":  "version-start"
+    },
+    {
+        "epoch":  1794503698.347,
+        "event":  "version-end"
+    },
+    {
+        "epoch":  1794503698.359,
+        "event":  "preflight-start"
+    },
+    {
+        "epoch":  1794503700.934,
+        "event":  "preflight-end"
+    },
+    {
+        "epoch":  1794503700.944,
+        "event":  "gui-start"
+    },
+    {
+        "epoch":  1794503713.726,
+        "event":  "gui-exit"
+    }
+]

@@ -1,0 +1,51 @@
+info: syncing channel updates for 1.97.1-x86_64-unknown-linux-gnu
+info: latest update on 2026-07-16 for version 1.97.1 (8bab26f4f 2026-07-14)
+info: downloading component clippy
+   Compiling omnivox-tts v1.18.0 (/workspace/omnivox/omnivox-tts)
+   Compiling omnivox-cli v1.18.0 (/workspace/omnivox/omnivox-cli)
+error[E0277]: the trait bound `Array<u8, UInt<UInt<UInt<UInt<..., ...>, ...>, ...>, ...>>: LowerHex` is not satisfied
+  --> omnivox-cli/src/native_guard/windows/helper_wire.rs:34:24
+   |
+34 |     Ok(format!("{:x}", Sha256::digest(bytes)))
+   |                 ----   ^^^^^^^^^^^^^^^^^^^^^ the trait `std::fmt::LowerHex` is not implemented for `Array<u8, UInt<UInt<UInt<UInt<UInt<..., ...>, ...>, ...>, ...>, ...>>`
+   |                 |
+   |                 required by this formatting parameter
+   |
+   = help: the following other types implement trait `std::fmt::LowerHex`:
+             &T
+             &mut T
+             bytes::bytes::Bytes
+             bytes::bytes_mut::BytesMut
+             compiler_builtins::math::libm_math::support::big::i256
+             compiler_builtins::math::libm_math::support::big::u256
+             compiler_builtins::math::libm_math::support::hex_float::hex_fmt::Hex<T>
+             i128
+           and 18 others
+   = note: the full name for the type has been written to '/workspace/omnivox/target/guard-windows-check/x86_64-pc-windows-gnu/debug/deps/omnivox-6b4ae35dc420d900.long-type-14216554644776769771.txt'
+   = note: consider using `--verbose` to print the full type name to the console
+
+error[E0277]: the trait bound `Array<u8, UInt<UInt<UInt<UInt<..., ...>, ...>, ...>, ...>>: LowerHex` is not satisfied
+  --> omnivox-cli/src/native_guard/windows/helper_wire.rs:34:24
+   |
+34 |     Ok(format!("{:x}", Sha256::digest(bytes)))
+   |                 ----   ^^^^^^^^^^^^^^^^^^^^^ the trait `std::fmt::LowerHex` is not implemented for `Array<u8, UInt<UInt<UInt<UInt<UInt<..., ...>, ...>, ...>, ...>, ...>>`
+   |                 |
+   |                 required by this formatting parameter
+   |
+   = help: the following other types implement trait `std::fmt::LowerHex`:
+             &T
+             &mut T
+             bytes::bytes::Bytes
+             bytes::bytes_mut::BytesMut
+             compiler_builtins::math::libm_math::support::big::i256
+             compiler_builtins::math::libm_math::support::big::u256
+             compiler_builtins::math::libm_math::support::hex_float::hex_fmt::Hex<T>
+             i128
+           and 18 others
+   = note: the full name for the type has been written to '/workspace/omnivox/target/guard-windows-check/x86_64-pc-windows-gnu/debug/deps/omnivox-aa320de502fb0fde.long-type-11790504914885224153.txt'
+   = note: consider using `--verbose` to print the full type name to the console
+
+For more information about this error, try `rustc --explain E0277`.
+error: could not compile `omnivox-cli` (bin "omnivox") due to 1 previous error
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `omnivox-cli` (bin "omnivox" test) due to 1 previous error

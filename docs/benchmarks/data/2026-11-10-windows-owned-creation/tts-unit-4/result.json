@@ -1,0 +1,15 @@
+{
+  "tests_sha256": "18ef1b967490f35e0f907daef1f00e0e006bf12cf7662d0c236292b624011c7d",
+  "runtime_sha256": "ddbe824433d2412c5acfc6bc88f6ce3fdfa7e28914d3d0dcdeeef06d9dfd4b39",
+  "runs": [
+    {
+      "command": [
+        "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-creation-rust-20261110-check4/tts-tests.exe",
+        "helper_engine::",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit": 0
+    }
+  ]
+}

@@ -20,11 +20,15 @@
 
 mod cli;
 mod diagnostics;
+mod emergency;
 mod engine;
 mod engine_execution;
 mod health;
 mod lifecycle;
+mod lightweight;
 mod marker_events;
+#[cfg(any(target_os = "linux", windows))]
+mod native_guard;
 mod native_plans;
 mod parameter_queries;
 mod pipeline;
@@ -73,6 +77,26 @@ pub(crate) const SOUND_MAX_DEPTH: usize = 10;
 
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().skip(1).collect();
+    #[cfg(any(target_os = "linux", windows))]
+    match args.first().map(String::as_str) {
+        Some(native_guard::MODE) => return native_guard::run(&args[1..]),
+        Some(native_guard::CLIENT) => {
+            anyhow::ensure!(args.len() == 1, "guard control takes its endpoint on stdin");
+            return native_guard::bridge();
+        }
+        _ => (),
+    }
+    #[cfg(not(any(target_os = "linux", windows)))]
+    if args.first().is_some_and(|argument| {
+        matches!(
+            argument.as_str(),
+            "--native-cleanup-guard" | "--native-guard-control"
+        )
+    }) {
+        anyhow::bail!("independent native guard control is not implemented on this platform");
+    }
+    #[cfg(windows)]
+    let args = native_guard::worker_arguments(args)?;
     #[cfg(any(target_os = "linux", target_os = "macos", windows))]
     if voice_local::requested(&args) {
         return voice_local::run(&args);
@@ -90,7 +114,7 @@ fn main() -> Result<()> {
         return remote::run(&args);
     }
     remote::await_worker_start()?;
-    let cli = parse_args();
+    let cli = parse_args(&args);
 
     match cli.action.as_str() {
         "help" => {
@@ -220,13 +244,15 @@ fn main() -> Result<()> {
         {
             info!("Initializing macOS TTS engine (ObjC bridge)");
         }
-        create_engines(
-            &cli.engine,
-            cli.piper_model.as_deref(),
-            cli.voice_library.as_deref(),
-            cli.config_dir.as_deref(),
-            Arc::clone(&gen_counter),
-        )?
+        emergency::timed("initialize-engines", || {
+            create_engines(
+                &cli.engine,
+                cli.piper_model.as_deref(),
+                cli.voice_library.as_deref(),
+                cli.config_dir.as_deref(),
+                Arc::clone(&gen_counter),
+            )
+        })?
     };
     let audio_backend = audio_backend_override.unwrap_or(created_engines.audio.backend);
     let engine = created_engines.preferred;

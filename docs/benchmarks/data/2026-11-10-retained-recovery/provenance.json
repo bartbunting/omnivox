@@ -1,0 +1,10 @@
+{
+  "omnivox_commit": "1a250303e901ac4b626ba30c75ce3b14de631a75",
+  "emacsvox_base": "7846106abd4245f912ac22858e6c4d49d49b78fb",
+  "linux_payload": "/home/bart/src/omnivox-lightweight-reload/target/host-preferences/payload/omnivox",
+  "linux_executable_sha256": "6a269638938cfd487f3dba1677c0fec073194f2c4bf0a0face1ba912fb0e4d8d",
+  "windows_runtime": "cdbbcb7fc4882572",
+  "windows_executable_sha256": "badd0fe24b714684fe3ac578b1e7695bf1c730a7b38d663b700db5d10db8847a",
+  "emacs": "/home/bart/opt/emacs-31/bin/emacs",
+  "rust": "1.97.1 (unchanged native payload; no rebuild in this slice)"
+}

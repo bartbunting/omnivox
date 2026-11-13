@@ -1,0 +1,237 @@
+{
+  "native": {
+    "before-create": {
+      "n": 12,
+      "all_passed": true,
+      "empty_before_handle_cases": 0,
+      "retire_median_ms": 0.0718,
+      "retire_range_ms": [
+        0.0292,
+        0.5835
+      ],
+      "pcm": []
+    },
+    "before-duplicate": {
+      "n": 12,
+      "all_passed": true,
+      "empty_before_handle_cases": 12,
+      "retire_median_ms": 1.3106,
+      "retire_range_ms": [
+        0.9728,
+        1.5619
+      ],
+      "pcm": []
+    },
+    "before-release": {
+      "n": 12,
+      "all_passed": true,
+      "empty_before_handle_cases": 12,
+      "retire_median_ms": 1.3168,
+      "retire_range_ms": [
+        0.9532,
+        1.9384000000000001
+      ],
+      "pcm": []
+    },
+    "child-restricted": {
+      "n": 12,
+      "all_passed": true,
+      "empty_before_handle_cases": 12,
+      "retire_median_ms": 1.23845,
+      "retire_range_ms": [
+        0.9167000000000001,
+        1.6229
+      ],
+      "pcm": []
+    },
+    "concurrent-create": {
+      "n": 12,
+      "all_passed": true,
+      "empty_before_handle_cases": 12,
+      "retire_median_ms": 1.4418000000000002,
+      "retire_range_ms": [
+        1.2573,
+        3.6132
+      ],
+      "pcm": []
+    },
+    "creator-dies-during-create": {
+      "n": 12,
+      "all_passed": true,
+      "empty_before_handle_cases": 12,
+      "retire_median_ms": 1.0566,
+      "retire_range_ms": [
+        0.8351000000000001,
+        1.6974
+      ],
+      "pcm": []
+    },
+    "helper-survives-worker": {
+      "n": 12,
+      "all_passed": true,
+      "empty_before_handle_cases": 12,
+      "retire_median_ms": 2.53055,
+      "retire_range_ms": [
+        1.9972,
+        3.0662000000000003
+      ],
+      "pcm": [
+        "PCM_CHUNKS 40"
+      ]
+    },
+    "lost-ack": {
+      "n": 12,
+      "all_passed": true,
+      "empty_before_handle_cases": 12,
+      "retire_median_ms": 1.2735,
+      "retire_range_ms": [
+        0.9061,
+        1.6600000000000001
+      ],
+      "pcm": []
+    },
+    "partial-duplicate": {
+      "n": 12,
+      "all_passed": true,
+      "empty_before_handle_cases": 12,
+      "retire_median_ms": 1.385,
+      "retire_range_ms": [
+        1.0307,
+        2.1673
+      ],
+      "pcm": []
+    },
+    "running": {
+      "n": 12,
+      "all_passed": true,
+      "empty_before_handle_cases": 12,
+      "retire_median_ms": 2.47285,
+      "retire_range_ms": [
+        1.7472,
+        3.52
+      ],
+      "pcm": [
+        "PCM_CHUNKS 40"
+      ]
+    },
+    "unregistered-member": {
+      "n": 12,
+      "all_passed": true,
+      "empty_before_handle_cases": 12,
+      "retire_median_ms": 2.67065,
+      "retire_range_ms": [
+        1.9546000000000001,
+        3.3081
+      ],
+      "pcm": [
+        "PCM_CHUNKS 40"
+      ]
+    }
+  },
+  "client": {
+    "windows": {
+      "baseline": {
+        "successful_calls": 20,
+        "operation_median_ms": 876.205563545227,
+        "run_medians_ms": [
+          841.5505886077881,
+          883.4989070892334,
+          849.0967750549316,
+          877.819299697876
+        ],
+        "preparation_median_ms": 700.6493806838989,
+        "attach_median_ms": 207.61775970458984,
+        "healthy_source_gap_bounds_ms": [
+          187.2248649597168,
+          195.1761245727539,
+          216.68362617492676,
+          199.2931365966797
+        ],
+        "full_case_ready_medians_ms": {
+          "paused": 862.9953861236572,
+          "killed": 915.6054258346558,
+          "repeated": 856.2412261962891,
+          "lost-reply": 1558.5012435913086,
+          "disconnected": 1102.8648614883423
+        }
+      },
+      "candidate": {
+        "successful_calls": 20,
+        "operation_median_ms": 695.549726486206,
+        "run_medians_ms": [
+          666.860818862915,
+          717.0345783233643,
+          695.570707321167,
+          700.3698348999023
+        ],
+        "preparation_median_ms": 493.29614639282227,
+        "attach_median_ms": 1.5459060668945312,
+        "healthy_source_gap_bounds_ms": [
+          198.08506965637207,
+          262.0429992675781,
+          237.7300262451172,
+          196.10309600830078
+        ],
+        "full_case_ready_medians_ms": {
+          "paused": 690.3336048126221,
+          "killed": 700.1588344573975,
+          "repeated": 697.3985433578491,
+          "lost-reply": 1172.9427576065063,
+          "disconnected": 938.4841918945312
+        }
+      }
+    },
+    "linux": {
+      "baseline": {
+        "successful_calls": 20,
+        "operation_median_ms": 102.5627851486206,
+        "run_medians_ms": [
+          100.28266906738281,
+          105.00454902648926,
+          99.85971450805664,
+          102.56528854370117
+        ],
+        "preparation_median_ms": 54.53169345855713,
+        "attach_median_ms": 7.4825286865234375,
+        "healthy_source_gap_bounds_ms": [
+          69.20957565307617,
+          57.49154090881348,
+          62.347412109375,
+          58.94184112548828
+        ],
+        "full_case_ready_medians_ms": {
+          "paused": 99.0450382232666,
+          "killed": 123.71385097503662,
+          "repeated": 97.2604751586914,
+          "lost-reply": 162.66167163848877,
+          "disconnected": 151.81612968444824
+        }
+      },
+      "candidate": {
+        "successful_calls": 20,
+        "operation_median_ms": 98.04248809814453,
+        "run_medians_ms": [
+          78.92060279846191,
+          101.30667686462402,
+          91.95375442504883,
+          104.57396507263184
+        ],
+        "preparation_median_ms": 46.07069492340088,
+        "attach_median_ms": 0.44476985931396484,
+        "healthy_source_gap_bounds_ms": [
+          53.20930480957031,
+          66.21050834655762,
+          56.32448196411133,
+          66.18261337280273
+        ],
+        "full_case_ready_medians_ms": {
+          "paused": 94.5500135421753,
+          "killed": 115.25964736938477,
+          "repeated": 87.76867389678955,
+          "lost-reply": 138.07356357574463,
+          "disconnected": 139.38629627227783
+        }
+      }
+    }
+  }
+}

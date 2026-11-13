@@ -1,11 +1,15 @@
 //! Host-side support for TTS engines backed by helper processes.
 
+#[cfg(windows)]
+use crate::native_helper::Child;
 use std::collections::{HashMap, VecDeque};
 use std::ffi::OsString;
 use std::fs::File;
 use std::io::{BufReader, BufWriter, Read};
 use std::path::{Path, PathBuf};
-use std::process::{Child, ChildStdin, Command, Stdio};
+use std::process::ChildStdin;
+#[cfg(not(windows))]
+use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, AtomicU64, AtomicU8, Ordering};
 use std::sync::{mpsc, Arc, Mutex, MutexGuard, RwLock, TryLockError};
 use std::thread::{self, JoinHandle};
@@ -358,17 +362,27 @@ impl ProcessHelperConnection {
         environment: &LaunchEnvironment,
     ) -> Result<Self, HelperEngineError> {
         info!(engine_id, "Starting TTS helper process");
-        let mut command = Command::new(program);
-        environment.apply(&mut command);
-        let mut child = command
-            .args(arguments)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::inherit())
-            .spawn()
+        #[cfg(windows)]
+        let mut child = crate::native_helper::spawn(engine_id, program, arguments, environment)
             .map_err(|error| {
                 HelperEngineError::Transport(format!("could not start {engine_id} helper: {error}"))
             })?;
+        #[cfg(not(windows))]
+        let mut child = {
+            let mut command = Command::new(program);
+            environment.apply(&mut command);
+            command
+                .args(arguments)
+                .stdin(Stdio::piped())
+                .stdout(Stdio::piped())
+                .stderr(Stdio::inherit())
+                .spawn()
+                .map_err(|error| {
+                    HelperEngineError::Transport(format!(
+                        "could not start {engine_id} helper: {error}"
+                    ))
+                })?
+        };
         let child_id = child.id();
         info!(engine_id, child_id, "TTS helper process started");
         let stdin = child

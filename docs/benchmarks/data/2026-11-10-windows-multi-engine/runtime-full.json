@@ -1,0 +1,8 @@
+{
+  "stage": "/home/bart/src/emacsvox-lightweight-reload/servers/omnivox-bin/versions/003dd19fc9425876",
+  "executable": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-lightweight-20261110/Emacsvox/Omnivox/runtime/003dd19fc9425876/omnivox.exe",
+  "sha256": "2bfb50858c2cbf3096706ac8ac61fde929bdcbff69957a5d17394dc85a451be6",
+  "data": "C:\\Users\\bart\\AppData\\Local\\Temp\\omnivox-lightweight-20261110\\Emacsvox\\Omnivox\\espeak-data\\9a2e176369cfe0b982737abf6c26037f21d2b9af2a2fabcc08062864d0157718",
+  "rhvoice_library": "C:\\Users\\bart\\AppData\\Local\\Emacsvox\\RHVoice\\1.14.0-wrapper-0.5.0-slt\\RHVoice.dll",
+  "rhvoice_data": "C:\\Users\\bart\\AppData\\Local\\Emacsvox\\RHVoice\\1.14.0-wrapper-0.5.0-slt\\data"
+}

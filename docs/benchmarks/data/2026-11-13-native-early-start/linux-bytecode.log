@@ -1,0 +1,29 @@
+  INFO     Scraping 389 files for loaddefs...
+  INFO     Scraping 389 files for loaddefs...39%
+  INFO     Scraping 389 files for loaddefs...done
+  GEN      emacsvox-loaddefs.el
+make -C lisp EMACS="/home/bart/opt/emacs-31/bin/emacs" all
+
+In omnivox-apply-voice-configuration:
+speech/omnivox-voices.el:1808:2: Warning: docstring wider than 80 characters
+speech/omnivox-voices.el
+aural/emacsvox-aural-replay.el
+
+In emacsvox-prepare-emacs:
+emacsvox.el:346:26: Warning: reference to free variable ‘Info-file-list-for-emacs’
+emacsvox.el:346:26: Warning: assignment to free variable ‘Info-file-list-for-emacs’
+
+In emacsvox-setup-programming-modes:
+emacsvox.el:375:6: Warning: reference to free variable ‘generic-extras-enable-list’
+
+In emacsvox:
+emacsvox.el:690:39: Warning: reference to free variable ‘Info-directory-list’
+emacsvox.el:690:39: Warning: assignment to free variable ‘Info-directory-list’
+
+In end of data:
+emacsvox.el:689:6: Warning: the function ‘info-initialize’ is not known to be defined.
+emacsvox.el
+emacsvox-setup.el
+make EMACS="/home/bart/opt/emacs-31/bin/emacs" bytecode-check
+Emacsvox byte-code is current.
+Emacsvox byte-code is current.

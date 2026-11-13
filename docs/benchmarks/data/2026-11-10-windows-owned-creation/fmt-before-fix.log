@@ -1,0 +1,20 @@
+cargo fmt --all -- --check
+Diff in /home/bart/src/omnivox-lightweight-reload/omnivox-cli/src/native_guard/windows/plan.rs:62:
+             &config.arguments,
+             &config.environment,
+         )?;
+-        anyhow::ensure!(config.program.is_absolute(), "guard helper requires an absolute program");
+-        Ok(Self {
+-            config,
+-            identity,
+-        })
++        anyhow::ensure!(
++            config.program.is_absolute(),
++            "guard helper requires an absolute program"
++        );
++        Ok(Self { config, identity })
+     }
+ }
+-
+ 
+make: *** [Makefile:158: fmt-check] Error 1

@@ -1,0 +1,24 @@
+
+running 13 tests
+test native_guard::os::pipe::tests::abrupt_peer_process_exit_finishes_pending_read_without_reconnect ... ok
+test native_guard::os::pipe::tests::duplex_reads_peek_and_partial_consumption_preserve_coalesced_tail ... ok
+test native_guard::os::pipe::tests::helper_stdio_supports_sync_native_and_async_rust_ends ... ok
+test native_guard::os::pipe::tests::large_duplex_transfer_survives_pending_writes_and_small_reads ... ok
+test native_guard::os::pipe::tests::listener_created_on_finished_setup_thread_accepts_and_retires ... ok
+test native_guard::os::pipe::tests::local_names_only_and_connection_deadline_never_retries_after_expiry ... ok
+test native_guard::os::pipe::tests::native_acl_is_private_handles_do_not_inherit_and_restricted_user_is_denied ... ok
+test native_guard::os::pipe::tests::pending_accept_close_and_first_instance_exclusion ... ok
+test native_guard::os::pipe::tests::pending_read_owner_can_move_to_another_thread_before_completion ... ok
+test native_guard::os::pipe::tests::pipe_child ... ok
+test native_guard::os::pipe::tests::repeated_client_retirement_reuses_bounded_listener_without_leaked_instances ... ok
+test native_guard::os::pipe::tests::repeated_pending_io_retirement_keeps_handles_bounded ... 
+running 1 test
+test native_guard::os::pipe::tests::repeated_pending_io_retirement_keeps_handles_bounded ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 385 filtered out; finished in 0.01s
+
+ok
+test native_guard::os::pipe::tests::saturated_writer_cancellation_does_not_block_other_channels ... ok
+
+test result: ok. 13 passed; 0 failed; 0 ignored; 0 measured; 373 filtered out; finished in 2.24s
+

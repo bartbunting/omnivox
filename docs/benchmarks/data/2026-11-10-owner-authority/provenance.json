@@ -1,0 +1,16 @@
+{
+  "omnivox_commit": "2ad8338968091177c389c6a9697c4fbaa5442037",
+  "emacsvox_commit": "25cc0e24b094d163a77565a63e3d978ed91c39b2",
+  "executable": "/home/bart/src/omnivox-lightweight-reload/target/emergency-speech/payload/omnivox",
+  "executable_sha256": "ef4310a952c25ad4bba4bf97f6d87e7e4667379932dfee1d7527314f27ba76bf",
+  "retained_session_source": "78794197f718bc0dabfc7e43d0cfab9ac2ac04f8",
+  "native_runs": "/home/bart/src/omnivox-lightweight-reload/target/owner-authority",
+  "archive_members_verified": 46,
+  "scope": "Linux eSpeak/null functional failures; no runtime changes or new guard implementation",
+  "checks": "Final fixture completed four cases; exact retirement status and native worker state match the report; every archive member verified",
+  "limitations": [
+    "Native Windows/WSL owner failure not tested in this fixture",
+    "macOS, acoustic output and reboot reconciliation unqualified",
+    "Historical guard source/evidence inspected but historical suites not rerun"
+  ]
+}

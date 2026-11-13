@@ -610,11 +610,43 @@ impl EspeakTtsEngine {
 
     /// Construct the bundled engine with an explicit, bounded selection of variants.
     pub fn with_variant_choices(choices: &[EspeakVariantChoice]) -> Result<Self, TtsError> {
+        Self::with_data_location(choices, Self::find_data_path(), false)
+    }
+
+    /// Explicit emergency engine: only adjacent bundled data, no saved variants.
+    pub fn bundled() -> Result<Self, TtsError> {
+        let parent = std::env::current_exe()
+            .ok()
+            .and_then(|path| path.parent().map(Path::to_path_buf))
+            .ok_or(TtsError::NotAvailable)?;
+        Self::with_fixed_data(&parent)
+    }
+
+    /// Use only the selected installation's data, including shared Windows bundles.
+    /// This bypasses preference environment, system fallback and saved variants.
+    pub fn with_fixed_data(parent: &Path) -> Result<Self, TtsError> {
+        let location = parent
+            .is_absolute()
+            .then_some(parent)
+            .filter(|parent| parent.join("espeak-ng-data/phontab").is_file())
+            .and_then(|parent| Self::data_location(parent.to_owned()))
+            .ok_or_else(|| {
+                TtsError::SynthesisFailed(
+                    "emergency speech requires its selected bundled eSpeak data".into(),
+                )
+            })?;
+        Self::with_data_location(&[], Some(location), true)
+    }
+
+    fn with_data_location(
+        choices: &[EspeakVariantChoice],
+        data_path: Option<EspeakDataLocation>,
+        strict: bool,
+    ) -> Result<Self, TtsError> {
+        let expected_parent = data_path.as_ref().map(|location| location.parent.clone());
         let state = ESPEAK_LOCK
             .get_or_try_init(|| -> Result<Mutex<EspeakState>, TtsError> {
                 info!("Initializing espeak-ng TTS engine");
-
-                let data_path = Self::find_data_path();
 
                 let sample_rate = unsafe {
                     let path_ptr = match &data_path {
@@ -661,6 +693,11 @@ impl EspeakTtsEngine {
             return Err(TtsError::NotAvailable);
         }
         let data_parent = guard.data_parent.clone();
+        if strict && data_parent != expected_parent {
+            return Err(TtsError::SynthesisFailed(
+                "eSpeak already initialized from different data".into(),
+            ));
+        }
 
         drop(guard);
 

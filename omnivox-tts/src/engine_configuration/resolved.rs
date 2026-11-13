@@ -64,6 +64,41 @@ pub struct ResolvedConfiguration {
 }
 
 impl ResolvedConfiguration {
+    /// Explicit emergency policy. No configuration, discovery or managed assets.
+    pub fn emergency(environment: LaunchEnvironment) -> Self {
+        let registrations = shipped::ENGINES
+            .iter()
+            .map(|definition| {
+                let enabled = definition.id == "espeak";
+                (
+                    definition.id.into(),
+                    ResolvedRegistration {
+                        engine_id: definition.id.into(),
+                        origin: if definition.in_process {
+                            EngineOrigin::InProcess
+                        } else {
+                            EngineOrigin::ShippedHelper
+                        },
+                        source: None,
+                        override_source: None,
+                        enabled,
+                        unavailable: (!enabled).then(|| "not loaded in emergency speech".into()),
+                        helper: None,
+                    },
+                )
+            })
+            .collect();
+        Self {
+            registrations,
+            routing: LocalRoutingPolicy::default(),
+            speech: super::SpeechConfiguration::default(),
+            audio: omnivox_core::settings::AudioOutputSettings::default(),
+            environment,
+            root: None,
+            diagnostics: Vec::new(),
+        }
+    }
+
     pub fn resolve(
         loaded: LoadedConfiguration,
         executable: &Path,

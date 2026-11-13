@@ -1,0 +1,24 @@
+{
+  "utc": "20261112T163338Z",
+  "reason": "Match Development startup engine; common personal configuration files already identical",
+  "updates": [
+    {
+      "path": "/home/bart/src/workstation-config/windows/emacs/evox-windows.ps1",
+      "backup": "/mnt/c/Users/bart/AppData/Local/Emacsvox/NativeLightweight/native-reload-20261113/backups/default-canonical-20261112T163338Z.ps1",
+      "before_sha256": "25537d85cbd539b549d55c183c26e340126e7f2514232b637508bc7b93f68060",
+      "after_sha256": "a5cb78235f9feb1ae510139bb4e074bb9701637df0873687176e7d55ea83f42c"
+    },
+    {
+      "path": "/mnt/c/Users/bart/bin/evox-windows.ps1",
+      "backup": "/mnt/c/Users/bart/AppData/Local/Emacsvox/NativeLightweight/native-reload-20261113/backups/default-bin-20261112T163338Z.ps1",
+      "before_sha256": "c61483143c20a3029a552a5901f2acb275ea5471b0631e9f19459f69583c6914",
+      "after_sha256": "27957c543e2cb0393e92ff640e8e5b3042a5b1e87abb24bb4d7cbb1f46a46a70"
+    },
+    {
+      "path": "/mnt/c/Users/bart/AppData/Local/Emacsvox/NativeLightweight/native-reload-20261113/evox-windows.ps1",
+      "backup": "/mnt/c/Users/bart/AppData/Local/Emacsvox/NativeLightweight/native-reload-20261113/backups/default-desktop-20261112T163338Z.ps1",
+      "before_sha256": "805b7e6733776093dfbe9272f236edeb4e81d7e3b2e59706dba5a7cb89223911",
+      "after_sha256": "b1a5fe84f146e6361069f732c9cae944914e3ee75a281ff301a1a59d73e4bdac"
+    }
+  ]
+}

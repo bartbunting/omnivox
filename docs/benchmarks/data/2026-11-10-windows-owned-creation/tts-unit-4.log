@@ -1,0 +1,40 @@
+helper_engine:: 0 nd_wrong_version_responses_before_assembly ... ok
+test helper_engine::tests::rejects_wrong_request_and_out_of_order_chunks ... ok
+test helper_engine::tests::repeated_stop_after_cancel_acceptance_keeps_one_target_owner ... ok
+test helper_engine::tests::retryable_native_failure_retires_the_helper_before_next_synthesis ... ok
+test helper_engine::tests::startup_deadline_does_not_wait_for_a_blocked_connector ... ok
+test helper_engine::tests::startup_deadline_does_not_wait_for_unconfirmed_writer_cleanup ... ok
+test helper_engine::tests::stop_bounds_a_blocked_cancel_write_even_after_target_completion ... ok
+test helper_engine::tests::stop_cancels_an_active_helper_request_without_waiting_for_synthesis ... ok
+test helper_engine::tests::stop_restarts_a_helper_that_ignores_cancellation_before_next_synthesis ... ok
+test helper_engine::tests::streams_canonical_helper_windows_and_markers_to_the_consumer ... ok
+test helper_engine::tests::synthesis_timeout_invalidates_the_child_until_recovery_restarts_it ... ok
+test helper_engine::tests::target_cancellation_has_one_terminal_or_retirement_winner ... ok
+test helper_engine::tests::unconfirmed_cleanup_blocks_replacement_until_retry_succeeds ... ok
+test helper_engine::tests::unexpected_progressive_consumer_failure_still_retires_the_helper ... ok
+test helper_engine::tests::unfinished_initializations_keep_the_batch_limit_and_forbid_replacement ... ok
+
+test result: ok. 60 passed; 0 failed; 0 ignored; 0 measured; 444 filtered out; finished in 6.16s
+
+ 
+thread 'omnivox-external-init-0' (16116) panicked at omnivox-tts/src/helper_engine/initialization.rs:399:13:
+failed worker
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'omnivox-external-init-1' (17516) panicked at omnivox-tts/src/helper_engine/initialization.rs:399:13:
+failed worker
+
+thread 'omnivox-helper-initialization' (35008) panicked at omnivox-tts/src/helper_engine/initialization_tests.rs:434:9:
+controlled initialization panic
+
+thread 'omnivox-helper-initialization' (5536) panicked at omnivox-tts/src/helper_engine/initialization_tests.rs:434:9:
+controlled initialization panic
+
+thread 'omnivox-helper-initialization' (39572) panicked at omnivox-tts/src/helper_engine/initialization_tests.rs:434:9:
+controlled initialization panic
+
+thread 'omnivox-helper-initialization' (39192) panicked at omnivox-tts/src/helper_engine/initialization_tests.rs:434:9:
+controlled initialization panic
+blocked connector: budget_ms=100 return_ms=101
+unconfirmed writer cleanup: budget_ms=100 return_ms=100
+

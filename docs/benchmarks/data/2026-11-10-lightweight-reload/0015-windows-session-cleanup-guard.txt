@@ -1,0 +1,95 @@
+# ADR 0015: One Windows cleanup guard per private session
+
+- Status: Accepted for implementation; runtime and platform qualification are
+  separate requirements.
+- Date: 2026-10-26.
+- Accepted: 2026-10-26, including creation of this record and implementation of
+  the reviewed Windows guard stages.
+- Partially supersedes: [ADR 0013](0013-private-sessions-and-multi-lane-supervision.md#one-supervisor-owns-a-bounded-collection-of-isolated-lanes),
+  specifically Windows native ownership in the configuration supervisor.
+- Related: [Unix cleanup guard](0014-unix-session-cleanup-guard.md),
+  [managed native ownership](0007-managed-voice-lifecycle.md#verify-before-native-use-and-retain-cleanup-ownership),
+  [session configuration](0011-session-configuration-and-reload.md), and
+  [engine isolation](0001-engine-isolation-and-distribution.md).
+- Managed activation refinement: [ADR 0016](0016-session-managed-voice-activation.md)
+  adds bounded probe, candidate and rollback ownership within the original guard.
+  Configuration decisions remain in the supervisor.
+
+## Context
+
+Windows kill-on-close jobs terminate worker trees when the supervisor dies, but
+the same failure removes the writer of their cleanup receipts. The successor
+therefore remains blocked even after native handles confirm termination. The
+[Windows investigation](../benchmarks/2026-10-26-windows-recovery-review.md)
+also establishes that retaining a query-only job handle changes kill-on-close
+lifetime. An observer cannot be added without accepting explicit ownership and
+termination obligations.
+
+## Decision
+
+Use one cleanup guard for the private Windows session's bounded membership of
+1–32 isolated lane workers. Run it as a private mode of the selected, pinned
+Omnivox executable. It owns worker creation, the existing per-lane unnamed
+kill-on-close jobs, actual child handles, native launch gates, native pins and
+the original cleanup journal claim. Establish job ownership before native engine
+initialization. The guard stays outside all worker jobs.
+
+The configuration supervisor keeps membership, retained startup and recovery
+records, asset retention, immutable Commit/Abort decisions and terminal results.
+The guard neither selects configuration nor votes in reload. Speech I/O stays in
+the supervisor and connects directly to each worker, without a guard forwarding
+hop. A bounded private lifecycle channel is independent of speech, client output
+and any WSL relay.
+
+Retain the actual supervisor process handle from startup; never acquire lifetime
+authority by reopening a saved PID. Restrict inherited handles. Keep launch gates
+closed until native ownership is durable and the complete speech-handle handoff
+is acknowledged. Partial duplication, cancelled setup and lost acknowledgements
+retain their native and I/O owners; cancellation cannot release a late gate.
+
+Supervisor loss closes admission for the entire session. The guard retires every
+worker job, including helpers whose worker has already exited, independently of
+blocked client I/O or journal writes. Native tree retirement requires the actual
+child to end and job accounting to reach zero, not a count of expected PIDs.
+Cleanup of one lane must not prevent attempts to retire another.
+
+Tree retirement and I/O retirement remain separate durable observations. While
+the supervisor lives, its completion indication follows retirement of every
+covered I/O operation and setup task. A signalled retained supervisor process
+handle may establish completion only for resources owned by that process. The
+guard must separately retire its own handles, setup and I/O tasks, and retain its
+journal writer through completion. Only the original owner writes these receipts;
+a successor's inspection claim grants no new cleanup authority.
+
+Recovery reconciles retained configuration decisions and waits for complete native
+and I/O evidence before starting fresh worker incarnations from the last retained
+committed configuration. It neither reattaches to old workers, replays speech nor
+rereads subsequently edited configuration files. Guard failure, uncertain handoff,
+missing receipts and damaged history keep recovery blocked, preserving pins and
+conflicting-management exclusion. Simultaneous guard failure and machine-loss
+recovery are outside this availability guarantee.
+
+Keep ADR 0014's Unix contract and existing standalone, remote and managed
+validation/Apply paths. This adds no distributable helper, shared daemon, engine
+pool or public session selection. Full Windows development staging and native
+failure/recovery qualification precede enabling the new path.
+
+## Consequences and alternatives
+
+The extra process preserves cleanup authority across supervisor failure for all
+lanes while configuration decisions remain centralized. It adds bootstrap,
+handle-transfer and completion accounting, with an unmeasured startup and resource
+cost. It does not eliminate per-lane engine memory or guarantee physical audio
+latency.
+
+Keeping the writer in the supervisor leaves the demonstrated recovery blocked.
+A successor cannot infer cleanup from a free claim, EOF, a saved PID or job name.
+A query-only observer still affects job lifetime and needs explicit termination
+authority. Per-lane owners add processes without simplifying session decisions.
+An external service would add deployment and version-selection requirements.
+
+Exact contracts and acceptance stages belong in the
+[reload reference](../reference/session-configuration-reload.md) and
+[delivery plan](../plans/session-configuration-reload.md#windows-cleanup-guard-review).
+Acceptance is not evidence of implementation, platform qualification or release
+publication.

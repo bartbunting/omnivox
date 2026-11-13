@@ -1,0 +1,287 @@
+{
+  "runtime": {
+    "stage": "/home/bart/src/emacsvox-lightweight-reload/servers/omnivox-bin/versions/ea5d6dfb93dd575d",
+    "executable": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-lightweight-20261110/Emacsvox/Omnivox/runtime/ea5d6dfb93dd575d/omnivox.exe",
+    "sha256": "f5fc9ce3b5f4a9f4723079e2964dbf6e58e180973056d9c1dfbbe308a936b0b8",
+    "data": "C:\\Users\\bart\\AppData\\Local\\Temp\\omnivox-lightweight-20261110\\Emacsvox\\Omnivox\\espeak-data\\9a2e176369cfe0b982737abf6c26037f21d2b9af2a2fabcc08062864d0157718",
+    "rhvoice_library": "C:\\Users\\bart\\AppData\\Local\\Emacsvox\\RHVoice\\1.14.0-wrapper-0.5.0-slt\\RHVoice.dll",
+    "rhvoice_data": "C:\\Users\\bart\\AppData\\Local\\Emacsvox\\RHVoice\\1.14.0-wrapper-0.5.0-slt\\data",
+    "client_commit": "5fc22ec71b6576eea1fe5b26c5fac9f7bc7dea56",
+    "implementation_base_commit": "6c5678cc8579231f30246f05e942af5839760cc7",
+    "modified_source": "omnivox-cli/src/native_guard/windows/helper_client.rs",
+    "modified_source_sha256": "1131681e220d8ff6166a17d0eba620455e306aa5b7b80bbc5fc9a200dbb873cc",
+    "implementation_commit": "ac9ee0a129f12e120ce2af822387cfa6fa225129"
+  },
+  "rows": [
+    {
+      "block": 0,
+      "profile": "all",
+      "ready_ms": 1027.071154,
+      "first_source_ms": 1041.425142,
+      "speech_ms": [
+        4.918624,
+        4.700747,
+        4.143762,
+        4.764079,
+        4.845269
+      ],
+      "directory": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-startup-investigation-1794312821290137563/0-all",
+      "cleanup_exit": 0
+    },
+    {
+      "block": 0,
+      "profile": "without_tg",
+      "ready_ms": 986.67374,
+      "first_source_ms": 1001.261539,
+      "speech_ms": [
+        4.455311,
+        3.91838,
+        3.837228,
+        4.797118,
+        4.676844
+      ],
+      "directory": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-startup-investigation-1794312821290137563/0-without_tg",
+      "cleanup_exit": 0
+    },
+    {
+      "block": 0,
+      "profile": "selected_pair",
+      "ready_ms": 745.116974,
+      "first_source_ms": 761.125581,
+      "speech_ms": [
+        4.610423,
+        4.29571,
+        4.120491,
+        4.025924,
+        3.964385
+      ],
+      "directory": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-startup-investigation-1794312821290137563/0-selected_pair",
+      "cleanup_exit": 0
+    },
+    {
+      "block": 1,
+      "profile": "selected_pair",
+      "ready_ms": 760.05119,
+      "first_source_ms": 773.961831,
+      "speech_ms": [
+        4.844722,
+        4.663755,
+        4.286433,
+        5.297143,
+        4.390313
+      ],
+      "directory": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-startup-investigation-1794312821290137563/1-selected_pair",
+      "cleanup_exit": 0
+    },
+    {
+      "block": 1,
+      "profile": "without_tg",
+      "ready_ms": 983.013375,
+      "first_source_ms": 997.514143,
+      "speech_ms": [
+        4.737675,
+        4.787586,
+        3.995455,
+        4.865516,
+        4.317654
+      ],
+      "directory": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-startup-investigation-1794312821290137563/1-without_tg",
+      "cleanup_exit": 0
+    },
+    {
+      "block": 1,
+      "profile": "all",
+      "ready_ms": 1071.273342,
+      "first_source_ms": 1085.3724969999998,
+      "speech_ms": [
+        5.023713,
+        4.106013,
+        4.16975,
+        3.783711,
+        3.973531
+      ],
+      "directory": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-startup-investigation-1794312821290137563/1-all",
+      "cleanup_exit": 0
+    },
+    {
+      "block": 2,
+      "profile": "all",
+      "ready_ms": 1009.066998,
+      "first_source_ms": 1025.183636,
+      "speech_ms": [
+        5.906551,
+        6.896233,
+        5.304824,
+        4.548464,
+        4.543788
+      ],
+      "directory": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-startup-investigation-1794312821290137563/2-all",
+      "cleanup_exit": 0
+    },
+    {
+      "block": 2,
+      "profile": "without_tg",
+      "ready_ms": 1024.67778,
+      "first_source_ms": 1040.078518,
+      "speech_ms": [
+        4.24416,
+        4.172123,
+        4.692716,
+        4.118522,
+        3.747902
+      ],
+      "directory": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-startup-investigation-1794312821290137563/2-without_tg",
+      "cleanup_exit": 0
+    },
+    {
+      "block": 2,
+      "profile": "selected_pair",
+      "ready_ms": 716.864634,
+      "first_source_ms": 734.823738,
+      "speech_ms": [
+        4.710322,
+        4.391872,
+        4.465958,
+        4.962578,
+        4.098234
+      ],
+      "directory": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-startup-investigation-1794312821290137563/2-selected_pair",
+      "cleanup_exit": 0
+    },
+    {
+      "block": 3,
+      "profile": "selected_pair",
+      "ready_ms": 750.984419,
+      "first_source_ms": 764.886772,
+      "speech_ms": [
+        4.046345,
+        4.453466,
+        4.371661,
+        3.908927,
+        4.488163
+      ],
+      "directory": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-startup-investigation-1794312821290137563/3-selected_pair",
+      "cleanup_exit": 0
+    },
+    {
+      "block": 3,
+      "profile": "without_tg",
+      "ready_ms": 1033.603634,
+      "first_source_ms": 1048.377107,
+      "speech_ms": [
+        5.644284,
+        4.089793,
+        4.475999,
+        5.225923,
+        4.695385
+      ],
+      "directory": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-startup-investigation-1794312821290137563/3-without_tg",
+      "cleanup_exit": 0
+    },
+    {
+      "block": 3,
+      "profile": "all",
+      "ready_ms": 1090.059485,
+      "first_source_ms": 1105.443886,
+      "speech_ms": [
+        4.833066,
+        4.742007,
+        8.463864,
+        4.224297,
+        4.299508
+      ],
+      "directory": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-startup-investigation-1794312821290137563/3-all",
+      "cleanup_exit": 0
+    },
+    {
+      "block": 4,
+      "profile": "all",
+      "ready_ms": 1015.988659,
+      "first_source_ms": 1031.742001,
+      "speech_ms": [
+        4.389155,
+        4.571077,
+        4.691713,
+        3.998375,
+        5.593876
+      ],
+      "directory": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-startup-investigation-1794312821290137563/4-all",
+      "cleanup_exit": 0
+    },
+    {
+      "block": 4,
+      "profile": "without_tg",
+      "ready_ms": 1066.030554,
+      "first_source_ms": 1081.414765,
+      "speech_ms": [
+        4.678081,
+        7.759691,
+        5.023823,
+        4.732277,
+        4.946209
+      ],
+      "directory": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-startup-investigation-1794312821290137563/4-without_tg",
+      "cleanup_exit": 0
+    },
+    {
+      "block": 4,
+      "profile": "selected_pair",
+      "ready_ms": 779.074456,
+      "first_source_ms": 794.260078,
+      "speech_ms": [
+        4.890531,
+        5.714015,
+        4.375767,
+        4.991388,
+        4.596174
+      ],
+      "directory": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-startup-investigation-1794312821290137563/4-selected_pair",
+      "cleanup_exit": 0
+    },
+    {
+      "block": 5,
+      "profile": "selected_pair",
+      "ready_ms": 728.336483,
+      "first_source_ms": 744.9140150000001,
+      "speech_ms": [
+        4.602501,
+        4.606117,
+        5.28857,
+        5.204461,
+        4.454807
+      ],
+      "directory": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-startup-investigation-1794312821290137563/5-selected_pair",
+      "cleanup_exit": 0
+    },
+    {
+      "block": 5,
+      "profile": "without_tg",
+      "ready_ms": 926.390829,
+      "first_source_ms": 942.910827,
+      "speech_ms": [
+        4.457683,
+        4.705762,
+        5.147784,
+        6.217277,
+        4.921203
+      ],
+      "directory": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-startup-investigation-1794312821290137563/5-without_tg",
+      "cleanup_exit": 0
+    },
+    {
+      "block": 5,
+      "profile": "all",
+      "ready_ms": 1027.373716,
+      "first_source_ms": 1043.1080630000001,
+      "speech_ms": [
+        7.645134,
+        5.171046,
+        4.033681,
+        5.426514,
+        4.338789
+      ],
+      "directory": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-startup-investigation-1794312821290137563/5-all",
+      "cleanup_exit": 0
+    }
+  ]
+}

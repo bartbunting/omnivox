@@ -1,0 +1,17 @@
+{
+  "omnivox_commit": "70c97ea562cb46700e433ba8cc03df6ff343814a",
+  "emacsvox_commit": "087270479228f8156b3e540afe806bc9c596de02",
+  "toolchain": "rustc 1.97.1, edition 2021, -D warnings",
+  "probe_sha256": "efb2e4aa1384f1ed9c2b6d450c9d8f305fb26daafdcb43a84768f1b564227586",
+  "payload_sha256": "b06f827455a8b71bf2330f1d00f07088f29e4598a91b4a524f2f0adfb1aac8c4",
+  "platform_source": "omnivox-cli/src/voice_validation/linux.rs",
+  "platform_source_sha256": "4d67d573a4c138d84f0d94d1bb964bb591ed3b6caf7711222f63e4b58b24e15f",
+  "final_runs": [
+    5,
+    6,
+    7
+  ],
+  "scope": "Linux extraction fixture only; no production guard entry or client integration",
+  "output": "null",
+  "windows_and_macos": "not qualified by this probe"
+}

@@ -159,6 +159,15 @@ class RemoteServiceTests(unittest.TestCase):
             time.sleep(0.05)
         self.fail("lane was not released")
 
+    def test_host_preferences_remain_local_to_owned_workers(self):
+        peer = self.connect()
+        features = peer.control("capabilities")["features"]
+        self.assertNotIn("host_preferences_v1", features)
+        self.assertNotIn("host_preferences_reload_v1", features)
+        self.assertEqual(peer.control("host_preferences_status_v1", 2)["type"], "error")
+        # A rejected management command leaves ordinary speech/control usable.
+        self.assertEqual(peer.control("inventory", 3)["type"], "inventory")
+
     def test_authentication_and_exclusive_two_lane_session(self):
         bad = self.connect(token="0" * 64, expected="error authentication")
         with self.assertRaises(EOFError):

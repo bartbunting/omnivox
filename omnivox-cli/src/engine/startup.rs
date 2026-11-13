@@ -61,6 +61,52 @@ impl EngineStartup {
         executable: &Path,
     ) -> Result<Self> {
         let library = StartupLibrary::from_captured_environment(library, model, &environment)?;
+        Self::from_inputs_with_library(engine, model, loaded, environment, executable, library)
+    }
+
+    /// Reload files using the running worker's native context and pinned assets.
+    /// This never consults a mutable managed active pointer or constructs engines.
+    pub(crate) fn preferences_candidate(
+        snapshot: &LaunchSnapshot,
+        executable: &Path,
+    ) -> Result<Self> {
+        let environment = snapshot.resolved().environment.clone();
+        let root = Self::preferences_root(snapshot)?;
+        Self::from_inputs_with_library(
+            snapshot.requested(),
+            None,
+            root.load()?,
+            environment,
+            executable,
+            snapshot.managed().map(StartupLibrary::from_frozen),
+        )
+    }
+
+    pub(crate) fn preferences_root(
+        snapshot: &LaunchSnapshot,
+    ) -> Result<omnivox_tts::engine_configuration::ConfigurationRoot> {
+        let environment = &snapshot.resolved().environment;
+        Ok(match &snapshot.resolved().root {
+            Some(path) => omnivox_tts::engine_configuration::ConfigurationRoot {
+                // Canonical Windows roots carry a verbatim prefix, while the
+                // configuration input contract accepts ordinary native paths.
+                // Reuse the conversion that proves both resolve to the same root.
+                path: omnivox_tts::voice_library::catalogue::metadata_path(path)?.into(),
+                explicit: true,
+            },
+            None => Platform::native()
+                .configuration_root(None, |key| environment.get(key).map(OsStr::to_owned))?,
+        })
+    }
+
+    fn from_inputs_with_library(
+        engine: &str,
+        model: Option<&str>,
+        loaded: omnivox_tts::engine_configuration::LoadedConfiguration,
+        environment: LaunchEnvironment,
+        executable: &Path,
+        library: Option<StartupLibrary>,
+    ) -> Result<Self> {
         let requested = if engine.is_empty() {
             environment
                 .get("OMNIVOX_ENGINE")

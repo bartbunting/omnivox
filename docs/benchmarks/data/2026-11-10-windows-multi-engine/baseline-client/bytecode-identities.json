@@ -1,0 +1,12 @@
+[
+  {
+    "path": "/home/bart/src/omnivox-lightweight-reload/target/guard-multi/baseline-client/tts-speak.elc",
+    "sha256": "36076a6dc17c4bacc9d041e656940c77cbbc05b93ddd2c3f3c8a26d24b8c9ee8",
+    "compiler": "Emacs 31.0.90"
+  },
+  {
+    "path": "/home/bart/src/emacsvox-lightweight-reload/lisp/speech/tts-speak.elc",
+    "sha256": "9f583cc55906d83ef46f12a384274774a8360ae0f9120025318ab5faa7943a4f",
+    "compiler": "Emacs 31.0.90"
+  }
+]

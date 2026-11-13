@@ -8,6 +8,18 @@ The [decision index](adr/README.md) explains architectural choices;
 [the roadmap](ROADMAP.md) tracks future work. Accepted design,
 implemented behavior, native qualification and published releases are distinct.
 
+Development main implements independent host preference reload on ordinary
+local owned workers under [ADR 0017](adr/0017-independent-host-preference-reload.md).
+It uses the existing stdio control connection and a bounded resident preparation
+task for punctuation, capital pitch, chunking and saved Reset defaults. Reload
+preserves current client choices. Immutable request policy, native ownership and
+cancellation remain intact;
+live policy status is separate from consumed startup identity. Preference reload
+requires neither durable management writes nor cross-stream convergence. The
+[control contract](protocols/control.md#independent-local-punctuation-reload) and
+[delivery plan](plans/lightweight-preference-reload.md) distinguish this implementation
+from published 1.18.0 and the earlier private socket experiment.
+
 ## Runtime boundary
 
 Omnivox is a host-rendered speech server. Engines return PCM to the host, where
@@ -31,7 +43,46 @@ scheduling and playback. Native libraries never move into the Emacs client.
 
 The local `--voice-library-owner` path gates a worker behind established native
 job/process-group ownership, captures exact startup configuration and acknowledges
-retirement only after its tree and output reader exit. The local management
+retirement only after its tree and output reader exit. Its durable receipt can
+be verified by the local service after a lost reply, using the exact worker,
+host path and startup hash; see
+[receipt reconciliation](reference/engine-startup-snapshot.md#reconcile-an-existing-retirement-receipt).
+An explicit `--emergency-owner` instead prepares only bundled eSpeak in memory,
+without opening management storage or reading preferences. Native tree and I/O
+retirement can be acknowledged by the surviving owner despite a failed durable
+write, while old claims remain retained. This is not recovery after losing all
+native authority; see the [minimal startup contract](reference/engine-startup-snapshot.md#explicit-minimal-emergency-startup)
+and [ADR 0018](adr/0018-minimal-emergency-speech.md).
+The opt-in Linux `--guarded` owner additionally retains an independent Rust native
+cleanup authority and a client-held lifecycle bridge. Its control uses local Unix
+sockets; speech stays on the owner/worker stdio path without another forwarder.
+The guard owns native tree retirement and observes forwarding-I/O completion
+independently of a blocked or dead owner. The [private contract](reference/engine-startup-snapshot.md#opt-in-independent-linux-cleanup-guard)
+records its bounded scope, exact proof and platform limits. It is disabled by
+default and adds startup processes and lifecycle exchanges. During emergency
+preparation the paired client starts its waiting control bridge concurrently with
+the owner, then supplies the validated descriptor and attaches before native
+release. Unused bridges are closed on failed preparation; unresolved native
+authority survives failed attachment. The
+[matched preparation report](benchmarks/2026-11-10-guard-handoff-and-preparation.md)
+separates the operation-time saving from the source-gap bound.
+The opt-in Windows guard uses bounded local named pipes for lifecycle control
+and retains actual worker/helper handles before execution under
+[ADR 0019](adr/0019-windows-native-creation-ownership.md). A bounded background task
+creates suspended processes; the guard releases helpers after acknowledged direct
+pipe transfer. Speech and PCM bypass the guard. Confirmed launch rejection
+preserves the worker and creation channel; uncertain transfer requires retirement.
+[Integrated eSpeak/Flite qualification](benchmarks/2026-11-10-windows-creation-integration.md)
+established the initial scope. The [multi-engine follow-up](benchmarks/2026-11-10-windows-multi-engine.md)
+adds WinRT, RuTTS, TGSpeechBox, Eloquence, DECtalk and RHVoice on Windows x64.
+The guard retains a bounded set of helper handles; creation and handoff remain
+serialized, while native initialization can overlap. Other enabled engines
+reject guarded preparation and remain available through ordinary launch.
+The client overlaps control-bridge startup with ordinary owner preparation as
+well as emergency preparation; descriptor validation still precedes attachment.
+The earlier [job-accounting counterexample](benchmarks/2026-11-10-windows-guard-qualification.md)
+is retained; actual process-handle completion now precedes native cleanup proof.
+The local management
 service coordinates installation and Apply; it is separate from speech admission.
 See [local activation](guides/voice-management.md#local-provider).
 
@@ -236,6 +287,12 @@ in deterministic order before the command loop. External helpers use four separa
 initialization slots and a 120-second batch admission budget. Their inventory is
 available for explicit selection; unrestricted matching requires local automatic
 permission. Failed attempts retain their helper owner until cleanup is confirmed.
+An opt-in [private early-speech experiment](benchmarks/2026-11-10-early-speech.md)
+instead publishes selected speech before optional shipped-helper discovery in
+eligible unmanaged local owners. It reuses bounded asynchronous registry rescans
+and truthful unavailable/in-progress entries, retaining eager managed/external
+startup and native ownership. It is disabled by default; client adoption and
+platform qualification remain separate from the experiment's source checks.
 An owned initialization task keeps its engine, lifecycle lock and process-wide
 slot while a launch, protocol I/O or cleanup call remains unfinished, even after the
 admission caller returns. Only that caller can publish a negotiated connection;
@@ -259,6 +316,23 @@ initialization. Successful discovery publishes descriptor and handle together.
 Each helper launch definition captures its native environment. Deferred connection
 and recovery reuse that environment along with the retained program and arguments;
 they do not inherit later process-environment changes.
+
+The paired lightweight Emacsvox client recognises confirmed native worker
+retirement even when its local owner stays alive. Retained recovery keeps the
+notification owner, waits for the replacement's own voice registration, and
+refuses replacement after owner loss without cleanup evidence. It still depends
+on valid retained startup records and writable owner storage; see the
+[recovery evidence](benchmarks/2026-11-10-retained-recovery.md).
+
+Explicit minimal emergency startup uses bundled eSpeak, built-in preferences and
+in-memory ownership under [ADR 0018](adr/0018-minimal-emergency-speech.md). The
+client prepares its actual replacement owner while old speech continues, then
+releases one native attempt after verified old tree/I/O retirement. Preparation
+creates no engine or output connection. It avoids management-state dependencies
+without releasing old asset claims or treating missing native evidence as cleanup;
+see the [contract](reference/engine-startup-snapshot.md#explicit-minimal-emergency-startup)
+and [timing evidence](benchmarks/2026-11-10-deferred-start.md). Independent guard
+integration remains necessary for blocked forwarding and owner loss.
 
 ## Voice identity, routing and tuning
 

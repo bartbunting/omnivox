@@ -7,9 +7,12 @@ while the wrapper polls the hard-interrupt generation, an engine stop epoch,
 and any keyed replacement token attached to the request.
 
 A hard stop asks the engine to stop and quarantines the task immediately. A
-soft supersession (including a keyed replacement) gives the call 75
+soft supersession (including a keyed replacement) normally gives the call 75
 milliseconds to return cooperatively before requesting engine stop and
-quarantining it. In both cases its eventual PCM is suppressed. A later request
+quarantining it. Flite requests stop as soon as the wrapper observes supersession:
+its native streaming callbacks can cancel without resetting the loaded voice.
+Cancellation checks retain their 10 millisecond polling interval. In both cases its eventual
+PCM is suppressed. A later request
 waits at most 350 milliseconds for an occupied engine/process slot, with
 cancellation checks during the wait, and then normal routing selects a
 configured fallback. Once the old task exits, the slot is released and the

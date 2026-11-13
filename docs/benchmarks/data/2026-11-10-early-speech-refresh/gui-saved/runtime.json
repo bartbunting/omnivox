@@ -1,0 +1,12 @@
+{
+  "stage": "/home/bart/src/emacsvox-lightweight-reload/servers/omnivox-bin/versions/4e1c1561f51908a6",
+  "executable": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-lightweight-20261110/Emacsvox/Omnivox/runtime/4e1c1561f51908a6/omnivox.exe",
+  "sha256": "529499252023e106b0329e670b13f85fb9cb3a6b729acddabe394b92208dee28",
+  "data": "C:\\Users\\bart\\AppData\\Local\\Temp\\omnivox-lightweight-20261110\\Emacsvox\\Omnivox\\espeak-data\\9a2e176369cfe0b982737abf6c26037f21d2b9af2a2fabcc08062864d0157718",
+  "rhvoice_library": "C:\\Users\\bart\\AppData\\Local\\Emacsvox\\RHVoice\\1.14.0-wrapper-0.5.0-slt\\RHVoice.dll",
+  "rhvoice_data": "C:\\Users\\bart\\AppData\\Local\\Emacsvox\\RHVoice\\1.14.0-wrapper-0.5.0-slt\\data",
+  "client_commit": "5fc22ec71b6576eea1fe5b26c5fac9f7bc7dea56",
+  "implementation_base_commit": "8779dd5",
+  "experiment": "OMNIVOX_EXPERIMENTAL_EARLY_SPEECH=1",
+  "implementation_commit": "a40a9303df5cde597e8121fc219f66f05202ad0d"
+}

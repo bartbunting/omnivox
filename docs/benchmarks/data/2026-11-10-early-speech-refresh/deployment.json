@@ -1,0 +1,11 @@
+{
+  "wrapper": "/home/bart/bin/emacsvox-lightweight-test",
+  "backup": "/home/bart/bin/emacsvox-lightweight-test.before-early-speech-20261110T131330Z",
+  "old_runner": "/home/bart/src/omnivox-lightweight-reload/docs/benchmarks/data/2026-11-10-helper-queue/listening/start.py",
+  "new_runner": "/home/bart/src/omnivox-lightweight-reload/docs/benchmarks/data/2026-11-10-early-speech-refresh/listening/start.py",
+  "omnivox_evidence_commit": "6bb27220e3098f342fdf61a3365af812bf91342b",
+  "batch_exit_code": 0,
+  "launch_log": "/home/bart/.local/state/emacsvox/lightweight-test-launcher/startup.w9HY77jL.log",
+  "command": "Windows evox.bat --batch-check --engine flite",
+  "verified": "reload, restart, retained recovery, emergency eSpeak and return to saved Flite"
+}

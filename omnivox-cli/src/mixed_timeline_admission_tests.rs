@@ -205,7 +205,7 @@ fn reader_rejects_invalid_v4_before_any_replacement_can_be_prepared() {
             let frames = parts(&bad);
             for frame in &frames[1..] {
                 multipart_sender
-                    .send(Ok(format!("emacsvox_timeline_part {frame}")))
+                    .send(Input::Line(format!("emacsvox_timeline_part {frame}")))
                     .unwrap();
             }
             (
@@ -229,7 +229,7 @@ fn reader_rejects_invalid_v4_before_any_replacement_can_be_prepared() {
     let frames = parts(&valid);
     let (sender, receiver) = mpsc::channel();
     sender
-        .send(Ok(format!("emacsvox_timeline_part {}", frames[1])))
+        .send(Input::Line(format!("emacsvox_timeline_part {}", frames[1])))
         .unwrap();
     assert!(matches!(
         read_structured_submission(

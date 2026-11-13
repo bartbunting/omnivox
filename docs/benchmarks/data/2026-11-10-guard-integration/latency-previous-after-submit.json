@@ -1,0 +1,3381 @@
+{
+  "sha256": "b06f827455a8b71bf2330f1d00f07088f29e4598a91b4a524f2f0adfb1aac8c4",
+  "runs": [
+    {
+      "engine": "espeak",
+      "guarded": false,
+      "repeat": 0,
+      "samples": [
+        {
+          "id": 2,
+          "start_ns": 89125798383710,
+          "end_ns": 89125820608245,
+          "source_ms": 3.743237,
+          "terminal_ms": 22.224535
+        },
+        {
+          "id": 3,
+          "start_ns": 89125822367733,
+          "end_ns": 89125844497758,
+          "source_ms": 1.702791,
+          "terminal_ms": 22.130025
+        },
+        {
+          "id": 4,
+          "start_ns": 89125995716726,
+          "end_ns": 89126018085930,
+          "source_ms": 3.379315,
+          "terminal_ms": 22.369204
+        },
+        {
+          "id": 5,
+          "start_ns": 89126019460848,
+          "end_ns": 89126192173776,
+          "source_ms": 152.152061,
+          "terminal_ms": 172.712928
+        },
+        {
+          "id": 6,
+          "start_ns": 89126194069764,
+          "end_ns": 89126216146072,
+          "source_ms": 3.938623,
+          "terminal_ms": 22.076308
+        },
+        {
+          "id": 7,
+          "start_ns": 89126217566245,
+          "end_ns": 89126239454994,
+          "source_ms": 3.506738,
+          "terminal_ms": 21.888749
+        },
+        {
+          "id": 8,
+          "start_ns": 89126241093460,
+          "end_ns": 89126262985767,
+          "source_ms": 2.092198,
+          "terminal_ms": 21.892307
+        },
+        {
+          "id": 9,
+          "start_ns": 89126264431416,
+          "end_ns": 89126285979416,
+          "source_ms": 3.485136,
+          "terminal_ms": 21.548
+        },
+        {
+          "id": 10,
+          "start_ns": 89126287387163,
+          "end_ns": 89126308763091,
+          "source_ms": 3.04303,
+          "terminal_ms": 21.375928
+        },
+        {
+          "id": 11,
+          "start_ns": 89126310106680,
+          "end_ns": 89126331418855,
+          "source_ms": 3.042783,
+          "terminal_ms": 21.312175
+        },
+        {
+          "id": 12,
+          "start_ns": 89126332706276,
+          "end_ns": 89126354349746,
+          "source_ms": 3.050208,
+          "terminal_ms": 21.64347
+        },
+        {
+          "id": 13,
+          "start_ns": 89126355814971,
+          "end_ns": 89126377784566,
+          "source_ms": 2.6947,
+          "terminal_ms": 21.969595
+        },
+        {
+          "id": 14,
+          "start_ns": 89126379301978,
+          "end_ns": 89126400932854,
+          "source_ms": 2.918303,
+          "terminal_ms": 21.630876
+        },
+        {
+          "id": 15,
+          "start_ns": 89126402407678,
+          "end_ns": 89126424361407,
+          "source_ms": 2.889772,
+          "terminal_ms": 21.953729
+        },
+        {
+          "id": 16,
+          "start_ns": 89126425804819,
+          "end_ns": 89126447619039,
+          "source_ms": 2.54017,
+          "terminal_ms": 21.81422
+        },
+        {
+          "id": 17,
+          "start_ns": 89126449237714,
+          "end_ns": 89126470881275,
+          "source_ms": 4.555176,
+          "terminal_ms": 21.643561
+        },
+        {
+          "id": 18,
+          "start_ns": 89126472552249,
+          "end_ns": 89126494608961,
+          "source_ms": 2.605026,
+          "terminal_ms": 22.056712
+        },
+        {
+          "id": 19,
+          "start_ns": 89126495883631,
+          "end_ns": 89126517880147,
+          "source_ms": 2.270285,
+          "terminal_ms": 21.996516
+        },
+        {
+          "id": 20,
+          "start_ns": 89126519505788,
+          "end_ns": 89126541357532,
+          "source_ms": 3.519115,
+          "terminal_ms": 21.851744
+        },
+        {
+          "id": 21,
+          "start_ns": 89126542828213,
+          "end_ns": 89126564538217,
+          "source_ms": 1.557296,
+          "terminal_ms": 21.710004
+        }
+      ],
+      "reloads": [
+        {
+          "start_ns": 89125797132730,
+          "end_ns": 89125805401663,
+          "ms": 8.268933,
+          "response_ms": 1.952069,
+          "request": {
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "sequence": 1,
+            "expected_revision": 0
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 56,
+            "type": "host_preferences_status_v1",
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-0-False/config.json",
+            "startup_activation_id": "b2da904a-f517-44aa-9a46-6507a6c57c85",
+            "revision": 1,
+            "punctuation_sha256": "782d74eb58dfa517860c2b5641af6494cfef931ebe681d515f806200b2a2baeb",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "b18183f9c64eaae812f00d5180de3eac9d55b70df7a80248eb0cdf5609ed79ab",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 1,
+              "expected_revision": 0,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89125821179553,
+          "end_ns": 89125825941147,
+          "ms": 4.761594,
+          "response_ms": 1.926363,
+          "request": {
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "sequence": 2,
+            "expected_revision": 1
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 59,
+            "type": "host_preferences_status_v1",
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-0-False/config.json",
+            "startup_activation_id": "b2da904a-f517-44aa-9a46-6507a6c57c85",
+            "revision": 2,
+            "punctuation_sha256": "322f94dc9c4c934cc589a6c34c61b10c65d01b431ebab94342ca6106e5b240c6",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "590de3f5a4050f1f0884e978c452e6e878fcbefa23afe4905b3c6792f2b90238",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 2,
+              "expected_revision": 1,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89125994657828,
+          "end_ns": 89126001803204,
+          "ms": 7.145376,
+          "response_ms": 3.402248,
+          "request": {
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "sequence": 3,
+            "expected_revision": 2
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 62,
+            "type": "host_preferences_status_v1",
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-0-False/config.json",
+            "startup_activation_id": "b2da904a-f517-44aa-9a46-6507a6c57c85",
+            "revision": 3,
+            "punctuation_sha256": "da5e4b8d05b626d7c3f4fba1480ff883c87c719575bd95acf78604f0748e309c",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "1dda5cf93df116dea1ab1ac7122ba6ca3a8e5c28af05140438ebac4b9a02d36f",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 3,
+              "expected_revision": 2,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89126018646573,
+          "end_ns": 89126022328994,
+          "ms": 3.682421,
+          "response_ms": 1.586835,
+          "request": {
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "sequence": 4,
+            "expected_revision": 3
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 65,
+            "type": "host_preferences_status_v1",
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-0-False/config.json",
+            "startup_activation_id": "b2da904a-f517-44aa-9a46-6507a6c57c85",
+            "revision": 4,
+            "punctuation_sha256": "42a693f50e94a07be1097ccac8f5a7863865e0ec5d21efd40ab83fcb0f3c8f4f",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "bd06640f2b9c3104790669c8c7497a841e6932fdbb59e254ccdd7483f87048a0",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 4,
+              "expected_revision": 3,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89126192878734,
+          "end_ns": 89126202057280,
+          "ms": 9.178546,
+          "response_ms": 2.012087,
+          "request": {
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "sequence": 5,
+            "expected_revision": 4
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 68,
+            "type": "host_preferences_status_v1",
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-0-False/config.json",
+            "startup_activation_id": "b2da904a-f517-44aa-9a46-6507a6c57c85",
+            "revision": 5,
+            "punctuation_sha256": "535c82c0fac843fa2a7118c49862e42f0d36e6d6cd89c57d4111ea3b0ec8bbfa",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "740714c4ebc50f58ea5cd37f90b0f61a22095370938365342daebe98745abfd4",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 5,
+              "expected_revision": 4,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89126216634923,
+          "end_ns": 89126222907233,
+          "ms": 6.27231,
+          "response_ms": 1.535936,
+          "request": {
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "sequence": 6,
+            "expected_revision": 5
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 71,
+            "type": "host_preferences_status_v1",
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-0-False/config.json",
+            "startup_activation_id": "b2da904a-f517-44aa-9a46-6507a6c57c85",
+            "revision": 6,
+            "punctuation_sha256": "612ea68879caa8f75730b862df91a8d0aab6bafdad68ad98f8a832323e75e849",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "6fd5f325059fac3bb5607fc3329ea6bdbbddd021d23d81990a8dd0d50849c656",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 6,
+              "expected_revision": 5,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89126239954554,
+          "end_ns": 89126244958733,
+          "ms": 5.004179,
+          "response_ms": 2.158393,
+          "request": {
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "sequence": 7,
+            "expected_revision": 6
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 74,
+            "type": "host_preferences_status_v1",
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-0-False/config.json",
+            "startup_activation_id": "b2da904a-f517-44aa-9a46-6507a6c57c85",
+            "revision": 7,
+            "punctuation_sha256": "d6e796ace24431ed2c0d402910dd830ccddb9e2307bb6c441c32d94000c258ad",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "a6ff949020487e63e19874489f8539aeb8b1f151ff367423ccc2bc7b440a05cf",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 7,
+              "expected_revision": 6,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89126263512284,
+          "end_ns": 89126270870085,
+          "ms": 7.357801,
+          "response_ms": 1.725671,
+          "request": {
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "sequence": 8,
+            "expected_revision": 7
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 77,
+            "type": "host_preferences_status_v1",
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-0-False/config.json",
+            "startup_activation_id": "b2da904a-f517-44aa-9a46-6507a6c57c85",
+            "revision": 8,
+            "punctuation_sha256": "f6be4b28e344c6a45a655c3ab23e406cec6e801051fe853b0f7f5aa176d42117",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "1523db255e77acb9ed7fb4368fab52c4b97c5bc7aab43d50ea35211e1ff88005",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 8,
+              "expected_revision": 7,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89126286539254,
+          "end_ns": 89126294314460,
+          "ms": 7.775206,
+          "response_ms": 1.527127,
+          "request": {
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "sequence": 9,
+            "expected_revision": 8
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 80,
+            "type": "host_preferences_status_v1",
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-0-False/config.json",
+            "startup_activation_id": "b2da904a-f517-44aa-9a46-6507a6c57c85",
+            "revision": 9,
+            "punctuation_sha256": "7df292f153d663b80bd5e6f52c49f65fc8e597f7f15671fbe489b44b24f0656a",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "fe59d37a9d6891c5db7fef3eccf8891803bbbb0cc0afa1232f3f659a082e45dc",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 9,
+              "expected_revision": 8,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89126309255724,
+          "end_ns": 89126316994061,
+          "ms": 7.738337,
+          "response_ms": 1.514947,
+          "request": {
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "sequence": 10,
+            "expected_revision": 9
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 83,
+            "type": "host_preferences_status_v1",
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-0-False/config.json",
+            "startup_activation_id": "b2da904a-f517-44aa-9a46-6507a6c57c85",
+            "revision": 10,
+            "punctuation_sha256": "f307cfa24e6fab601849b71efb467cb8eb39a4700a46051af1cbff7f2d745698",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "42b73acb1d23994c04164422b84a06adc6cf68f850926d555f0118171ccf5681",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 10,
+              "expected_revision": 9,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89126331840788,
+          "end_ns": 89126338827873,
+          "ms": 6.987085,
+          "response_ms": 1.604337,
+          "request": {
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "sequence": 11,
+            "expected_revision": 10
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 86,
+            "type": "host_preferences_status_v1",
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-0-False/config.json",
+            "startup_activation_id": "b2da904a-f517-44aa-9a46-6507a6c57c85",
+            "revision": 11,
+            "punctuation_sha256": "e50a8bbe8389e63ff4c24ef676b87bdfcf88c7fd9c8943191a140a5c15789a59",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "96d9295eaa7a23233393b01675aa8ed951d590536a4b3de95b43dfcdb86d97fc",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 11,
+              "expected_revision": 10,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89126354809723,
+          "end_ns": 89126360142662,
+          "ms": 5.332939,
+          "response_ms": 1.914201,
+          "request": {
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "sequence": 12,
+            "expected_revision": 11
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 89,
+            "type": "host_preferences_status_v1",
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-0-False/config.json",
+            "startup_activation_id": "b2da904a-f517-44aa-9a46-6507a6c57c85",
+            "revision": 12,
+            "punctuation_sha256": "220fc6966a71ed1eeb28b404e3ea083bf580b76830a8cccf39ff50982fbd7eab",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "de62794dd869781f5b5af564dac592b14182b85968cc607b5ce4d8317b60b06b",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 12,
+              "expected_revision": 11,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89126378339265,
+          "end_ns": 89126385758027,
+          "ms": 7.418762,
+          "response_ms": 1.929408,
+          "request": {
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "sequence": 13,
+            "expected_revision": 12
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 92,
+            "type": "host_preferences_status_v1",
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-0-False/config.json",
+            "startup_activation_id": "b2da904a-f517-44aa-9a46-6507a6c57c85",
+            "revision": 13,
+            "punctuation_sha256": "73cd5f5afff175b4e5fb3384e3554790f15eebf57358b393d247ddfbf19fc5bc",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "cb0d3ef7eb933e6e609f569d8154549ed2e2fe0e892936e0256096e79213b0bc",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 13,
+              "expected_revision": 12,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89126401468765,
+          "end_ns": 89126408615799,
+          "ms": 7.147034,
+          "response_ms": 1.64924,
+          "request": {
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "sequence": 14,
+            "expected_revision": 13
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 95,
+            "type": "host_preferences_status_v1",
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-0-False/config.json",
+            "startup_activation_id": "b2da904a-f517-44aa-9a46-6507a6c57c85",
+            "revision": 14,
+            "punctuation_sha256": "eece37abc8ec5324931fec06cd7ba0fc90b8851539c7f55921a8d2c6b46972a3",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "618236a08de3212b24607978925f797eaf0a3cb7b5bac3a7eec990e580bbc455",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 14,
+              "expected_revision": 13,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89126424901462,
+          "end_ns": 89126433875295,
+          "ms": 8.973833,
+          "response_ms": 1.656484,
+          "request": {
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "sequence": 15,
+            "expected_revision": 14
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 98,
+            "type": "host_preferences_status_v1",
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-0-False/config.json",
+            "startup_activation_id": "b2da904a-f517-44aa-9a46-6507a6c57c85",
+            "revision": 15,
+            "punctuation_sha256": "4e27d560ee42f808b8229b61ca37f7ffbca2238244e34c75a4954329e55740ed",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "8ccfd8bfacb335c6575039ce296318185ce2c8911e41ea949ba58e6a5ab5a461",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 15,
+              "expected_revision": 14,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89126448256439,
+          "end_ns": 89126458797956,
+          "ms": 10.541517,
+          "response_ms": 2.189751,
+          "request": {
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "sequence": 16,
+            "expected_revision": 15
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 101,
+            "type": "host_preferences_status_v1",
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-0-False/config.json",
+            "startup_activation_id": "b2da904a-f517-44aa-9a46-6507a6c57c85",
+            "revision": 16,
+            "punctuation_sha256": "2374cd52ff45e79f620168ebe662d6bd2258542acf28e778785cb15da4663450",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "c14f17f36105b0bb903b17a01a272e16ee0350a36eed297712a881f56e881328",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 16,
+              "expected_revision": 15,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89126471426361,
+          "end_ns": 89126477746844,
+          "ms": 6.320483,
+          "response_ms": 2.042266,
+          "request": {
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "sequence": 17,
+            "expected_revision": 16
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 104,
+            "type": "host_preferences_status_v1",
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-0-False/config.json",
+            "startup_activation_id": "b2da904a-f517-44aa-9a46-6507a6c57c85",
+            "revision": 17,
+            "punctuation_sha256": "aa838308bc1d26b14d8f3819d5188ebe4ce7a78c2ab11f8fe2c0a9a36a2943e3",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "35ba0658eae9e04e26a5cb27e5a0f1ee65cf66de613980d78dfe356b8f2b9742",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 17,
+              "expected_revision": 16,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89126495133584,
+          "end_ns": 89126499890027,
+          "ms": 4.756443,
+          "response_ms": 1.602656,
+          "request": {
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "sequence": 18,
+            "expected_revision": 17
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 107,
+            "type": "host_preferences_status_v1",
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-0-False/config.json",
+            "startup_activation_id": "b2da904a-f517-44aa-9a46-6507a6c57c85",
+            "revision": 18,
+            "punctuation_sha256": "73f6e71a4affdd6e15aac0f689c6001a8c012d953fbd6622ca555e1bfd9179f1",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "4ebc8e410baee696635d41182e870893970824285e88b579c6278f57f059ec59",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 18,
+              "expected_revision": 17,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89126518477158,
+          "end_ns": 89126525103487,
+          "ms": 6.626329,
+          "response_ms": 1.895884,
+          "request": {
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "sequence": 19,
+            "expected_revision": 18
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 110,
+            "type": "host_preferences_status_v1",
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-0-False/config.json",
+            "startup_activation_id": "b2da904a-f517-44aa-9a46-6507a6c57c85",
+            "revision": 19,
+            "punctuation_sha256": "b8ea40fc2fe8ff2745f6d912af162b6322173c838a463137e4c793bae05c7d97",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "39d430f6a20036b0569d7daad202f6d25c2fd6eddfdd34fb443d986a0b5a2034",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 19,
+              "expected_revision": 18,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89126541960896,
+          "end_ns": 89126546050688,
+          "ms": 4.089792,
+          "response_ms": 1.745,
+          "request": {
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "sequence": 20,
+            "expected_revision": 19
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 113,
+            "type": "host_preferences_status_v1",
+            "incarnation": "3825fc26-bb34-43e6-853d-b2db71d13094",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-0-False/config.json",
+            "startup_activation_id": "b2da904a-f517-44aa-9a46-6507a6c57c85",
+            "revision": 20,
+            "punctuation_sha256": "9bb3d711841527ce643a553451f075d728dc10084cd3b8cdf7b0309e4d9197dd",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "183a5f51105e0f49ec3f7c1e37c6d8e03d0a24a2ca477f595f3ecd34ed6b520b",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 20,
+              "expected_revision": 19,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        }
+      ],
+      "protocol_ms": [
+        1.142635,
+        1.145442,
+        0.894021,
+        1.066978,
+        0.775316,
+        0.969518,
+        0.867119,
+        0.761641,
+        0.984795,
+        0.895442,
+        0.762369,
+        0.867503,
+        0.777112,
+        0.745832,
+        0.741283,
+        0.789756,
+        1.158444,
+        1.020694,
+        0.794657,
+        0.753419,
+        1.242814,
+        1.222246,
+        1.209412,
+        0.781085,
+        0.879744,
+        0.838489,
+        0.826101,
+        1.313024,
+        1.113052,
+        1.151097,
+        1.068387,
+        0.958397,
+        1.125632,
+        1.28371,
+        1.117006,
+        1.392145,
+        0.945155,
+        0.796067,
+        1.030727,
+        0.967645,
+        0.918626,
+        0.957497,
+        0.846268,
+        1.271779,
+        1.392885,
+        1.004653,
+        0.905309,
+        0.890469,
+        1.043003,
+        0.834503
+      ],
+      "two_ready_ms": 179.377354,
+      "source_median_ms": 3.0429065,
+      "protocol_median_ms": 0.9579470000000001
+    },
+    {
+      "engine": "espeak",
+      "guarded": false,
+      "repeat": 1,
+      "samples": [
+        {
+          "id": 2,
+          "start_ns": 89127001215343,
+          "end_ns": 89127022405748,
+          "source_ms": 1.937296,
+          "terminal_ms": 21.190405
+        },
+        {
+          "id": 3,
+          "start_ns": 89127023704422,
+          "end_ns": 89127045680763,
+          "source_ms": 1.867674,
+          "terminal_ms": 21.976341
+        },
+        {
+          "id": 4,
+          "start_ns": 89127046832381,
+          "end_ns": 89127068851851,
+          "source_ms": 2.386748,
+          "terminal_ms": 22.01947
+        },
+        {
+          "id": 5,
+          "start_ns": 89127070121683,
+          "end_ns": 89127091500260,
+          "source_ms": 2.124905,
+          "terminal_ms": 21.378577
+        },
+        {
+          "id": 6,
+          "start_ns": 89127092803345,
+          "end_ns": 89127114250671,
+          "source_ms": 6.783938,
+          "terminal_ms": 21.447326
+        },
+        {
+          "id": 7,
+          "start_ns": 89127115375049,
+          "end_ns": 89127136805446,
+          "source_ms": 1.943456,
+          "terminal_ms": 21.430397
+        },
+        {
+          "id": 8,
+          "start_ns": 89127138077821,
+          "end_ns": 89127159287193,
+          "source_ms": 2.256586,
+          "terminal_ms": 21.209372
+        },
+        {
+          "id": 9,
+          "start_ns": 89127160504708,
+          "end_ns": 89127181801374,
+          "source_ms": 2.148584,
+          "terminal_ms": 21.296666
+        },
+        {
+          "id": 10,
+          "start_ns": 89127182945020,
+          "end_ns": 89127204344215,
+          "source_ms": 2.008465,
+          "terminal_ms": 21.399195
+        },
+        {
+          "id": 11,
+          "start_ns": 89127205713679,
+          "end_ns": 89127226895495,
+          "source_ms": 2.157227,
+          "terminal_ms": 21.181816
+        },
+        {
+          "id": 12,
+          "start_ns": 89127228086619,
+          "end_ns": 89127249545795,
+          "source_ms": 2.167492,
+          "terminal_ms": 21.459176
+        },
+        {
+          "id": 13,
+          "start_ns": 89127251535700,
+          "end_ns": 89127272862349,
+          "source_ms": 3.677785,
+          "terminal_ms": 21.326649
+        },
+        {
+          "id": 14,
+          "start_ns": 89127274189884,
+          "end_ns": 89127295987715,
+          "source_ms": 3.693707,
+          "terminal_ms": 21.797831
+        },
+        {
+          "id": 15,
+          "start_ns": 89127297404639,
+          "end_ns": 89127319019911,
+          "source_ms": 1.681611,
+          "terminal_ms": 21.615272
+        },
+        {
+          "id": 16,
+          "start_ns": 89127320151992,
+          "end_ns": 89127341923688,
+          "source_ms": 2.736646,
+          "terminal_ms": 21.771696
+        },
+        {
+          "id": 17,
+          "start_ns": 89127344226856,
+          "end_ns": 89127367984489,
+          "source_ms": 4.352275,
+          "terminal_ms": 23.757633
+        },
+        {
+          "id": 18,
+          "start_ns": 89127369635691,
+          "end_ns": 89127391391761,
+          "source_ms": 1.822785,
+          "terminal_ms": 21.75607
+        },
+        {
+          "id": 19,
+          "start_ns": 89127392893184,
+          "end_ns": 89127415248368,
+          "source_ms": 2.970416,
+          "terminal_ms": 22.355184
+        },
+        {
+          "id": 20,
+          "start_ns": 89127417532976,
+          "end_ns": 89127439241824,
+          "source_ms": 2.425965,
+          "terminal_ms": 21.708848
+        },
+        {
+          "id": 21,
+          "start_ns": 89127441005046,
+          "end_ns": 89127463515900,
+          "source_ms": 3.944956,
+          "terminal_ms": 22.510854
+        }
+      ],
+      "reloads": [
+        {
+          "start_ns": 89127000465148,
+          "end_ns": 89127005489533,
+          "ms": 5.024385,
+          "response_ms": 1.38876,
+          "request": {
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "sequence": 1,
+            "expected_revision": 0
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 56,
+            "type": "host_preferences_status_v1",
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-1-False/config.json",
+            "startup_activation_id": "ec4a3d81-2c63-467b-8128-0ea6693a7bb3",
+            "revision": 1,
+            "punctuation_sha256": "782d74eb58dfa517860c2b5641af6494cfef931ebe681d515f806200b2a2baeb",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "b18183f9c64eaae812f00d5180de3eac9d55b70df7a80248eb0cdf5609ed79ab",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 1,
+              "expected_revision": 0,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127022793776,
+          "end_ns": 89127027048688,
+          "ms": 4.254912,
+          "response_ms": 1.776081,
+          "request": {
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "sequence": 2,
+            "expected_revision": 1
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 59,
+            "type": "host_preferences_status_v1",
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-1-False/config.json",
+            "startup_activation_id": "ec4a3d81-2c63-467b-8128-0ea6693a7bb3",
+            "revision": 2,
+            "punctuation_sha256": "322f94dc9c4c934cc589a6c34c61b10c65d01b431ebab94342ca6106e5b240c6",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "590de3f5a4050f1f0884e978c452e6e878fcbefa23afe4905b3c6792f2b90238",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 2,
+              "expected_revision": 1,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127046093953,
+          "end_ns": 89127049093332,
+          "ms": 2.999379,
+          "response_ms": 1.299919,
+          "request": {
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "sequence": 3,
+            "expected_revision": 2
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 62,
+            "type": "host_preferences_status_v1",
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-1-False/config.json",
+            "startup_activation_id": "ec4a3d81-2c63-467b-8128-0ea6693a7bb3",
+            "revision": 3,
+            "punctuation_sha256": "da5e4b8d05b626d7c3f4fba1480ff883c87c719575bd95acf78604f0748e309c",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "1dda5cf93df116dea1ab1ac7122ba6ca3a8e5c28af05140438ebac4b9a02d36f",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 3,
+              "expected_revision": 2,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127069217755,
+          "end_ns": 89127075086772,
+          "ms": 5.869017,
+          "response_ms": 1.839576,
+          "request": {
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "sequence": 4,
+            "expected_revision": 3
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 65,
+            "type": "host_preferences_status_v1",
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-1-False/config.json",
+            "startup_activation_id": "ec4a3d81-2c63-467b-8128-0ea6693a7bb3",
+            "revision": 4,
+            "punctuation_sha256": "42a693f50e94a07be1097ccac8f5a7863865e0ec5d21efd40ab83fcb0f3c8f4f",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "bd06640f2b9c3104790669c8c7497a841e6932fdbb59e254ccdd7483f87048a0",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 4,
+              "expected_revision": 3,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127091863227,
+          "end_ns": 89127099402206,
+          "ms": 7.538979,
+          "response_ms": 1.575013,
+          "request": {
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "sequence": 5,
+            "expected_revision": 4
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 68,
+            "type": "host_preferences_status_v1",
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-1-False/config.json",
+            "startup_activation_id": "ec4a3d81-2c63-467b-8128-0ea6693a7bb3",
+            "revision": 5,
+            "punctuation_sha256": "535c82c0fac843fa2a7118c49862e42f0d36e6d6cd89c57d4111ea3b0ec8bbfa",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "740714c4ebc50f58ea5cd37f90b0f61a22095370938365342daebe98745abfd4",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 5,
+              "expected_revision": 4,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127114717829,
+          "end_ns": 89127118506528,
+          "ms": 3.788699,
+          "response_ms": 1.303998,
+          "request": {
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "sequence": 6,
+            "expected_revision": 5
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 71,
+            "type": "host_preferences_status_v1",
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-1-False/config.json",
+            "startup_activation_id": "ec4a3d81-2c63-467b-8128-0ea6693a7bb3",
+            "revision": 6,
+            "punctuation_sha256": "612ea68879caa8f75730b862df91a8d0aab6bafdad68ad98f8a832323e75e849",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "6fd5f325059fac3bb5607fc3329ea6bdbbddd021d23d81990a8dd0d50849c656",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 6,
+              "expected_revision": 5,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127137203505,
+          "end_ns": 89127143146475,
+          "ms": 5.94297,
+          "response_ms": 1.478919,
+          "request": {
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "sequence": 7,
+            "expected_revision": 6
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 74,
+            "type": "host_preferences_status_v1",
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-1-False/config.json",
+            "startup_activation_id": "ec4a3d81-2c63-467b-8128-0ea6693a7bb3",
+            "revision": 7,
+            "punctuation_sha256": "d6e796ace24431ed2c0d402910dd830ccddb9e2307bb6c441c32d94000c258ad",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "a6ff949020487e63e19874489f8539aeb8b1f151ff367423ccc2bc7b440a05cf",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 7,
+              "expected_revision": 6,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127159715321,
+          "end_ns": 89127164895512,
+          "ms": 5.180191,
+          "response_ms": 2.105245,
+          "request": {
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "sequence": 8,
+            "expected_revision": 7
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 77,
+            "type": "host_preferences_status_v1",
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-1-False/config.json",
+            "startup_activation_id": "ec4a3d81-2c63-467b-8128-0ea6693a7bb3",
+            "revision": 8,
+            "punctuation_sha256": "f6be4b28e344c6a45a655c3ab23e406cec6e801051fe853b0f7f5aa176d42117",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "1523db255e77acb9ed7fb4368fab52c4b97c5bc7aab43d50ea35211e1ff88005",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 8,
+              "expected_revision": 7,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127182166441,
+          "end_ns": 89127187207559,
+          "ms": 5.041118,
+          "response_ms": 1.465968,
+          "request": {
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "sequence": 9,
+            "expected_revision": 8
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 80,
+            "type": "host_preferences_status_v1",
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-1-False/config.json",
+            "startup_activation_id": "ec4a3d81-2c63-467b-8128-0ea6693a7bb3",
+            "revision": 9,
+            "punctuation_sha256": "7df292f153d663b80bd5e6f52c49f65fc8e597f7f15671fbe489b44b24f0656a",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "fe59d37a9d6891c5db7fef3eccf8891803bbbb0cc0afa1232f3f659a082e45dc",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 9,
+              "expected_revision": 8,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127204785847,
+          "end_ns": 89127210570492,
+          "ms": 5.784645,
+          "response_ms": 1.679955,
+          "request": {
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "sequence": 10,
+            "expected_revision": 9
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 83,
+            "type": "host_preferences_status_v1",
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-1-False/config.json",
+            "startup_activation_id": "ec4a3d81-2c63-467b-8128-0ea6693a7bb3",
+            "revision": 10,
+            "punctuation_sha256": "f307cfa24e6fab601849b71efb467cb8eb39a4700a46051af1cbff7f2d745698",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "42b73acb1d23994c04164422b84a06adc6cf68f850926d555f0118171ccf5681",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 10,
+              "expected_revision": 9,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127227270089,
+          "end_ns": 89127231720899,
+          "ms": 4.45081,
+          "response_ms": 1.477273,
+          "request": {
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "sequence": 11,
+            "expected_revision": 10
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 86,
+            "type": "host_preferences_status_v1",
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-1-False/config.json",
+            "startup_activation_id": "ec4a3d81-2c63-467b-8128-0ea6693a7bb3",
+            "revision": 11,
+            "punctuation_sha256": "e50a8bbe8389e63ff4c24ef676b87bdfcf88c7fd9c8943191a140a5c15789a59",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "96d9295eaa7a23233393b01675aa8ed951d590536a4b3de95b43dfcdb86d97fc",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 11,
+              "expected_revision": 10,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127250003858,
+          "end_ns": 89127256623572,
+          "ms": 6.619714,
+          "response_ms": 4.845255,
+          "request": {
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "sequence": 12,
+            "expected_revision": 11
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 89,
+            "type": "host_preferences_status_v1",
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-1-False/config.json",
+            "startup_activation_id": "ec4a3d81-2c63-467b-8128-0ea6693a7bb3",
+            "revision": 12,
+            "punctuation_sha256": "220fc6966a71ed1eeb28b404e3ea083bf580b76830a8cccf39ff50982fbd7eab",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "de62794dd869781f5b5af564dac592b14182b85968cc607b5ce4d8317b60b06b",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 12,
+              "expected_revision": 11,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127273223052,
+          "end_ns": 89127280330452,
+          "ms": 7.1074,
+          "response_ms": 1.718404,
+          "request": {
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "sequence": 13,
+            "expected_revision": 12
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 92,
+            "type": "host_preferences_status_v1",
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-1-False/config.json",
+            "startup_activation_id": "ec4a3d81-2c63-467b-8128-0ea6693a7bb3",
+            "revision": 13,
+            "punctuation_sha256": "73cd5f5afff175b4e5fb3384e3554790f15eebf57358b393d247ddfbf19fc5bc",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "cb0d3ef7eb933e6e609f569d8154549ed2e2fe0e892936e0256096e79213b0bc",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 13,
+              "expected_revision": 12,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127296611812,
+          "end_ns": 89127300845705,
+          "ms": 4.233893,
+          "response_ms": 1.438058,
+          "request": {
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "sequence": 14,
+            "expected_revision": 13
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 95,
+            "type": "host_preferences_status_v1",
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-1-False/config.json",
+            "startup_activation_id": "ec4a3d81-2c63-467b-8128-0ea6693a7bb3",
+            "revision": 14,
+            "punctuation_sha256": "eece37abc8ec5324931fec06cd7ba0fc90b8851539c7f55921a8d2c6b46972a3",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "618236a08de3212b24607978925f797eaf0a3cb7b5bac3a7eec990e580bbc455",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 14,
+              "expected_revision": 13,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127319382787,
+          "end_ns": 89127325097632,
+          "ms": 5.714845,
+          "response_ms": 1.383594,
+          "request": {
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "sequence": 15,
+            "expected_revision": 14
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 98,
+            "type": "host_preferences_status_v1",
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-1-False/config.json",
+            "startup_activation_id": "ec4a3d81-2c63-467b-8128-0ea6693a7bb3",
+            "revision": 15,
+            "punctuation_sha256": "4e27d560ee42f808b8229b61ca37f7ffbca2238244e34c75a4954329e55740ed",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "8ccfd8bfacb335c6575039ce296318185ce2c8911e41ea949ba58e6a5ab5a461",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 15,
+              "expected_revision": 14,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127342551225,
+          "end_ns": 89127348311006,
+          "ms": 5.759781,
+          "response_ms": 3.106385,
+          "request": {
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "sequence": 16,
+            "expected_revision": 15
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 101,
+            "type": "host_preferences_status_v1",
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-1-False/config.json",
+            "startup_activation_id": "ec4a3d81-2c63-467b-8128-0ea6693a7bb3",
+            "revision": 16,
+            "punctuation_sha256": "2374cd52ff45e79f620168ebe662d6bd2258542acf28e778785cb15da4663450",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "c14f17f36105b0bb903b17a01a272e16ee0350a36eed297712a881f56e881328",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 16,
+              "expected_revision": 15,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127368704741,
+          "end_ns": 89127375517152,
+          "ms": 6.812411,
+          "response_ms": 1.542638,
+          "request": {
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "sequence": 17,
+            "expected_revision": 16
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 104,
+            "type": "host_preferences_status_v1",
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-1-False/config.json",
+            "startup_activation_id": "ec4a3d81-2c63-467b-8128-0ea6693a7bb3",
+            "revision": 17,
+            "punctuation_sha256": "aa838308bc1d26b14d8f3819d5188ebe4ce7a78c2ab11f8fe2c0a9a36a2943e3",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "35ba0658eae9e04e26a5cb27e5a0f1ee65cf66de613980d78dfe356b8f2b9742",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 17,
+              "expected_revision": 16,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127391785159,
+          "end_ns": 89127397672543,
+          "ms": 5.887384,
+          "response_ms": 1.86017,
+          "request": {
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "sequence": 18,
+            "expected_revision": 17
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 107,
+            "type": "host_preferences_status_v1",
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-1-False/config.json",
+            "startup_activation_id": "ec4a3d81-2c63-467b-8128-0ea6693a7bb3",
+            "revision": 18,
+            "punctuation_sha256": "73f6e71a4affdd6e15aac0f689c6001a8c012d953fbd6622ca555e1bfd9179f1",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "4ebc8e410baee696635d41182e870893970824285e88b579c6278f57f059ec59",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 18,
+              "expected_revision": 17,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127416161778,
+          "end_ns": 89127422038404,
+          "ms": 5.876626,
+          "response_ms": 2.322424,
+          "request": {
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "sequence": 19,
+            "expected_revision": 18
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 110,
+            "type": "host_preferences_status_v1",
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-1-False/config.json",
+            "startup_activation_id": "ec4a3d81-2c63-467b-8128-0ea6693a7bb3",
+            "revision": 19,
+            "punctuation_sha256": "b8ea40fc2fe8ff2745f6d912af162b6322173c838a463137e4c793bae05c7d97",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "39d430f6a20036b0569d7daad202f6d25c2fd6eddfdd34fb443d986a0b5a2034",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 19,
+              "expected_revision": 18,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127439646315,
+          "end_ns": 89127449698364,
+          "ms": 10.052049,
+          "response_ms": 3.328312,
+          "request": {
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "sequence": 20,
+            "expected_revision": 19
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 113,
+            "type": "host_preferences_status_v1",
+            "incarnation": "501dc126-6778-491e-8890-9a6851509fd2",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/espeak-1-False/config.json",
+            "startup_activation_id": "ec4a3d81-2c63-467b-8128-0ea6693a7bb3",
+            "revision": 20,
+            "punctuation_sha256": "9bb3d711841527ce643a553451f075d728dc10084cd3b8cdf7b0309e4d9197dd",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "183a5f51105e0f49ec3f7c1e37c6d8e03d0a24a2ca477f595f3ecd34ed6b520b",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 20,
+              "expected_revision": 19,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        }
+      ],
+      "protocol_ms": [
+        0.892702,
+        0.798702,
+        0.884282,
+        0.91657,
+        1.142779,
+        0.799268,
+        0.803525,
+        0.92462,
+        1.289478,
+        0.983359,
+        0.977235,
+        0.942024,
+        0.884099,
+        0.865912,
+        0.962275,
+        0.90599,
+        1.133728,
+        1.063337,
+        0.811365,
+        0.897654,
+        0.942032,
+        0.823755,
+        0.794732,
+        0.846412,
+        0.890105,
+        0.932631,
+        0.903965,
+        0.814852,
+        0.882935,
+        0.855856,
+        0.845863,
+        0.839399,
+        0.860695,
+        0.843541,
+        0.824963,
+        0.802855,
+        0.874304,
+        0.780861,
+        0.984773,
+        0.887172,
+        0.871911,
+        1.0386,
+        0.975772,
+        1.498119,
+        1.298017,
+        0.900298,
+        0.83233,
+        0.917784,
+        0.8765,
+        0.853255
+      ],
+      "two_ready_ms": 185.83716,
+      "source_median_ms": 2.212039,
+      "protocol_median_ms": 0.8857269999999999
+    },
+    {
+      "engine": "flite",
+      "guarded": false,
+      "repeat": 0,
+      "samples": [
+        {
+          "id": 2,
+          "start_ns": 89127756727628,
+          "end_ns": 89127767810995,
+          "source_ms": 9.964128,
+          "terminal_ms": 11.083367
+        },
+        {
+          "id": 3,
+          "start_ns": 89127768881626,
+          "end_ns": 89127777009206,
+          "source_ms": 7.210392,
+          "terminal_ms": 8.12758
+        },
+        {
+          "id": 4,
+          "start_ns": 89127778119534,
+          "end_ns": 89127785862411,
+          "source_ms": 3.635354,
+          "terminal_ms": 7.742877
+        },
+        {
+          "id": 5,
+          "start_ns": 89127788247163,
+          "end_ns": 89127795543642,
+          "source_ms": 5.348002,
+          "terminal_ms": 7.296479
+        },
+        {
+          "id": 6,
+          "start_ns": 89127797214625,
+          "end_ns": 89127804884525,
+          "source_ms": 4.904974,
+          "terminal_ms": 7.6699
+        },
+        {
+          "id": 7,
+          "start_ns": 89127806710378,
+          "end_ns": 89127816311229,
+          "source_ms": 5.64753,
+          "terminal_ms": 9.600851
+        },
+        {
+          "id": 8,
+          "start_ns": 89127817874727,
+          "end_ns": 89127824829433,
+          "source_ms": 3.389335,
+          "terminal_ms": 6.954706
+        },
+        {
+          "id": 9,
+          "start_ns": 89127827239115,
+          "end_ns": 89127834794604,
+          "source_ms": 4.731265,
+          "terminal_ms": 7.555489
+        },
+        {
+          "id": 10,
+          "start_ns": 89127837040729,
+          "end_ns": 89127845848895,
+          "source_ms": 7.410317,
+          "terminal_ms": 8.808166
+        },
+        {
+          "id": 11,
+          "start_ns": 89127846958059,
+          "end_ns": 89127854928181,
+          "source_ms": 4.279357,
+          "terminal_ms": 7.970122
+        },
+        {
+          "id": 12,
+          "start_ns": 89127856434923,
+          "end_ns": 89127867505406,
+          "source_ms": 7.083743,
+          "terminal_ms": 11.070483
+        },
+        {
+          "id": 13,
+          "start_ns": 89127868772447,
+          "end_ns": 89127873139824,
+          "source_ms": 2.75602,
+          "terminal_ms": 4.367377
+        },
+        {
+          "id": 14,
+          "start_ns": 89127877749096,
+          "end_ns": 89127884409940,
+          "source_ms": 3.846681,
+          "terminal_ms": 6.660844
+        },
+        {
+          "id": 15,
+          "start_ns": 89127886120149,
+          "end_ns": 89127891951254,
+          "source_ms": 2.972351,
+          "terminal_ms": 5.831105
+        },
+        {
+          "id": 16,
+          "start_ns": 89127895817978,
+          "end_ns": 89127903790123,
+          "source_ms": 7.566627,
+          "terminal_ms": 7.972145
+        },
+        {
+          "id": 17,
+          "start_ns": 89127905078050,
+          "end_ns": 89127912824608,
+          "source_ms": 4.487687,
+          "terminal_ms": 7.746558
+        },
+        {
+          "id": 18,
+          "start_ns": 89127915244421,
+          "end_ns": 89127921903188,
+          "source_ms": 5.675608,
+          "terminal_ms": 6.658767
+        },
+        {
+          "id": 19,
+          "start_ns": 89127925125659,
+          "end_ns": 89127931608380,
+          "source_ms": 6.012493,
+          "terminal_ms": 6.482721
+        },
+        {
+          "id": 20,
+          "start_ns": 89127932939523,
+          "end_ns": 89127939941818,
+          "source_ms": 5.349125,
+          "terminal_ms": 7.002295
+        },
+        {
+          "id": 21,
+          "start_ns": 89127942535364,
+          "end_ns": 89127949861375,
+          "source_ms": 4.762069,
+          "terminal_ms": 7.326011
+        }
+      ],
+      "reloads": [
+        {
+          "start_ns": 89127755205207,
+          "end_ns": 89127763821750,
+          "ms": 8.616543,
+          "response_ms": 2.277676,
+          "request": {
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "sequence": 1,
+            "expected_revision": 0
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 56,
+            "type": "host_preferences_status_v1",
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-0-False/config.json",
+            "startup_activation_id": "49568923-beed-4516-8c27-dae6fc03d2b3",
+            "revision": 1,
+            "punctuation_sha256": "782d74eb58dfa517860c2b5641af6494cfef931ebe681d515f806200b2a2baeb",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "b18183f9c64eaae812f00d5180de3eac9d55b70df7a80248eb0cdf5609ed79ab",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 1,
+              "expected_revision": 0,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127768120723,
+          "end_ns": 89127774525409,
+          "ms": 6.404686,
+          "response_ms": 1.731691,
+          "request": {
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "sequence": 2,
+            "expected_revision": 1
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 59,
+            "type": "host_preferences_status_v1",
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-0-False/config.json",
+            "startup_activation_id": "49568923-beed-4516-8c27-dae6fc03d2b3",
+            "revision": 2,
+            "punctuation_sha256": "322f94dc9c4c934cc589a6c34c61b10c65d01b431ebab94342ca6106e5b240c6",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "590de3f5a4050f1f0884e978c452e6e878fcbefa23afe4905b3c6792f2b90238",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 2,
+              "expected_revision": 1,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127777328729,
+          "end_ns": 89127780740577,
+          "ms": 3.411848,
+          "response_ms": 1.553603,
+          "request": {
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "sequence": 3,
+            "expected_revision": 2
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 62,
+            "type": "host_preferences_status_v1",
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-0-False/config.json",
+            "startup_activation_id": "49568923-beed-4516-8c27-dae6fc03d2b3",
+            "revision": 3,
+            "punctuation_sha256": "da5e4b8d05b626d7c3f4fba1480ff883c87c719575bd95acf78604f0748e309c",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "1dda5cf93df116dea1ab1ac7122ba6ca3a8e5c28af05140438ebac4b9a02d36f",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 3,
+              "expected_revision": 2,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127786957144,
+          "end_ns": 89127792406670,
+          "ms": 5.449526,
+          "response_ms": 1.951519,
+          "request": {
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "sequence": 4,
+            "expected_revision": 3
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 65,
+            "type": "host_preferences_status_v1",
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-0-False/config.json",
+            "startup_activation_id": "49568923-beed-4516-8c27-dae6fc03d2b3",
+            "revision": 4,
+            "punctuation_sha256": "42a693f50e94a07be1097ccac8f5a7863865e0ec5d21efd40ab83fcb0f3c8f4f",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "bd06640f2b9c3104790669c8c7497a841e6932fdbb59e254ccdd7483f87048a0",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 4,
+              "expected_revision": 3,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127796152318,
+          "end_ns": 89127800335820,
+          "ms": 4.183502,
+          "response_ms": 2.349974,
+          "request": {
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "sequence": 5,
+            "expected_revision": 4
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 68,
+            "type": "host_preferences_status_v1",
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-0-False/config.json",
+            "startup_activation_id": "49568923-beed-4516-8c27-dae6fc03d2b3",
+            "revision": 5,
+            "punctuation_sha256": "535c82c0fac843fa2a7118c49862e42f0d36e6d6cd89c57d4111ea3b0ec8bbfa",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "740714c4ebc50f58ea5cd37f90b0f61a22095370938365342daebe98745abfd4",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 5,
+              "expected_revision": 4,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127805373110,
+          "end_ns": 89127809454204,
+          "ms": 4.081094,
+          "response_ms": 2.173681,
+          "request": {
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "sequence": 6,
+            "expected_revision": 5
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 71,
+            "type": "host_preferences_status_v1",
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-0-False/config.json",
+            "startup_activation_id": "49568923-beed-4516-8c27-dae6fc03d2b3",
+            "revision": 6,
+            "punctuation_sha256": "612ea68879caa8f75730b862df91a8d0aab6bafdad68ad98f8a832323e75e849",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "6fd5f325059fac3bb5607fc3329ea6bdbbddd021d23d81990a8dd0d50849c656",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 6,
+              "expected_revision": 5,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127816771354,
+          "end_ns": 89127820999769,
+          "ms": 4.228415,
+          "response_ms": 1.938334,
+          "request": {
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "sequence": 7,
+            "expected_revision": 6
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 74,
+            "type": "host_preferences_status_v1",
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-0-False/config.json",
+            "startup_activation_id": "49568923-beed-4516-8c27-dae6fc03d2b3",
+            "revision": 7,
+            "punctuation_sha256": "d6e796ace24431ed2c0d402910dd830ccddb9e2307bb6c441c32d94000c258ad",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "a6ff949020487e63e19874489f8539aeb8b1f151ff367423ccc2bc7b440a05cf",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 7,
+              "expected_revision": 6,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127826463264,
+          "end_ns": 89127829620027,
+          "ms": 3.156763,
+          "response_ms": 1.461404,
+          "request": {
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "sequence": 8,
+            "expected_revision": 7
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 77,
+            "type": "host_preferences_status_v1",
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-0-False/config.json",
+            "startup_activation_id": "49568923-beed-4516-8c27-dae6fc03d2b3",
+            "revision": 8,
+            "punctuation_sha256": "f6be4b28e344c6a45a655c3ab23e406cec6e801051fe853b0f7f5aa176d42117",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "1523db255e77acb9ed7fb4368fab52c4b97c5bc7aab43d50ea35211e1ff88005",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 8,
+              "expected_revision": 7,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127836181907,
+          "end_ns": 89127843720852,
+          "ms": 7.538945,
+          "response_ms": 1.509912,
+          "request": {
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "sequence": 9,
+            "expected_revision": 8
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 80,
+            "type": "host_preferences_status_v1",
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-0-False/config.json",
+            "startup_activation_id": "49568923-beed-4516-8c27-dae6fc03d2b3",
+            "revision": 9,
+            "punctuation_sha256": "7df292f153d663b80bd5e6f52c49f65fc8e597f7f15671fbe489b44b24f0656a",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "fe59d37a9d6891c5db7fef3eccf8891803bbbb0cc0afa1232f3f659a082e45dc",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 9,
+              "expected_revision": 8,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127846239235,
+          "end_ns": 89127849845448,
+          "ms": 3.606213,
+          "response_ms": 1.354939,
+          "request": {
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "sequence": 10,
+            "expected_revision": 9
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 83,
+            "type": "host_preferences_status_v1",
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-0-False/config.json",
+            "startup_activation_id": "49568923-beed-4516-8c27-dae6fc03d2b3",
+            "revision": 10,
+            "punctuation_sha256": "f307cfa24e6fab601849b71efb467cb8eb39a4700a46051af1cbff7f2d745698",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "42b73acb1d23994c04164422b84a06adc6cf68f850926d555f0118171ccf5681",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 10,
+              "expected_revision": 9,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127855453464,
+          "end_ns": 89127858856503,
+          "ms": 3.403039,
+          "response_ms": 1.66178,
+          "request": {
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "sequence": 11,
+            "expected_revision": 10
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 86,
+            "type": "host_preferences_status_v1",
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-0-False/config.json",
+            "startup_activation_id": "49568923-beed-4516-8c27-dae6fc03d2b3",
+            "revision": 11,
+            "punctuation_sha256": "e50a8bbe8389e63ff4c24ef676b87bdfcf88c7fd9c8943191a140a5c15789a59",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "96d9295eaa7a23233393b01675aa8ed951d590536a4b3de95b43dfcdb86d97fc",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 11,
+              "expected_revision": 10,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127867827448,
+          "end_ns": 89127871073043,
+          "ms": 3.245595,
+          "response_ms": 1.541678,
+          "request": {
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "sequence": 12,
+            "expected_revision": 11
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 89,
+            "type": "host_preferences_status_v1",
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-0-False/config.json",
+            "startup_activation_id": "49568923-beed-4516-8c27-dae6fc03d2b3",
+            "revision": 12,
+            "punctuation_sha256": "220fc6966a71ed1eeb28b404e3ea083bf580b76830a8cccf39ff50982fbd7eab",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "de62794dd869781f5b5af564dac592b14182b85968cc607b5ce4d8317b60b06b",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 12,
+              "expected_revision": 11,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127877002278,
+          "end_ns": 89127880172358,
+          "ms": 3.17008,
+          "response_ms": 1.421408,
+          "request": {
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "sequence": 13,
+            "expected_revision": 12
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 92,
+            "type": "host_preferences_status_v1",
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-0-False/config.json",
+            "startup_activation_id": "49568923-beed-4516-8c27-dae6fc03d2b3",
+            "revision": 13,
+            "punctuation_sha256": "73cd5f5afff175b4e5fb3384e3554790f15eebf57358b393d247ddfbf19fc5bc",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "cb0d3ef7eb933e6e609f569d8154549ed2e2fe0e892936e0256096e79213b0bc",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 13,
+              "expected_revision": 12,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127885430924,
+          "end_ns": 89127888698020,
+          "ms": 3.267096,
+          "response_ms": 1.3081,
+          "request": {
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "sequence": 14,
+            "expected_revision": 13
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 95,
+            "type": "host_preferences_status_v1",
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-0-False/config.json",
+            "startup_activation_id": "49568923-beed-4516-8c27-dae6fc03d2b3",
+            "revision": 14,
+            "punctuation_sha256": "eece37abc8ec5324931fec06cd7ba0fc90b8851539c7f55921a8d2c6b46972a3",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "618236a08de3212b24607978925f797eaf0a3cb7b5bac3a7eec990e580bbc455",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 14,
+              "expected_revision": 13,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127894838048,
+          "end_ns": 89127903193085,
+          "ms": 8.355037,
+          "response_ms": 2.011834,
+          "request": {
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "sequence": 15,
+            "expected_revision": 14
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 98,
+            "type": "host_preferences_status_v1",
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-0-False/config.json",
+            "startup_activation_id": "49568923-beed-4516-8c27-dae6fc03d2b3",
+            "revision": 15,
+            "punctuation_sha256": "4e27d560ee42f808b8229b61ca37f7ffbca2238244e34c75a4954329e55740ed",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "8ccfd8bfacb335c6575039ce296318185ce2c8911e41ea949ba58e6a5ab5a461",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 15,
+              "expected_revision": 14,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127904206124,
+          "end_ns": 89127908413128,
+          "ms": 4.207004,
+          "response_ms": 1.610139,
+          "request": {
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "sequence": 16,
+            "expected_revision": 15
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 101,
+            "type": "host_preferences_status_v1",
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-0-False/config.json",
+            "startup_activation_id": "49568923-beed-4516-8c27-dae6fc03d2b3",
+            "revision": 16,
+            "punctuation_sha256": "2374cd52ff45e79f620168ebe662d6bd2258542acf28e778785cb15da4663450",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "c14f17f36105b0bb903b17a01a272e16ee0350a36eed297712a881f56e881328",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 16,
+              "expected_revision": 15,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127914035664,
+          "end_ns": 89127918184063,
+          "ms": 4.148399,
+          "response_ms": 2.116606,
+          "request": {
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "sequence": 17,
+            "expected_revision": 16
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 104,
+            "type": "host_preferences_status_v1",
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-0-False/config.json",
+            "startup_activation_id": "49568923-beed-4516-8c27-dae6fc03d2b3",
+            "revision": 17,
+            "punctuation_sha256": "aa838308bc1d26b14d8f3819d5188ebe4ce7a78c2ab11f8fe2c0a9a36a2943e3",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "35ba0658eae9e04e26a5cb27e5a0f1ee65cf66de613980d78dfe356b8f2b9742",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 17,
+              "expected_revision": 16,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127924233777,
+          "end_ns": 89127930999193,
+          "ms": 6.765416,
+          "response_ms": 1.756811,
+          "request": {
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "sequence": 18,
+            "expected_revision": 17
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 107,
+            "type": "host_preferences_status_v1",
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-0-False/config.json",
+            "startup_activation_id": "49568923-beed-4516-8c27-dae6fc03d2b3",
+            "revision": 18,
+            "punctuation_sha256": "73f6e71a4affdd6e15aac0f689c6001a8c012d953fbd6622ca555e1bfd9179f1",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "4ebc8e410baee696635d41182e870893970824285e88b579c6278f57f059ec59",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 18,
+              "expected_revision": 17,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127931995580,
+          "end_ns": 89127935620984,
+          "ms": 3.625404,
+          "response_ms": 1.686606,
+          "request": {
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "sequence": 19,
+            "expected_revision": 18
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 110,
+            "type": "host_preferences_status_v1",
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-0-False/config.json",
+            "startup_activation_id": "49568923-beed-4516-8c27-dae6fc03d2b3",
+            "revision": 19,
+            "punctuation_sha256": "b8ea40fc2fe8ff2745f6d912af162b6322173c838a463137e4c793bae05c7d97",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "39d430f6a20036b0569d7daad202f6d25c2fd6eddfdd34fb443d986a0b5a2034",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 19,
+              "expected_revision": 18,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89127941620073,
+          "end_ns": 89127945369870,
+          "ms": 3.749797,
+          "response_ms": 1.831676,
+          "request": {
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "sequence": 20,
+            "expected_revision": 19
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 113,
+            "type": "host_preferences_status_v1",
+            "incarnation": "61c4908b-0699-43a6-8b7f-e01b41634a64",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-0-False/config.json",
+            "startup_activation_id": "49568923-beed-4516-8c27-dae6fc03d2b3",
+            "revision": 20,
+            "punctuation_sha256": "9bb3d711841527ce643a553451f075d728dc10084cd3b8cdf7b0309e4d9197dd",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "183a5f51105e0f49ec3f7c1e37c6d8e03d0a24a2ca477f595f3ecd34ed6b520b",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 20,
+              "expected_revision": 19,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        }
+      ],
+      "protocol_ms": [
+        1.021841,
+        0.87362,
+        0.873565,
+        0.942263,
+        0.840185,
+        1.127522,
+        0.940294,
+        0.892204,
+        0.86289,
+        0.832093,
+        0.788961,
+        1.034791,
+        0.914141,
+        0.801095,
+        0.950145,
+        1.161817,
+        0.828892,
+        0.759435,
+        0.783651,
+        0.85811,
+        1.043689,
+        0.91284,
+        0.96013,
+        0.916201,
+        0.914865,
+        0.989972,
+        0.865021,
+        1.055291,
+        0.987156,
+        1.275054,
+        0.841686,
+        0.810105,
+        0.83893,
+        0.924868,
+        0.918544,
+        0.803777,
+        0.869734,
+        0.923449,
+        0.908081,
+        0.832219,
+        0.811322,
+        0.785621,
+        0.79388,
+        0.780678,
+        0.784724,
+        0.872839,
+        0.93093,
+        1.235307,
+        0.983621,
+        0.925906
+      ],
+      "two_ready_ms": 169.040714,
+      "source_median_ms": 5.126488,
+      "protocol_median_ms": 0.9001425000000001
+    },
+    {
+      "engine": "flite",
+      "guarded": false,
+      "repeat": 1,
+      "samples": [
+        {
+          "id": 2,
+          "start_ns": 89128209626144,
+          "end_ns": 89128217990135,
+          "source_ms": 4.510765,
+          "terminal_ms": 8.363991
+        },
+        {
+          "id": 3,
+          "start_ns": 89128219342189,
+          "end_ns": 89128223794335,
+          "source_ms": 2.909851,
+          "terminal_ms": 4.452146
+        },
+        {
+          "id": 4,
+          "start_ns": 89128229772526,
+          "end_ns": 89128237396802,
+          "source_ms": 4.347426,
+          "terminal_ms": 7.624276
+        },
+        {
+          "id": 5,
+          "start_ns": 89128239687217,
+          "end_ns": 89128245054280,
+          "source_ms": 3.295837,
+          "terminal_ms": 5.367063
+        },
+        {
+          "id": 6,
+          "start_ns": 89128248244673,
+          "end_ns": 89128256587956,
+          "source_ms": 6.259862,
+          "terminal_ms": 8.343283
+        },
+        {
+          "id": 7,
+          "start_ns": 89128258170563,
+          "end_ns": 89128265589352,
+          "source_ms": 4.463698,
+          "terminal_ms": 7.418789
+        },
+        {
+          "id": 8,
+          "start_ns": 89128267901360,
+          "end_ns": 89128273868605,
+          "source_ms": 5.428253,
+          "terminal_ms": 5.967245
+        },
+        {
+          "id": 9,
+          "start_ns": 89128275036440,
+          "end_ns": 89128283160825,
+          "source_ms": 4.550345,
+          "terminal_ms": 8.124385
+        },
+        {
+          "id": 10,
+          "start_ns": 89128284845417,
+          "end_ns": 89128292903762,
+          "source_ms": 4.635328,
+          "terminal_ms": 8.058345
+        },
+        {
+          "id": 11,
+          "start_ns": 89128294119729,
+          "end_ns": 89128299227320,
+          "source_ms": 2.837886,
+          "terminal_ms": 5.107591
+        },
+        {
+          "id": 12,
+          "start_ns": 89128304151210,
+          "end_ns": 89128311681983,
+          "source_ms": 4.702817,
+          "terminal_ms": 7.530773
+        },
+        {
+          "id": 13,
+          "start_ns": 89128313413153,
+          "end_ns": 89128317839620,
+          "source_ms": 3.687001,
+          "terminal_ms": 4.426467
+        },
+        {
+          "id": 14,
+          "start_ns": 89128325456222,
+          "end_ns": 89128333153755,
+          "source_ms": 4.016731,
+          "terminal_ms": 7.697533
+        },
+        {
+          "id": 15,
+          "start_ns": 89128337515455,
+          "end_ns": 89128345127751,
+          "source_ms": 4.029479,
+          "terminal_ms": 7.612296
+        },
+        {
+          "id": 16,
+          "start_ns": 89128346733271,
+          "end_ns": 89128351123615,
+          "source_ms": 3.03733,
+          "terminal_ms": 4.390344
+        },
+        {
+          "id": 17,
+          "start_ns": 89128354938237,
+          "end_ns": 89128360908126,
+          "source_ms": 5.409607,
+          "terminal_ms": 5.969889
+        },
+        {
+          "id": 18,
+          "start_ns": 89128362240251,
+          "end_ns": 89128369849547,
+          "source_ms": 5.23374,
+          "terminal_ms": 7.609296
+        },
+        {
+          "id": 19,
+          "start_ns": 89128371168770,
+          "end_ns": 89128377901080,
+          "source_ms": 3.16202,
+          "terminal_ms": 6.73231
+        },
+        {
+          "id": 20,
+          "start_ns": 89128379178418,
+          "end_ns": 89128386748617,
+          "source_ms": 4.558654,
+          "terminal_ms": 7.570199
+        },
+        {
+          "id": 21,
+          "start_ns": 89128388025438,
+          "end_ns": 89128395859452,
+          "source_ms": 5.827226,
+          "terminal_ms": 7.834014
+        }
+      ],
+      "reloads": [
+        {
+          "start_ns": 89128208670760,
+          "end_ns": 89128212153961,
+          "ms": 3.483201,
+          "response_ms": 1.617266,
+          "request": {
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "sequence": 1,
+            "expected_revision": 0
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 56,
+            "type": "host_preferences_status_v1",
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-1-False/config.json",
+            "startup_activation_id": "6ca98920-41a3-4469-9b22-96765aa26d0f",
+            "revision": 1,
+            "punctuation_sha256": "782d74eb58dfa517860c2b5641af6494cfef931ebe681d515f806200b2a2baeb",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "b18183f9c64eaae812f00d5180de3eac9d55b70df7a80248eb0cdf5609ed79ab",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 1,
+              "expected_revision": 0,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89128218386032,
+          "end_ns": 89128221981701,
+          "ms": 3.595669,
+          "response_ms": 1.730808,
+          "request": {
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "sequence": 2,
+            "expected_revision": 1
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 59,
+            "type": "host_preferences_status_v1",
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-1-False/config.json",
+            "startup_activation_id": "6ca98920-41a3-4469-9b22-96765aa26d0f",
+            "revision": 2,
+            "punctuation_sha256": "322f94dc9c4c934cc589a6c34c61b10c65d01b431ebab94342ca6106e5b240c6",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "590de3f5a4050f1f0884e978c452e6e878fcbefa23afe4905b3c6792f2b90238",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 2,
+              "expected_revision": 1,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89128228703764,
+          "end_ns": 89128232255572,
+          "ms": 3.551808,
+          "response_ms": 1.6272,
+          "request": {
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "sequence": 3,
+            "expected_revision": 2
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 62,
+            "type": "host_preferences_status_v1",
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-1-False/config.json",
+            "startup_activation_id": "6ca98920-41a3-4469-9b22-96765aa26d0f",
+            "revision": 3,
+            "punctuation_sha256": "da5e4b8d05b626d7c3f4fba1480ff883c87c719575bd95acf78604f0748e309c",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "1dda5cf93df116dea1ab1ac7122ba6ca3a8e5c28af05140438ebac4b9a02d36f",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 3,
+              "expected_revision": 2,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89128238697350,
+          "end_ns": 89128242075435,
+          "ms": 3.378085,
+          "response_ms": 1.558109,
+          "request": {
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "sequence": 4,
+            "expected_revision": 3
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 65,
+            "type": "host_preferences_status_v1",
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-1-False/config.json",
+            "startup_activation_id": "6ca98920-41a3-4469-9b22-96765aa26d0f",
+            "revision": 4,
+            "punctuation_sha256": "42a693f50e94a07be1097ccac8f5a7863865e0ec5d21efd40ab83fcb0f3c8f4f",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "bd06640f2b9c3104790669c8c7497a841e6932fdbb59e254ccdd7483f87048a0",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 4,
+              "expected_revision": 3,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89128247033774,
+          "end_ns": 89128254164679,
+          "ms": 7.130905,
+          "response_ms": 2.224496,
+          "request": {
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "sequence": 5,
+            "expected_revision": 4
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 68,
+            "type": "host_preferences_status_v1",
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-1-False/config.json",
+            "startup_activation_id": "6ca98920-41a3-4469-9b22-96765aa26d0f",
+            "revision": 5,
+            "punctuation_sha256": "535c82c0fac843fa2a7118c49862e42f0d36e6d6cd89c57d4111ea3b0ec8bbfa",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "740714c4ebc50f58ea5cd37f90b0f61a22095370938365342daebe98745abfd4",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 5,
+              "expected_revision": 4,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89128257230435,
+          "end_ns": 89128260469184,
+          "ms": 3.238749,
+          "response_ms": 1.491443,
+          "request": {
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "sequence": 6,
+            "expected_revision": 5
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 71,
+            "type": "host_preferences_status_v1",
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-1-False/config.json",
+            "startup_activation_id": "6ca98920-41a3-4469-9b22-96765aa26d0f",
+            "revision": 6,
+            "punctuation_sha256": "612ea68879caa8f75730b862df91a8d0aab6bafdad68ad98f8a832323e75e849",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "6fd5f325059fac3bb5607fc3329ea6bdbbddd021d23d81990a8dd0d50849c656",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 6,
+              "expected_revision": 5,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89128267061234,
+          "end_ns": 89128272321512,
+          "ms": 5.260278,
+          "response_ms": 1.692505,
+          "request": {
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "sequence": 7,
+            "expected_revision": 6
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 74,
+            "type": "host_preferences_status_v1",
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-1-False/config.json",
+            "startup_activation_id": "6ca98920-41a3-4469-9b22-96765aa26d0f",
+            "revision": 7,
+            "punctuation_sha256": "d6e796ace24431ed2c0d402910dd830ccddb9e2307bb6c441c32d94000c258ad",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "a6ff949020487e63e19874489f8539aeb8b1f151ff367423ccc2bc7b440a05cf",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 7,
+              "expected_revision": 6,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89128274310675,
+          "end_ns": 89128278240027,
+          "ms": 3.929352,
+          "response_ms": 2.021607,
+          "request": {
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "sequence": 8,
+            "expected_revision": 7
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 77,
+            "type": "host_preferences_status_v1",
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-1-False/config.json",
+            "startup_activation_id": "6ca98920-41a3-4469-9b22-96765aa26d0f",
+            "revision": 8,
+            "punctuation_sha256": "f6be4b28e344c6a45a655c3ab23e406cec6e801051fe853b0f7f5aa176d42117",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "1523db255e77acb9ed7fb4368fab52c4b97c5bc7aab43d50ea35211e1ff88005",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 8,
+              "expected_revision": 7,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89128283683288,
+          "end_ns": 89128287737135,
+          "ms": 4.053847,
+          "response_ms": 2.086546,
+          "request": {
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "sequence": 9,
+            "expected_revision": 8
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 80,
+            "type": "host_preferences_status_v1",
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-1-False/config.json",
+            "startup_activation_id": "6ca98920-41a3-4469-9b22-96765aa26d0f",
+            "revision": 9,
+            "punctuation_sha256": "7df292f153d663b80bd5e6f52c49f65fc8e597f7f15671fbe489b44b24f0656a",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "fe59d37a9d6891c5db7fef3eccf8891803bbbb0cc0afa1232f3f659a082e45dc",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 9,
+              "expected_revision": 8,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89128293385822,
+          "end_ns": 89128296707603,
+          "ms": 3.321781,
+          "response_ms": 1.515335,
+          "request": {
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "sequence": 10,
+            "expected_revision": 9
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 83,
+            "type": "host_preferences_status_v1",
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-1-False/config.json",
+            "startup_activation_id": "6ca98920-41a3-4469-9b22-96765aa26d0f",
+            "revision": 10,
+            "punctuation_sha256": "f307cfa24e6fab601849b71efb467cb8eb39a4700a46051af1cbff7f2d745698",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "42b73acb1d23994c04164422b84a06adc6cf68f850926d555f0118171ccf5681",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 10,
+              "expected_revision": 9,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89128303259758,
+          "end_ns": 89128307146513,
+          "ms": 3.886755,
+          "response_ms": 1.731705,
+          "request": {
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "sequence": 11,
+            "expected_revision": 10
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 86,
+            "type": "host_preferences_status_v1",
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-1-False/config.json",
+            "startup_activation_id": "6ca98920-41a3-4469-9b22-96765aa26d0f",
+            "revision": 11,
+            "punctuation_sha256": "e50a8bbe8389e63ff4c24ef676b87bdfcf88c7fd9c8943191a140a5c15789a59",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "96d9295eaa7a23233393b01675aa8ed951d590536a4b3de95b43dfcdb86d97fc",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 11,
+              "expected_revision": 10,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89128312675172,
+          "end_ns": 89128316924111,
+          "ms": 4.248939,
+          "response_ms": 1.890509,
+          "request": {
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "sequence": 12,
+            "expected_revision": 11
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 89,
+            "type": "host_preferences_status_v1",
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-1-False/config.json",
+            "startup_activation_id": "6ca98920-41a3-4469-9b22-96765aa26d0f",
+            "revision": 12,
+            "punctuation_sha256": "220fc6966a71ed1eeb28b404e3ea083bf580b76830a8cccf39ff50982fbd7eab",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "de62794dd869781f5b5af564dac592b14182b85968cc607b5ce4d8317b60b06b",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 12,
+              "expected_revision": 11,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89128324522159,
+          "end_ns": 89128328300611,
+          "ms": 3.778452,
+          "response_ms": 1.463304,
+          "request": {
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "sequence": 13,
+            "expected_revision": 12
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 92,
+            "type": "host_preferences_status_v1",
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-1-False/config.json",
+            "startup_activation_id": "6ca98920-41a3-4469-9b22-96765aa26d0f",
+            "revision": 13,
+            "punctuation_sha256": "73cd5f5afff175b4e5fb3384e3554790f15eebf57358b393d247ddfbf19fc5bc",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "cb0d3ef7eb933e6e609f569d8154549ed2e2fe0e892936e0256096e79213b0bc",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 13,
+              "expected_revision": 12,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89128336623379,
+          "end_ns": 89128339970832,
+          "ms": 3.347453,
+          "response_ms": 1.504457,
+          "request": {
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "sequence": 14,
+            "expected_revision": 13
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 95,
+            "type": "host_preferences_status_v1",
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-1-False/config.json",
+            "startup_activation_id": "6ca98920-41a3-4469-9b22-96765aa26d0f",
+            "revision": 14,
+            "punctuation_sha256": "eece37abc8ec5324931fec06cd7ba0fc90b8851539c7f55921a8d2c6b46972a3",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "618236a08de3212b24607978925f797eaf0a3cb7b5bac3a7eec990e580bbc455",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 14,
+              "expected_revision": 13,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89128345793928,
+          "end_ns": 89128349590690,
+          "ms": 3.796762,
+          "response_ms": 1.762297,
+          "request": {
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "sequence": 15,
+            "expected_revision": 14
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 98,
+            "type": "host_preferences_status_v1",
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-1-False/config.json",
+            "startup_activation_id": "6ca98920-41a3-4469-9b22-96765aa26d0f",
+            "revision": 15,
+            "punctuation_sha256": "4e27d560ee42f808b8229b61ca37f7ffbca2238244e34c75a4954329e55740ed",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "8ccfd8bfacb335c6575039ce296318185ce2c8911e41ea949ba58e6a5ab5a461",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 15,
+              "expected_revision": 14,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89128354221329,
+          "end_ns": 89128358851018,
+          "ms": 4.629689,
+          "response_ms": 1.587682,
+          "request": {
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "sequence": 16,
+            "expected_revision": 15
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 101,
+            "type": "host_preferences_status_v1",
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-1-False/config.json",
+            "startup_activation_id": "6ca98920-41a3-4469-9b22-96765aa26d0f",
+            "revision": 16,
+            "punctuation_sha256": "2374cd52ff45e79f620168ebe662d6bd2258542acf28e778785cb15da4663450",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "c14f17f36105b0bb903b17a01a272e16ee0350a36eed297712a881f56e881328",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 16,
+              "expected_revision": 15,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89128361420485,
+          "end_ns": 89128366202112,
+          "ms": 4.781627,
+          "response_ms": 1.971827,
+          "request": {
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "sequence": 17,
+            "expected_revision": 16
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 104,
+            "type": "host_preferences_status_v1",
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-1-False/config.json",
+            "startup_activation_id": "6ca98920-41a3-4469-9b22-96765aa26d0f",
+            "revision": 17,
+            "punctuation_sha256": "aa838308bc1d26b14d8f3819d5188ebe4ce7a78c2ab11f8fe2c0a9a36a2943e3",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "35ba0658eae9e04e26a5cb27e5a0f1ee65cf66de613980d78dfe356b8f2b9742",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 17,
+              "expected_revision": 16,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89128370358462,
+          "end_ns": 89128373712834,
+          "ms": 3.354372,
+          "response_ms": 1.520968,
+          "request": {
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "sequence": 18,
+            "expected_revision": 17
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 107,
+            "type": "host_preferences_status_v1",
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-1-False/config.json",
+            "startup_activation_id": "6ca98920-41a3-4469-9b22-96765aa26d0f",
+            "revision": 18,
+            "punctuation_sha256": "73f6e71a4affdd6e15aac0f689c6001a8c012d953fbd6622ca555e1bfd9179f1",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "4ebc8e410baee696635d41182e870893970824285e88b579c6278f57f059ec59",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 18,
+              "expected_revision": 17,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89128378279601,
+          "end_ns": 89128382765280,
+          "ms": 4.485679,
+          "response_ms": 1.557449,
+          "request": {
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "sequence": 19,
+            "expected_revision": 18
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 110,
+            "type": "host_preferences_status_v1",
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-1-False/config.json",
+            "startup_activation_id": "6ca98920-41a3-4469-9b22-96765aa26d0f",
+            "revision": 19,
+            "punctuation_sha256": "b8ea40fc2fe8ff2745f6d912af162b6322173c838a463137e4c793bae05c7d97",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "39d430f6a20036b0569d7daad202f6d25c2fd6eddfdd34fb443d986a0b5a2034",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 19,
+              "expected_revision": 18,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        },
+        {
+          "start_ns": 89128387189368,
+          "end_ns": 89128393019621,
+          "ms": 5.830253,
+          "response_ms": 1.718897,
+          "request": {
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "sequence": 20,
+            "expected_revision": 19
+          },
+          "outcome": "applied",
+          "state": {
+            "protocol_version": 1,
+            "request_id": 113,
+            "type": "host_preferences_status_v1",
+            "incarnation": "ae311969-38cc-44dd-9df0-0bc6f0e3ddc9",
+            "configuration_file": "/home/bart/src/omnivox-lightweight-reload/target/guard-integration/latency-previous-after-submit/flite-1-False/config.json",
+            "startup_activation_id": "6ca98920-41a3-4469-9b22-96765aa26d0f",
+            "revision": 20,
+            "punctuation_sha256": "9bb3d711841527ce643a553451f075d728dc10084cd3b8cdf7b0309e4d9197dd",
+            "startup_punctuation_sha256": "ff1089b11c38acdd4693d02642b86b61a1f9dc427b9b727eba3ff44e299ca7de",
+            "host_preferences_sha256": "183a5f51105e0f49ec3f7c1e37c6d8e03d0a24a2ca477f595f3ecd34ed6b520b",
+            "startup_host_preferences_sha256": "986082e85827a41fe93de3f89250c79526d311f8d66c34a531535e0e069e0055",
+            "last_operation": {
+              "scope": "punctuation",
+              "sequence": 20,
+              "expected_revision": 19,
+              "outcome": "applied",
+              "reason": null
+            }
+          }
+        }
+      ],
+      "protocol_ms": [
+        0.954581,
+        0.923905,
+        1.105334,
+        0.831164,
+        0.877646,
+        0.784111,
+        0.973694,
+        1.164538,
+        1.075977,
+        1.197362,
+        0.906501,
+        0.890412,
+        0.909502,
+        1.656295,
+        0.916571,
+        0.853905,
+        0.783596,
+        0.838534,
+        0.935457,
+        0.917226,
+        0.885256,
+        0.873029,
+        0.921855,
+        0.90622,
+        1.013462,
+        1.182057,
+        1.009485,
+        0.956732,
+        0.863868,
+        0.955443,
+        1.176314,
+        1.349781,
+        1.264725,
+        1.434338,
+        1.157818,
+        1.155643,
+        0.89531,
+        0.820397,
+        1.003479,
+        1.246043,
+        1.038687,
+        1.317526,
+        1.181378,
+        0.808366,
+        0.880001,
+        0.794078,
+        0.816187,
+        0.807103,
+        0.764982,
+        0.83612
+      ],
+      "two_ready_ms": 164.654169,
+      "source_median_ms": 4.4872315,
+      "protocol_median_ms": 0.9228799999999999
+    }
+  ]
+}

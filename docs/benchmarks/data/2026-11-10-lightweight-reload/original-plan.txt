@@ -1,0 +1,279 @@
+# Lightweight preference reload investigation
+
+- Status: Proposed investigation; implementation has not started.
+- Scope: An isolated, local, two-worker experiment in inexpensive preference
+  reload, with foreground speech remaining usable when notifications fail.
+- Related: [Roadmap](../ROADMAP.md#host-configuration-follow-up),
+  [architecture reassessment](../benchmarks/2026-11-09-availability-and-reload-review.md),
+  [existing session plan](session-configuration-reload.md), and
+  [accepted decisions](../adr/README.md).
+
+## Question and proposed approach
+
+Can an ordinary owned worker install a validated punctuation policy without
+restarting engines, delaying normal speech materially, or depending on the other
+worker's success? Answer that question before adding more settings, a lifecycle
+manager or managed-library Apply integration.
+
+The proposed experiment keeps the ordinary speech transport. Rust captures and
+validates a candidate away from speech admission, then each worker installs it
+at a safe command boundary. Foreground and notification workers acknowledge
+their actual installed policy independently. Every individual request retains
+one coherent policy; temporary differences between workers are acceptable.
+
+Success would justify extending this approach, not establish that the ordinary
+owners already solve every recovery problem. Their combined-failure limitations
+remain part of the [availability review](../benchmarks/2026-11-09-availability-and-reload-review.md#availability-and-recovery-contract).
+
+## Starting points and isolation
+
+| Purpose | Branch or revision | Use |
+| --- | --- | --- |
+| Published baseline | `v1.18.0`, `246e3b7` | Preserve the known satisfactory speech experience and original evidence. |
+| Maintenance baseline | `main`, initially `f3d6eda` | Includes helper-write hardening before session implementation. |
+| Lightweight candidate | Proposed `experimental/lightweight-reload` from `f3d6eda` | Separate worktree at `/home/bart/src/omnivox-lightweight-reload`. |
+| Existing session comparator | `experimental/session-reload`, `7879419` | Retain implementation, guards, tests and historical measurements. |
+| Lightweight Emacsvox client | Proposed `feat/omnivox-lightweight-reload` from `master` | Separate worktree; record the actual starting commit when created. |
+| Session Emacsvox client | `feat/omnivox-session-client`, `a0404c398` | Existing session integration comparator. |
+
+These experiment branches have not been created by this plan. Keep maintenance
+`main`, the existing experimental checkout, installed runtimes and live Emacs
+sessions undisturbed. Use separate configuration, state, voice-library roots and
+output fixtures. Preserve uncommitted investigation files and all historical raw
+evidence. Record source commits, dirty diffs, toolchains, payload/data hashes and
+client identities for every new measurement.
+
+The plan currently lives with the session investigation and its evidence. When
+opening the lightweight branch, carry this plan and the necessary evidence links
+across without merging session implementation or creating links to unavailable
+branch-only files. Keep one maintained plan thereafter.
+
+## First slice and deliberate limits
+
+Change one pronunciation entry in an existing named punctuation profile. Observe
+the resulting prepared text as well as an installed-policy acknowledgement. The
+same foreground and notification workers, helpers, engine instances and output
+connections must remain in service through a successful reload.
+
+Capture and validate the complete selected configuration. For this first slice,
+accept only punctuation-table changes. Reject the whole candidate if another
+setting changes, including other otherwise reloadable preferences. This avoids
+silently applying part of a mixed edit. Capital cues, chunking and saved speech
+defaults are subsequent slices only if the first comparison succeeds.
+
+Reuse the experimental source-classification and immutable-policy ideas, with
+only the dependencies this slice requires. The experimental
+`engine_configuration/sources.rs`, `reload/worker.rs` and `server/admission.rs`
+are inspection points, not modules to import wholesale: the maintenance branch
+does not contain those reload modules. Preserve the maintenance branch's helper
+hardening and existing cancellation, bounded input and audio behavior.
+
+Keep native ownership and managed asset exclusions intact. This experiment does
+not add engine replacement, model sharing, file watching, remote management,
+global preference transactions, a new forwarding process, durable operation
+history or a managed-library Apply implementation.
+
+## Behavior to specify before coding
+
+| Concern | Proposed experiment contract |
+| --- | --- |
+| Local access | An explicit private operation available only through a verified local owned-worker launch. Ordinary remote speech frames must not gain file-reading or management authority. Older clients retain their existing behavior. |
+| Candidate preparation | Read, parse, classify and compile bounded input away from admission and Stop. Capture one candidate for both workers; a file edited afterward belongs to a new operation. Validation failure changes neither worker. |
+| Request coherence | Identify one capture point for a complete request. All its chunks, source mappings and punctuation expansion use that snapshot. Trace legacy queued text and multipart timelines explicitly; an incomplete submission must not hold all speech or reload indefinitely. |
+| Installation | Swap a complete prepared policy at a safe command boundary. Do not drain ongoing playback, reconstruct engines or wait for the other lane. Report installed state only after checking the actual policy. |
+| Partial results | Report each lane as applied, unchanged, rejected, pending, unavailable or unknown as appropriate. A timeout is not evidence that installation failed. A successful foreground change remains installed when notifications fail. |
+| Identity and retry | Bind the operation to the candidate, expected prior policy and worker incarnation. Duplicate requests cannot reinstall an obsolete policy over a newer one. After worker replacement, an old acknowledgement cannot prove current state. |
+| Resource bounds | Allow at most one prepared candidate per worker and bounded in-memory result retention. Reject conflicting work as busy or stale. Retain existing file, frame and queue limits; specify any new limits before adding a codec. |
+| Temporary overrides | Preserve the current voice, rate, gains and punctuation selection. Recheck selection at installation. In this slice, removal of the selected named profile rejects that lane's update and retains its working policy. |
+| Reset | Reset uses the successfully installed punctuation baseline on that worker; other saved defaults remain unchanged. Reset does not reread files or require matching revisions across workers. |
+| Startup identity | Retain immutable native launch identity separately from the live host-policy revision. Owner descriptions and managed activation checks must remain truthful; never claim the original complete launch snapshot still describes changed live preferences. |
+| Recovery | For the first experiment, existing worker recovery may restore the retained startup preferences and lose the live punctuation edit. Report that change explicitly. Recovery must not reread arbitrary edited helper definitions or replay speech. |
+| Explicit restart | Keep the existing distinction between recovery from retained state and a requested fresh configuration load. Test malformed saved files while speech works. Do not make exact restoration of a live preference a prerequisite for basic speech. |
+| Management failure | Loss of a temporary reload requester or preparation failure leaves working speech available. Native owner loss and ordinary client EOF retain their established lifetime rules; they are separate failure cases. |
+
+Resolve the narrow local transport and exact capture point from the maintenance
+code before implementation. Prefer a small extension to an existing ownership
+boundary. Any new control connection needs bounded I/O and must not share a
+blocking write or lock that prevents Stop or healthy foreground progress. Do not
+add periodic work to every ordinary speech request merely to observe reload.
+
+Lost-result recovery can query the current worker's actual policy and retry the
+same candidate. It does not require a durable cross-worker Commit. Exhausting
+bounded result retention must produce an honest unknown/stale result, never an
+invented success or automatic replay.
+
+## Delivery checkpoints
+
+### 1. Map the smallest change
+
+Trace owner launch, input parsing, request snapshots, configuration/status replies,
+Reset and existing restart/Apply validation on the maintenance baseline. Identify
+the exact code to reuse and the smallest local control path. Write down the new
+identity/status contract and its interaction with old clients before coding it.
+
+Complete when the proposed change has a concrete file/function map, resource
+bounds and test boundaries. Stop and reassess if even one punctuation update
+requires the whole session transaction stack or a managed Apply rewrite. That
+would identify coupling to resolve, not justify expanding this investigation.
+
+### 2. Prove one worker, then independent workers
+
+Build the private punctuation slice and a small native probe. Start with one
+worker, verify a real preparation change, and preserve an in-flight request's old
+snapshot. Add the second worker without adding a global commit barrier. Issue
+updates independently and observe foreground completion while notifications are
+unavailable or their management replies are blocked.
+
+Complete when correct punctuation changes, preserved engine lifetimes, coherent
+requests and truthful partial results are observable. Reject the approach if it
+requires weaker cancellation, unsafe ownership or unbounded pending operations.
+Do not build a settings UI before this native result exists.
+
+### 3. Test failures and compare responsiveness
+
+Exercise the failure matrix below, then run matched baseline/candidate workloads.
+Use the native probe first and a fresh Emacsvox test instance second. Client
+integration should request reload and display per-worker outcomes; it must not
+reimplement native lifecycle or rollback policy in Lisp.
+
+Complete with a dated report, raw observations and a recommendation to extend,
+revise or stop. If latency regresses, attribute the cost before adding settings.
+Evaluate the session transport optimization in its own branch only when needed
+to discriminate between the alternatives; it is not a prerequisite framework
+for the lightweight prototype.
+
+### 4. Decide whether to extend
+
+Extend to capital cues, chunking and saved defaults only after the punctuation
+slice preserves speech responsiveness and passes its failure checks. Qualify
+representative helper workloads and WSL-to-Windows before treating eSpeak results
+as sufficient for the intended setup. Native Windows-client and macOS lifetime,
+I/O and audio checks remain separate adoption requirements.
+
+Review recovery gaps independently. Reusing guard protections may be necessary;
+introducing a lifecycle manager requires evidence of a concrete benefit. Keep
+managed-library Apply and an emergency-start implementation outside this slice.
+
+## Focused failure matrix
+
+| Injection | Required observation |
+| --- | --- |
+| Malformed, oversized or mixed-scope configuration | Reload is rejected; existing speech and installed preferences continue unchanged. |
+| File changes during preparation | Workers receive the same captured candidate or a clear rejection; no half-read policy is installed. |
+| Reload during queued legacy text, multipart input or long speech | Each admitted utterance uses one complete snapshot; no duplicate text, missing source mapping or unexpected replay. |
+| Stop/replacement during preparation or installation | Cancellation remains responsive; cancelled audio cannot return after the policy changes. |
+| Notification worker absent, stalled or failed | Foreground speech and its reload complete independently; the other lane's result stays truthful. |
+| Reply lost; duplicate or out-of-order retry | Query/retry identifies actual installed state and incarnation; an older operation cannot overwrite newer preferences. |
+| Selected profile removed; temporary settings changed concurrently | Apply the specified per-lane rejection rule and preserve current client choices. |
+| Reload requester exits or result consumer stops reading | Speech remains available; bounded pending management state is eventually released without accumulating tasks or buffers. |
+| Saved-file write fails or state directory is read-only after launch | No successful persistence is claimed. Existing speech continues; an in-memory reload of a readable valid candidate must not require unrelated history writes. |
+| Worker/helper dies after successful reload | Existing owned recovery reaches usable speech or a specific ownership-related failure. Report any return to startup preferences; never replay the interrupted request. |
+| Repeated reload/restart cycles and failed requests | Processes, handles, memory, queues and retained policy/results remain bounded. Include real helpers when qualifying native cleanup. |
+
+Observe speech and output, not only status codes. Record completion conditions and
+maximum waits for every fault probe. Do not manufacture cleanup receipts, erase
+claims, signal unrelated processes or interpret a new state directory as proof
+that old audio has stopped. Unknown native lifetime remains an unresolved
+recovery condition, even when preference consistency has been relaxed.
+
+## Measurement and decision criteria
+
+Use the [retained reassessment](../benchmarks/2026-11-09-availability-and-reload-review.md#new-isolated-speech-observations)
+and [release comparison](../benchmarks/2026-10-27-release-1.18-comparison.md)
+as context. Existing source-event timings are not acoustic onset measurements,
+and existing samples do not establish tail-latency guarantees.
+
+Compare exact release, maintenance and lightweight builds with matched compiler,
+optimization, payload, configuration, output and client conditions. Include the
+unchanged session path where it answers the same question. Use the same native
+probe for server comparisons; separately identify differences between the
+ordinary and session Emacsvox clients. Do not pool incompatible measurement
+boundaries or silently reuse a different build's qualification.
+
+Measure normal speech with reload idle and with repeated reloads in progress:
+real letter-navigation commands, short ordered utterances, rapid replacement,
+Stop, sustained progressive speech and simultaneous notifications. Repeat with
+an impaired notification lane and representative CPU/I/O load. Use independently
+paced requests as well as sequential probes so a stalled reply cannot hide
+offered load; retain bounded submission and report drops/coalescing explicitly.
+
+Record request submission, admission, first PCM, source playback event, event
+receipt and terminal outcome where observable. Record acoustic onset and
+Stop-to-silence separately with a suitable output capture/listening check.
+Measure total reload time, foreground application time, and the interval in which
+usable speech is unavailable separately. Ongoing playback can conceal blocked
+new requests, so neither uninterrupted old audio nor a quick acknowledgement
+alone establishes responsiveness.
+
+Start functional probes with eSpeak/null output. For broader conclusions use
+actual output, an available native helper and a representative expensive engine.
+Record unavailable engines, physical capture or platforms as qualification gaps.
+Preserve all samples, including the unexplained long outliers seen in earlier
+ordinary and session paths. Counterbalance case order across independent starts.
+Before interpreting empirical p95, aim for at least 1,000 requests per workload
+and case over at least five starts, plus 100 distributed reload operations.
+Report run-to-run variability and uncertainty; these counts do not justify p99
+or worst-case claims.
+
+The following are proposed screening thresholds, not established guarantees:
+
+| Measurement | Proposed criterion |
+| --- | --- |
+| Ordinary short speech and replacement | Investigate more than 2 ms added median or 5 ms added empirical p95 versus the matched 1.18.0 path; also compare with maintenance to attribute the prototype's own cost. |
+| Speech during preference reload | No failed valid requests or cross-worker admission hold; investigate more than 10 ms added empirical p95 versus the same path without reload. Expected replacement cancellation is distinct from failure. |
+| Preference update | Aim for at most 100 ms empirical p95 with two healthy local workers. Report foreground completion independently when notifications are impaired; a slow file read may delay the operation without withholding speech. |
+| Stop and availability | No new cancellation defect, stale audio, duplicate speech or reload-induced engine blackout. Confirm physical onset and Stop-to-silence before adoption. |
+| Resources and recovery | Every supported fault has a bounded result and cleanup path. Repeated operations cannot accumulate native workers or retained candidates. Report inherited recovery gaps separately. |
+
+The decisive result is inexpensive preference change with ordinary speech
+responsiveness and useful foreground service under secondary-lane failure.
+If it needs broad lifecycle restructuring before that result, stop this slice
+and report the dependency. If an optimized session can meet the same availability
+and latency requirements with less code and maintenance burden, reconsider that
+alternative on its evidence.
+
+## Accepted decisions and implementation gates
+
+This plan proposes a different preference contract; it does not amend an ADR or
+authorize implementation. Selecting an older branch does not remove the need to
+review accepted decisions that govern the proposed direction.
+
+- [0011](../adr/0011-session-configuration-and-reload.md): independent installation
+  conflicts with one authoritative revision, coordinated admission and durable
+  all-lane completion. Keep validation, request coherence and local access limits.
+- [0013](../adr/0013-private-sessions-and-multi-lane-supervision.md): review central
+  coordination, frozen membership and supervisor lifetime before adopting the
+  alternative. The existing ordinary path remains the experimental starting point.
+- [0009](../adr/0009-local-speech-preferences.md) and
+  [0008](../adr/0008-extensible-engine-registration.md): specify live preference
+  identity, Reset, client precedence and recovery separately from native startup.
+- [0007](../adr/0007-managed-voice-lifecycle.md),
+  [0014](../adr/0014-unix-session-cleanup-guard.md) and
+  [0015](../adr/0015-windows-session-cleanup-guard.md): retain asset exclusion,
+  native authority and cleanup protections. Faster preferences do not resolve
+  their recovery questions.
+- [0016](../adr/0016-session-managed-voice-activation.md): keep managed activation
+  separate; do not claim this preference experiment implements or replaces Apply.
+- [0001](../adr/0001-engine-isolation-and-distribution.md),
+  [0003](../adr/0003-progressive-audio-and-markers.md),
+  [0004](../adr/0004-workstation-service-and-worker-ownership.md) and
+  [0006](../adr/0006-voice-selection-and-customization.md): preserve isolation,
+  cancellation, ownership, access restrictions and negotiated compatibility.
+
+Before implementing the alternative, make the experimental departure from the
+accepted preference contract explicit for review. Any new ADR requires separate
+explicit approval under [AGENTS.md](../../AGENTS.md); requesting this plan does
+not authorize creating one. No release, deployment or public capability is
+included in the investigation.
+
+During implementation, use the branch's pinned Rust toolchain, run
+`make fmt-check` before any mutating formatter, and build runnable payloads through
+`make build` or `make dev`. Run behavior-focused tests for the faults above,
+locked workspace tests and relevant locked Clippy checks before review. Follow
+Emacsvox's selected-Emacs, source/byte-code and fresh-instance rules for client
+changes. Public protocol integration requires the applicable full Windows
+development staging, in an isolated runtime, before qualification.
+
+For this plan, run documentation link and whitespace checks. The next concrete
+checkpoint is the maintenance-code map and narrow private operation contract,
+followed by the single-worker punctuation proof once implementation is authorized.

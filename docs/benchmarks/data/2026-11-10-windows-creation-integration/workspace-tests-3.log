@@ -1,0 +1,1449 @@
+   Compiling omnivox-cli v1.18.0 (/home/bart/src/omnivox-lightweight-reload/omnivox-cli)
+   Compiling omnivox-piper-sys v1.18.0 (/home/bart/src/omnivox-lightweight-reload/omnivox-piper-sys)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 12.16s
+     Running unittests src/lib.rs (/home/bart/tmp/ovlw-check/debug/deps/omnivox_audio-54418c4e2da88459)
+
+running 172 tests
+test buffer::tests::converts_native_i16_mono_to_canonical_stereo ... ok
+test buffer::tests::test_clamp ... ok
+test buffer::tests::test_new_buffer ... ok
+test buffer::tests::rejects_invalid_native_formats ... ok
+test buffer::tests::test_empty_buffer ... ok
+test buffer::tests::test_append ... ok
+test buffer::tests::test_duration ... ok
+test buffer::tests::test_set_left_right ... ok
+test buffer::tests::test_peak_amplitude_empty ... ok
+test buffer::tests::tiny_native_buffers_do_not_disappear_during_resampling ... ok
+test buffer::tests::test_peak_amplitude ... ok
+test buffer::tests::test_new_buffer_odd_samples_panics - should panic ... ok
+test buffer::tests::test_left_right_access ... ok
+test buffer::tests::test_silence ... ok
+test cancellation::tests::cancellation_is_shared_and_permanent ... ok
+test device::tests::missing_output_rejects_audio_and_recovery_keeps_only_new_work ... ok
+test device::tests::stale_or_shutdown_connection_attempt_is_never_published ... ok
+test device::tests::duplicate_default_keeps_the_connection ... ok
+test effects::tests::progressive_trimmer_discards_an_all_silent_stream ... ok
+test device::tests::unprimed_speech_and_unreached_cues_cannot_cross_a_switch ... ok
+test effects::tests::test_channel_router_left ... ok
+test effects::tests::test_pipeline_volume_then_router ... ok
+test effects::tests::test_silence_trimmer_threshold ... ok
+test device::tests::switching_retires_active_queued_and_overlay_audio_without_replay ... ok
+test effects::tests::test_silence_trimmer_trailing_silence ... ok
+test device::tests::switching_unblocks_a_progressive_consumer_and_rejects_old_producer ... ok
+test device::tests::notification_storm_is_bounded_and_initial_failure_is_an_error ... ok
+test effects::tests::test_silence_trimmer_no_silence ... ok
+test effects::tests::test_volume_adjust_half ... ok
+test effects::tests::test_volume_adjust_clamp ... ok
+test effects::tests::test_channel_router_both ... ok
+test effects::tests::test_volume_adjust_unity ... ok
+test effects::tests::test_volume_adjust_zero ... ok
+test effects::tests::progressive_trimmer_matches_buffered_samples_across_windows ... ok
+test effects::tests::test_volume_adjust_double ... ok
+test loader::tests::remote_loader_rejects_symlinks_outside_the_sound_root ... ok
+test effects::tests::test_channel_router_empty ... ok
+test effects::tests::test_full_pipeline ... ok
+test loader::tests::cache_evicts_the_least_recently_used_entry ... ok
+test loader::tests::encoded_resource_size_is_bounded_before_decode ... ok
+test effects::tests::test_silence_trimmer_all_silence ... ok
+test loader::tests::test_cache_operations ... ok
+test loader::tests::test_cache_hit ... ok
+test loader::tests::shared_cache_hits_reuse_the_decoded_pcm_allocation ... ok
+test loader::tests::test_load_nonexistent_file ... ok
+test loader::tests::test_loader_default ... ok
+test loader::tests::test_mono_to_stereo ... ok
+test loader::tests::test_downmix_to_stereo ... ok
+test loader::tests::test_resample_downsample ... ok
+test loader::tests::replacing_a_checked_file_with_a_pipe_cannot_block_open ... ok
+test loader::tests::test_load_generated_wav ... ok
+test loader::tests::test_resample_upsample ... ok
+test effects::tests::test_volume_adjust_empty ... ok
+test output::tests::cancellation_fade_uses_smooth_endpoints ... ok
+test effects::tests::test_channel_router_right ... ok
+test output::tests::cloned_tickets_observe_the_same_terminal_state ... ok
+test effects::tests::test_silence_trimmer_empty_buffer ... ok
+test output::tests::active_tracked_source_fades_to_zero_when_cancelled ... ok
+test effects::tests::test_silence_trimmer_leading_silence ... ok
+test output::tests::failed_attachment_can_follow_accepted_pcm_without_consumption ... ok
+test effects::tests::test_silence_trimmer_both_ends ... ok
+test effects::tests::test_silence_trimmer_with_padding ... ok
+test output::tests::playback_cues_reject_offsets_beyond_the_buffer ... ok
+test output::tests::progressive_control_attaches_a_short_stream_at_completion ... ok
+test output::tests::progressive_control_attaches_only_after_three_audio_windows ... ok
+test loader::tests::test_resample_same_rate ... ok
+test effects::tests::test_pipeline_trimmer_then_volume ... ok
+test output::tests::progressive_control_does_not_attach_after_stop_during_priming ... ok
+test output::tests::progressive_cues_do_not_consume_bounded_audio_capacity ... ok
+test device::tests::unrelated_endpoint_event_keeps_active_speech ... ok
+test output::tests::progressive_producer_rejects_empty_or_late_frames ... ok
+test output::tests::progressive_source_cancellation_interrupts_an_empty_stream ... ok
+test output::idle_tests::canonical_queue_still_converts_to_the_device_format ... ok
+test output::tests::null_backend_consumes_tracked_audio_and_cues_without_a_device ... ok
+test device::tests::stop_and_shutdown_do_not_allow_a_blocked_attempt_to_publish ... ok
+test output::tests::progressive_source_consumes_ordered_windows_and_dynamic_cues ... ok
+test output::tests::progressive_source_reports_an_unfinished_producer_as_cancelled ... ok
+test output::tests::null_backend_shutdown_interrupts_an_idle_progressive_source ... ok
+test output::tests::speech_stop_rotates_the_stream_cancellation_generation ... ok
+test output::tests::scheduled_playback_waits_for_every_guard ... ok
+test output::tests::stream_stop_fades_active_untracked_audio_but_discards_queued_audio ... ok
+test output::tests::token_cancellation_is_scoped_across_active_and_queued_sources ... ok
+test output::tests::rapid_replacement_burst_leaves_only_the_latest_source_playable ... ok
+test output::tests::token_cancellation_suppresses_unreached_cues ... ok
+test output::tests::tone_stop_rotates_the_stream_cancellation_generation ... ok
+test output::tests::null_backend_consumes_progressive_speech_without_a_device ... ok
+test output::tests::tone_stop_fades_the_active_sink_source_to_zero ... ok
+test output::tests::tracked_source_drops_unreached_cues_on_cancellation ... ok
+test output::tests::tracked_source_reports_early_drop_as_cancellation ... ok
+test output::tests::tracked_source_reports_natural_completion ... ok
+test output::tests::tracked_source_reports_only_one_terminal_state ... ok
+test output::tests::unstarted_tracked_source_stops_immediately_when_cancelled ... ok
+test output::tests::tracked_source_emits_ordered_cues_at_frame_boundaries ... ok
+test pipeline::tests::test_clear_pipeline ... ok
+test pipeline::tests::test_chained_effects ... ok
+test output::tests::tracked_source_invokes_cue_callback_without_changing_completion ... ok
+test pipeline::tests::test_effect_order_matters ... ok
+test pipeline::tests::test_pipeline_len ... ok
+test pipeline::tests::test_effect_error_propagates ... ok
+test pipeline::tests::test_single_effect ... ok
+test output::tests::letter_cancellation_before_priming_releases_no_pcm_or_cues ... ok
+test post_synthesis::tests::neutral_processing_is_duration_preserving ... ok
+test post_synthesis::tests::chorus_delay_state_crosses_render_windows_without_a_tail ... ok
+test output::tests::pulse_selective_cancellation_preserves_unrelated_audio_and_cues ... ok
+test post_synthesis::tests::gain_and_pan_ramp_without_changing_duration ... ok
+test progressive_pcm::tests::canonical_pcm_passes_through_and_expands_mono ... ok
+test post_synthesis::tests::chorus_is_duration_preserving_and_adds_a_modulated_copy ... ok
+test output::tests::ordinary_progressive_speech_keeps_its_window_reserve ... ok
+test output::tests::letter_reserve_releases_short_streams_and_tiny_windows_without_deadlock ... ok
+test output::tests::primed_letter_can_stop_a_stalled_producer_and_recover ... ok
+test output::tests::pulse_disconnect_retires_stalled_progressive_source_and_teardown_closes_controls ... ok
+test output::tests::pulse_progressive_prebuffer_and_stop_do_not_wait_for_stalled_producer ... ok
+test output::tests::letter_reserve_uses_frames_and_preserves_pcm_and_cues ... ok
+test pipeline::tests::test_empty_pipeline ... ok
+test post_synthesis::tests::reverb_produces_an_explicit_tail_without_extending_primary_audio ... ok
+test post_synthesis::tests::enabling_a_delay_does_not_replay_earlier_dry_audio ... ok
+test pulse::tests::latency_request_is_bounded_and_independent_of_alsa_defaults ... ok
+test post_synthesis::tests::enabling_chorus_does_not_replay_earlier_dry_audio ... ok
+test pulse::tests::bounded_writes_drain_before_idle_cork_and_resume_without_silence ... ok
+test pulse::tests::stop_flushes_old_generation_and_keeps_immediate_replacement ... ok
+test timeline::tests::incremental_window_rejects_actions_outside_its_absolute_range ... ok
+test timeline::tests::incremental_windows_match_one_complete_timeline_at_shared_boundaries ... ok
+test pulse::tests::blocked_lane_does_not_hold_up_another_lane ... ok
+test timeline::tests::insertion_shifts_primary_and_frame_mapping ... ok
+test timeline::tests::missing_or_mismatched_resources_are_rejected ... ok
+test timeline::tests::overlay_does_not_shift_primary_and_final_tail_is_retained ... ok
+test timeline::tests::overlay_tail_crosses_into_the_next_bounded_window ... ok
+test timeline::tests::semantic_event_uses_the_insertion_shifted_output_frame ... ok
+test pulse::tests::stop_interrupts_pending_drain_without_waiting_for_the_device_tail ... ok
+test timeline::tests::shared_resources_render_without_taking_pcm_ownership ... ok
+test tone::rich::tests::envelope_stages_and_compression_have_fixed_endpoints ... ok
+test tone::rich::tests::exponential_curve_changes_interior_levels_but_preserves_boundaries ... ok
+test tone::rich::tests::cancellation_discards_classic_and_shaped_pcm_before_during_and_after_generation ... ok
+test loader::tests::remote_loader_requires_icons_and_preserves_cached_pcm ... ok
+test post_synthesis::tests::echo_state_crosses_windows_and_returns_a_bounded_final_tail ... ok
+test progressive_pcm::tests::rejects_misaligned_or_post_completion_input ... ok
+test output::idle_tests::stopped_speech_keeps_its_fade_and_the_next_onset_is_exact ... ok
+test tone::rich::tests::renderer_rejects_invalid_programmatic_values_before_generating ... ok
+test tone::rich::tests::harmonic_work_stops_at_32_partials_even_at_low_frequencies ... ok
+test tone::rich::tests::classic_shaped_and_interruptible_entry_points_preserve_every_sample ... ok
+test tone::tests::test_common_emacspeak_tones ... ok
+test tone::tests::test_fade_in_envelope ... ok
+test tone::rich::tests::harmonic_shapes_have_expected_spectra_and_exclude_above_nyquist_partials ... ok
+test tone::tests::test_fade_out_envelope ... ok
+test tone::tests::test_frequency_content ... ok
+test tone::tests::test_generate_correct_duration ... ok
+test tone::tests::test_generate_stereo_output ... ok
+test tone::tests::test_generate_zero_duration ... ok
+test tone::tests::test_spatial_delay ... ok
+test tone::tests::test_samples_in_range ... ok
+test tone::rich::tests::sweep_changes_measured_frequency_in_the_expected_direction ... ok
+test tone::tests::test_very_short_tone ... ok
+test tone::tests::test_volume_scaling ... ok
+test tone::rich::tests::half_width_pulse_matches_square_and_width_changes_the_sound ... ok
+test tone::rich::tests::gain_is_linear_without_changing_the_envelope_or_duration ... ok
+test tone::rich::tests::extended_waveforms_width_and_sweeps_are_bounded_and_interruptible ... ok
+test buffer::tests::converts_and_resamples_native_mono ... ok
+test progressive_pcm::tests::idle_filters_require_exact_format_and_have_a_fixed_limit ... ok
+test tone::rich::tests::zero_and_short_stages_keep_duration_stereo_bounds_and_silent_endpoints ... ok
+test progressive_pcm::tests::short_resampled_utterances_retain_audio_not_just_frame_counts ... ok
+test pulse::tests::failed_reconnect_does_not_retry_without_fresh_audio ... ok
+test pulse::tests::stop_during_reconnect_keeps_only_the_replacement_and_shutdown_stays_final ... ok
+test output::idle_tests::progressive_onsets_preserve_samples_cues_and_completion_after_idle ... ok
+test progressive_pcm::tests::sinc_conversion_preserves_more_high_frequency_energy_than_linear ... ok
+test progressive_pcm::tests::conversion_is_independent_of_native_callback_boundaries ... ok
+test pulse::tests::device_failure_retires_backlog_and_reconnects_only_for_fresh_audio ... ok
+test progressive_pcm::tests::completion_has_the_exact_scaled_frame_count ... ok
+test device::tests::replacement_queues_preserve_stereo_onsets_after_idle ... ok
+test output::idle_tests::buffered_and_tracked_onsets_survive_cold_start_idle_and_adjacency ... ok
+test progressive_pcm::tests::reused_filter_matches_fresh_pcm_after_completion_or_cancellation ... ok
+test progressive_pcm::tests::resampled_onsets_and_tails_stay_at_native_marker_positions ... ok
+test device::tests::retries_are_bounded_and_fresh_audio_can_recover ... ok
+
+test result: ok. 172 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.26s
+
+     Running tests/integration_tests.rs (/home/bart/tmp/ovlw-check/debug/deps/integration_tests-40b2ea0b26378ddd)
+
+running 31 tests
+test append_buffers_then_process ... ok
+test all_buffers_stereo_f32_44100 ... ok
+test cache_returns_same_content ... ok
+test empty_buffer_through_effects ... ok
+test channel_right_zeros_left ... ok
+test channel_left_zeros_right ... ok
+test load_invalid_file_returns_decode_error ... ok
+test multiple_effects_applied_in_order ... ok
+test empty_buffer_through_pipeline ... ok
+test effect_order_matters_trim_then_volume_vs_volume_then_trim ... ok
+test load_nonexistent_file_returns_file_not_found ... ok
+test three_effects_in_chain ... ok
+test known_buffer_through_effects ... ok
+test pipeline_with_loaded_wav_file ... ok
+test resampled_wav_is_stereo_44100 ... ok
+test tone_1000hz_frequency_via_zero_crossings ... ok
+test trim_both_ends ... ok
+test zero_duration_tone_is_empty ... ok
+test tone_through_full_pipeline ... ok
+test tone_stereo_output_and_spatial_delay ... ok
+test trim_trailing_silence ... ok
+test trim_does_not_over_trim ... ok
+test trim_preserves_minimum_padding ... ok
+test trim_leading_silence ... ok
+test volume_halves_samples ... ok
+test wav_file_loads_as_stereo_44100 ... ok
+test tone_then_trim_preserves_content ... ok
+test volume_clamps_output ... ok
+test tone_440hz_frequency_via_zero_crossings ... ok
+test trim_with_different_thresholds ... ok
+test tone_duration_matches_expected_sample_count ... ok
+
+test result: ok. 31 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/main.rs (/home/bart/tmp/ovlw-check/debug/deps/omnivox-c5b8cfcd8a03e34a)
+
+running 365 tests
+test cli::tests::audio_backend_values_are_explicit_and_case_insensitive ... ok
+test cli::tests::backend_precedence_is_cli_then_environment_then_saved ... ok
+test cli::tests::audio_target_routes_every_stream_owned_by_the_process ... ok
+test cli::tests::dump_wav_empty_positional_voice_retains_voice_flag ... ok
+test cli::tests::raw_wav_name_is_distinct_and_does_not_rewrite_parent_directories ... ok
+test cli::tests::test_format_voices_alist_preserves_backend_identifier ... ok
+test diagnostics::tests::synthesis_text_logging_requires_an_explicit_true_value ... ok
+test emergency::tests::emergency_removes_preference_and_engine_overrides_but_keeps_host_io ... ok
+test cli::tests::test_escape_elisp_string_handles_protocol_unsafe_characters ... ok
+test engine::configuration_tests::local_references_keep_unavailable_and_disabled_shipped_identities_visible ... ok
+test cli::tests::dump_wav_uses_cli_synthesis_settings_and_positional_voice ... ok
+test cli::tests::diagnostics_use_engine_default_only_when_voice_is_omitted ... ok
+test engine::configuration_tests::captured_environment_and_cli_preferences_feed_the_same_launch_resolution ... ok
+test engine::library_tests::absent_managed_helpers_are_reported_without_aborting_startup ... ok
+test engine::tests::companion_directory_precedes_legacy_adjacent_helper ... ok
+test engine::library_tests::managed_helper_failure_keeps_an_unavailable_inventory_entry ... ok
+test engine::tests::tgspeechbox_inventory_follows_the_native_sample_rate ... ok
+test engine::tests::piper_companion_directory_precedes_legacy_adjacent_helper ... ok
+test engine::tests::windows_honours_explicit_engine_preferences ... ok
+test engine::tests::helper_initialization_starts_concurrently_and_retains_order ... ok
+test engine::tests::linux_retains_espeak_when_piper_is_preferred ... ok
+test engine::tests::windows_defaults_to_winrt_with_espeak_fallback ... ok
+test engine::configuration_tests::captured_canonical_root_can_prepare_new_preferences_without_native_startup ... ok
+test engine::tests::macos_retains_native_and_espeak_for_each_preference ... ok
+test engine::library_tests::incomplete_managed_inventory_is_unavailable_instead_of_fatal ... ok
+test engine::tests::failed_helper_startup_retains_an_unavailable_inventory_entry ... ok
+test engine::tests::eloquence_helper_fails_over_after_a_short_idle_timeout ... ok
+test engine_execution::tests::native::cancelled_native_stream_suppresses_late_application_and_pcm ... ok
+test engine_execution::tests::last_native_owner_wakes_waiters_after_publishing_available_capacity ... ok
+test engine_execution::tests::progressive_windows_cross_isolation_before_native_completion ... ok
+test health::tests::cooldown_allows_exactly_one_recovery_probe ... ok
+test health::tests::cancelled_probe_returns_to_ready_without_counting_a_failure ... ok
+test engine_execution::tests::native::unsupported_requires_explicit_degradation_and_preserves_progressive_audio ... ok
+test health::tests::explicit_probe_and_runtime_status_expose_recovery_state ... ok
+test health::tests::first_failure_opens_the_circuit_for_five_seconds ... ok
+test health::tests::failed_probes_follow_the_bounded_backoff_sequence ... ok
+test health::tests::public_snapshot_reports_a_new_runtime_failure ... ok
+test health::tests::successful_probe_closes_the_circuit ... ok
+test lifecycle::tests::clones_share_the_same_measurements ... ok
+test lifecycle::tests::records_each_lifecycle_boundary_once_after_admission ... ok
+test engine_execution::tests::soft_supersession_discards_a_natural_completion_without_stopping_engine ... ok
+test engine_execution::tests::native::native_buffered_and_progressive_requests_keep_values_and_ordinary_speech_clean ... ok
+test lightweight::tests::bounded_preparation_does_not_hold_speech_teardown ... ok
+test engine_execution::tests::native::invalid_or_missing_application_never_reaches_the_audio_sink ... ok
+test engine::library_tests::build_without_piper_retains_the_library_and_other_engine_choices ... ok
+test lightweight::tests::coherent_requests_live_status_reset_and_retained_startup_are_distinct ... ok
+test lightweight::tests::pending_batch_and_selected_profile_rejection_keep_working_policy ... ok
+test marker_events::tests::cancelled_or_oversized_marker_reservations_never_enter_the_queue ... ok
+test lightweight::tests::lost_replies_duplicates_and_aba_cannot_replay_old_operations ... ok
+test engine::library_tests::bad_assets_disable_only_their_provider_before_native_loading ... ok
+test lightweight::tests::host_reload_keeps_client_choices_and_updates_one_coherent_reset_baseline ... ok
+test lightweight::tests::punctuation_scope_compares_current_host_policy_and_rejects_mixed_edits ... ok
+test marker_events::tests::failed_initial_cues_still_handoff_and_settle_the_created_source_ticket ... ok
+test marker_events::tests::prepares_started_event_then_stably_sorted_markers ... ok
+marker-lock-probe
+test engine_execution::tests::native::cancelled_native_buffered_result_is_quarantined_and_discarded ... ok
+test marker_events::tests::production_reporter_releases_stdout_between_records ... ok
+test marker_events::tests::progressive_timeline_events_share_the_ordered_playback_clock ... ok
+test engine_execution::tests::waiting_admission_observes_cancellation_without_releasing_native_owner ... ok
+test marker_events::tests::reporter_serializes_markers_before_one_terminal_record ... ok
+test marker_events::tests::progressive_markers_are_reserved_before_their_audio_and_reach_the_reporter ... ok
+test native_guard::wire::tests::blocked_reply_waits_for_write_even_with_queued_input ... ok
+test marker_events::tests::start_and_choice_reserve_two_records_but_publish_one_reporter_message ... ok
+test marker_events::tests::v2_reports_anchor_and_style_degradation_at_utterance_start ... ok
+test marker_events::tests::v2_semantic_events_are_stably_merged_at_playback_frames ... ok
+test native_guard::wire::tests::buffered_second_request_needs_no_new_kernel_event ... ok
+test native_guard::wire::tests::incomplete_frame_has_a_real_deadline ... ok
+test marker_events::tests::choice_pair_uses_one_first_frame_cue_before_diagnostics_in_both_playback_modes ... ok
+test engine::configuration_tests::disabled_native_engines_are_rejected_before_construction_and_exact_diagnostics_do_not_fallback ... ok
+test parameter_queries::cache::tests::replacement_owner_runtime_and_profile_cannot_reuse_saved_metadata ... ok
+test parameter_queries::cache::tests::only_complete_validated_pages_are_published_and_busy_does_not_destroy_assembly ... ok
+test parameter_queries::explanations::tests::applied_queries_reject_changed_voice_plan_or_runtime_evidence ... ok
+test parameter_queries::explanations::tests::applied_lookup_keeps_frozen_choice_and_public_identity_and_expires ... ok
+test lightweight::tests::blocked_management_writer_does_not_hold_admission_or_teardown ... ok
+test engine_execution::tests::current_generation_waits_for_a_transient_engine_occupant ... ok
+test marker_events::tests::pair_preflight_rejects_escaping_and_receipt_size_without_consuming_sequence ... ok
+test parameter_queries::explanations::tests::common_only_draft_can_be_explained_without_a_native_block ... ok
+test parameter_queries::explanations::tests::closing_connection_suppresses_a_late_explanation_reply ... ok
+test parameter_queries::cache::tests::discontinuous_pages_and_duplicate_parameters_never_publish_partial_metadata ... ok
+test parameter_queries::explanations::tests::invalid_or_disabled_drafts_do_not_contact_adapters ... ok
+test parameter_queries::explanations::tests::drafts_are_exact_read_only_and_preserve_context_and_native_values ... ok
+test parameter_queries::explanations::tests::explanation_crosses_isolation_wrapper_without_recovery_or_synthesis ... ok
+test parameter_queries::tests::cached_catalogue_qualifies_native_registration_without_new_engine_calls ... ok
+test parameter_queries::tests::catalogue_absent_disabled_and_invalid_queries_never_call_engine ... ok
+test parameter_queries::explanations::tests::late_runtime_change_and_mismatched_evidence_never_become_ready ... ok
+test parameter_queries::tests::catalogue_disconnect_suppresses_reply_and_connections_have_separate_admission ... ok
+test parameter_queries::tests::catalogue_current_engine_reply_is_correlated_and_read_only ... ok
+test parameter_queries::tests::cached_metadata_rejects_replaced_runtime_and_never_waits_on_cache_contention ... ok
+test parameter_queries::tests::catalogue_reply_from_a_replaced_runtime_is_never_cached ... ok
+test parameter_queries::tests::catalogue_pending_recovery_returns_busy_without_recovering ... ok
+test parameter_queries::tests::catalogue_invalid_engine_reply_is_not_published_and_errors_keep_codes ... ok
+test pipeline::effects::tests::layered_boundary_ends_a_legacy_run_and_an_unused_attempt_has_no_tail ... ok
+test pipeline::tests::canonicalization_preserves_metadata ... ok
+test pipeline::effects::tests::same_owner_keeps_filter_history_but_duplicate_physical_rows_are_isolated ... ok
+test parameter_queries::tests::unsupported_cache_qualification_preserves_public_queries_without_caching ... ok
+test pipeline::tests::complete_preview_evidence_deduplicates_and_bounds_accepted_voices ... ok
+test pipeline::tests::capitalization_track_places_tone_at_resolved_frame ... ok
+test pipeline::tests::configured_chunking_keeps_unicode_actions_at_the_original_boundary ... ok
+test parameter_queries::tests::public_registration_uses_only_this_connections_current_cached_metadata ... ok
+test pipeline::tests::dry_timeline_resource_stays_shared_through_render_preparation ... ok
+test pipeline::effects::tests::departed_owner_tail_keeps_its_pan_and_cannot_enter_the_new_owner ... ok
+test pipeline::tests::generated_timeline_resources_remain_deferred_recipes ... ok
+test pipeline::tests::isolated_letter_preparation_retains_unicode_and_capital_detection ... ok
+test pipeline::tests::missing_file_resource_still_rejects_atomic_preparation ... ok
+test pipeline::tests::normalized_effects_map_to_documented_dsp_ranges ... ok
+test pipeline::tests::direct_timeline_anchor_limit_returns_an_error_instead_of_panicking ... ok
+test pipeline::tests::omitted_capitalization_anchor_degrades_to_chunk_start ... ok
+test pipeline::tests::prepared_timeline_action_limit_is_per_speech_window ... ok
+test pipeline::tests::observations_require_nonempty_buffered_or_progressive_output ... ok
+test pipeline::tests::prepared_timeline_window_enforces_the_downstream_action_limit ... ok
+test pipeline::tests::presentation_pcm_budget_reserves_deferred_generated_resources ... ok
+test pipeline::tests::presentation_tone_modes_select_the_required_playback_clock ... ok
+test pipeline::tests::committed_attempt_restyles_speech_bus_resources_and_rejects_dry_fallback_on_error ... ok
+test pipeline::tests::progressive_timeline_rejects_an_omitted_anchor ... ok
+test pipeline::tests::progressive_timeline_renders_an_insert_resolved_at_a_window_boundary ... ok
+test pipeline::tests::same_boundary_overlays_mix_without_advancing_or_serializing ... ok
+test pipeline::tests::speech_processing_remaps_markers_after_silence_trimming ... ok
+test pipeline::tests::structured_actions_follow_preprocessed_offsets_across_chunks ... ok
+test pipeline::tests::structured_audio_pan_uses_normalized_stereo_position ... ok
+test pipeline::tests::file_resource_processing_is_deferred_to_its_render_window ... ok
+test pipeline::tests::test_canonicalize_synthesis_result ... ok
+test pipeline::tests::test_canonicalize_synthesis_result_empty ... ok
+test pipeline::tests::test_is_stale ... ok
+test pipeline::tests::timeline_action_index_groups_once_and_preserves_wire_order ... ok
+test pipeline::tests::timeline_resource_preparation_honours_midstream_cancellation ... ok
+test pipeline::tests::default_file_resource_reuses_loader_cache_pcm ... ok
+test pipeline::tests::timeline_span_preparation_honours_midstream_cancellation ... ok
+test pipeline::tests::tone_gain_is_applied_once_across_legacy_structured_and_capital_paths ... ok
+test pipeline::tests::tone_tests::materialization_and_capital_cues_stop_during_generation_for_both_cancellation_sources ... ok
+test pipeline::tests::structured_offset_mapping_handles_reverse_maximum_action_offsets ... ok
+test pipeline::tests::tone_tests::standalone_preparation_discards_an_interrupted_tone ... ok
+test pipeline::tests::presentation_pcm_budget_reserves_transforms_but_deduplicates_shared_pcm ... ok
+test pipeline::tests::progressive_failure_retains_accepted_audio_tickets_while_the_consumer_is_held ... ok
+test remote::tests::authentication_checks_version_token_session_and_lane ... ok
+test remote::tests::framing_preserves_records_and_rejects_partial_and_oversized_input ... ok
+test remote::tests::failed_preparation_does_not_publish_a_partial_snapshot ... ok
+test pipeline::tests::tone_tests::cancelled_preparation_never_marks_failure_or_queues_dry_speech ... ok
+test remote::tests::two_lanes_share_only_one_session_and_release_after_retirement ... ok
+test routing::tests::average_pitch_mapping_matches_emacsvox_acss_levels ... ok
+test pipeline::tests::untracked_letter_records_first_consumption_before_synthesis_finishes ... ok
+test routing::tests::cancellation_after_a_failed_attempt_prevents_the_retry ... ok
+test routing::tests::choice_tests::admitted_definition_is_frozen_and_default_is_fresh_across_chunks ... ok
+test parameter_queries::cache::tests::count_budget_evicts_old_catalogues_without_retaining_engines ... ok
+test remote::tests::startup_is_shared_across_lanes_and_total_disconnect_until_new_session ... ok
+test routing::tests::choice_tests::committed_audio_or_output_failure_never_retries_a_choice ... ok
+test routing::tests::choice_tests::duplicate_selectors_use_original_index_but_policy_fallback_has_no_patch ... ok
+test routing::tests::choice_tests::all_buffered_and_streaming_retry_combinations_handoff_the_actual_choice ... ok
+test engine_execution::tests::cancelling_a_progressive_call_releases_its_bounded_relay ... ok
+test routing::tests::choice_tests::native_tests::cancellation_suppresses_tentative_native_evidence_and_buffered_results ... ok
+test engine_execution::tests::dropping_the_wrapper_does_not_join_a_quarantined_native_call ... ok
+test routing::tests::choice_tests::native_tests::empty_native_stream_does_not_commit_application_evidence ... ok
+test engine_execution::tests::request_token_cancels_one_isolated_call_without_advancing_global_generation ... ok
+test routing::tests::capital_pitch_tests::letter_cue_follows_actual_engine_through_buffered_and_streaming_fallback ... ok
+test routing::tests::choice_tests::native_tests::accepted_audio_prevents_replay_on_synthesis_receipt_or_completion_failure ... ok
+test routing::tests::choice_tests::native_tests::native_timeline_playback::applied_plan_references_expire_on_eviction_or_runtime_replacement ... ok
+test routing::tests::choice_tests::native_tests::adapter_common_only_is_preserved_when_permitted_and_buffered_stale_receipts_are_rejected ... ok
+test routing::tests::choice_tests::native_tests::missing_metadata_requires_explicit_whole_block_degradation ... ok
+test routing::tests::choice_tests::native_tests::native_timeline_continues_after_silent_markdown_punctuation ... ok
+test marker_events::tests::blocked_writer_keeps_reserved_marker_memory_bounded ... ok
+test routing::tests::choice_tests::native_tests::native_output_failures_never_retry_or_quarantine_an_engine ... ok
+test routing::tests::choice_tests::native_tests::exact_private_native_preview_keeps_same_voice_choice_occurrence_and_has_no_substitute ... ok
+test routing::tests::choice_tests::native_tests::qualified_helpers_route_native_choices_without_playback ... ignored, requires OMNIVOX_NATIVE_ROUTING_CASES with qualified helper paths
+test routing::tests::choice_tests::native_tests::policy_fallback_executes_common_style_without_a_native_block_or_receipt ... ok
+test routing::tests::choice_tests::native_tests::malformed_receipts_are_quarantined_before_audio_and_do_not_leak_into_fallback ... ok
+test routing::tests::choice_tests::native_tests::queue_budget_includes_native_payload_and_dispatch_snapshot_is_immutable ... ok
+test routing::tests::choice_tests::output_preflight_rejects_before_native_synthesis_and_without_fallback ... ok
+test parameter_queries::explanations::tests::explanation_timeout_keeps_shared_query_admission_until_adapter_retires ... ok
+test routing::tests::engine_failure_uses_the_configured_fallback_engine ... ok
+test routing::tests::external_selection_permission_survives_dispatch_inventory_refresh ... ok
+test routing::tests::fallback_exhaustion_is_explicit ... ok
+test routing::tests::fallback_recomputes_acss_for_the_new_engine ... ok
+test routing::tests::choice_tests::stream_identity_must_match_before_any_preamble_is_committed ... ok
+test routing::tests::fallback_recomputes_post_synthesis_effects_for_the_new_engine ... ok
+test routing::tests::global_policy_selects_legacy_engine_and_skips_disabled_positions ... ok
+test routing::tests::invalid_parameters_are_not_retried_or_marked_failed ... ok
+test routing::tests::implicit_legacy_route_falls_back_without_reporting_a_logical_voice ... ok
+test routing::tests::legacy_voice_state_degrades_to_each_selected_engines_native_default ... ok
+test routing::tests::choice_tests::native_tests::superseded_generation_suppresses_native_preamble_and_pcm ... ok
+test routing::tests::progressive_failure_after_anchors_discards_the_attempt_before_fallback ... ok
+test routing::tests::progressive_failure_after_audio_does_not_splice_a_fallback ... ok
+test routing::tests::progressive_consumer_failure_preserves_engine_health_and_next_request ... ok
+test routing::tests::progressive_route_buffers_when_requested_anchors_are_not_supported ... ok
+test routing::tests::progressive_failure_before_audio_uses_buffered_fallback ... ok
+test routing::tests::repertoire_routing_fails_without_calling_an_incapable_engine ... ok
+test routing::tests::repertoire_routing_preserves_unicode_text_and_anchors_on_fallback ... ok
+test routing::tests::routed_synthesis_applies_only_supported_logical_acss ... ok
+test routing::tests::repertoire_routing_returns_to_preferred_engine_for_compatible_text ... ok
+test routing::tests::routed_failure_retries_the_same_chunk_on_the_fallback_engine ... ok
+test routing::tests::choice_tests::native_tests::older_sinks_and_styles_cannot_discard_native_settings_or_evidence ... ok
+test routing::tests::routed_synthesis_never_exceeds_the_attempt_limit ... ok
+test routing::tests::voice_failure_uses_an_explicit_alternative_on_the_same_engine ... ok
+test routing::tests::successful_recovery_probe_prepares_engine_and_restores_primary_route ... ok
+test routing::tests::temporary_unavailability_falls_back_without_opening_a_circuit ... ok
+test server::tests::deprecated_commands_return_actionable_unsupported_errors ... ok
+test server::tests::empty_tracked_dispatch_preserves_worker_terminal_status ... ok
+test server::tests::direct_rejections_map_owned_dispatches_to_terminal_statuses ... ok
+test server::tests::incomplete_multipart_eof_preserves_owned_failure_identity ... ok
+test server::tests::keyed_cancellation_advances_on_activation_and_is_domain_scoped ... ok
+test server::tests::incomplete_multipart_timeout_preserves_owned_failure_identity ... ok
+test server::tests::keyed_replacement_preserves_protected_and_other_domain_work ... ok
+test server::tests::only_replaceable_structured_work_uses_reader_coalescing ... ok
+test server::tests::malformed_multipart_part_is_consumed_with_the_failed_submission ... ok
+test server::tests::pending_legacy_transaction_enforces_item_limit_atomically ... ok
+test routing::tests::choice_tests::native_tests::native_fallback_recomposes_all_buffered_and_streaming_combinations ... ok
+test server::tests::preview_rate_offset_rejects_invalid_or_ambiguous_values ... ok
+test server::tests::preview_rate_offset_uses_current_rate_without_mutating_it ... ok
+test server::tests::preview_response_preserves_route_and_terminal_status ... ok
+test server::tests::new_part_zero_after_incomplete_submission_is_preserved ... ok
+test server::tests::invalid_numeric_commands_preserve_previous_settings ... ok
+test server::tests::native_definitions_cannot_be_silently_projected_through_older_speech_paths ... ok
+test server::tests::protocol_reader_rejects_invalid_utf8_and_resumes_at_the_next_line ... ok
+test server::tests::protocol_reader_accepts_exact_limit_without_a_newline ... ok
+test server::tests::queue_retirement_maps_replacement_to_cancel_and_saturation_to_failure ... ok
+test server::tests::protocol_reader_accepts_exact_limit_with_crlf ... ok
+test server::tests::reader_reassembles_multipart_before_returning_one_presentation ... ok
+test server::tests::protocol_reader_counts_multibyte_utf8_bytes ... ok
+test server::tests::ready_tune_is_short_and_audible ... ok
+test server::tests::replaceable_coalescing_observes_quiet_and_maximum_windows ... ok
+test routing::tests::choice_tests::native_tests::native_timeline_playback::native_timeline_missing_catalogue_explicitly_reports_common_only ... ok
+test server::tests::protocol_reader_drains_an_oversized_line_before_the_next_command ... ok
+test server::tests::stale_complete_multipart_submission_is_cancelled ... ok
+test server::tests::rejected_keyed_replacement_keeps_the_active_request_alive ... ok
+test server::tests::synthesis_queue_limits_match_the_negotiated_operational_policy ... ok
+test server::tests::tracked_playback_handoff_is_bounded ... ok
+test server::tests::timeline_diagnostics_separate_protocol_generation_from_stop_epoch ... ok
+test server::tests::stop_between_multipart_frames_cancels_the_logical_dispatch ... ok
+test server::tests::synthesis_queue_coalesces_only_matching_replaceable_timelines ... ok
+test server::tests::tracked_playback_retains_keyed_cancellation_across_worker_handoff ... ok
+test server::tests::synthesis_admission_stamps_only_accepted_requests ... ok
+test server::tests::tracked_terminal_status_names_match_emacsvox_protocol ... ok
+test server::tests::tracked_reporter_writes_one_terminal_after_earlier_markers ... ok
+test server::tests::unknown_profile_frame_is_rejected_before_generation_commit ... ok
+test server::voice_preview_tests::complete_preview_empty_and_cancelled_attempts_do_not_claim_audio ... ok
+test server::voice_preview_tests::complete_preview_freezes_disablements_and_policy_at_admission ... ok
+test server::voice_preview_tests::complete_preview_failure_reports_last_target_and_only_accepted_degradation ... ok
+test server::voice_preview_tests::complete_preview_rejects_invalid_data_without_mutation ... ok
+test server::voice_preview_tests::complete_preview_queue_accounts_for_private_chain_and_policy ... ok
+test server::voice_preview_tests::complete_preview_executes_shared_wire_examples ... ok
+test server::voice_preview_tests::complete_preview_keeps_partial_audio_failure_without_replay ... ok
+test server::voice_preview_tests::complete_preview_records_only_accepted_audio_across_fallback ... ok
+test server::voice_preview_tests::complete_preview_uses_the_same_route_as_an_equivalent_live_registration ... ok
+test server::voice_preview_tests::complete_preview_streaming_effects_follow_the_engine_that_accepts_audio ... ok
+test server::tests::pending_legacy_transaction_enforces_payload_limit_atomically ... ok
+test server::voice_preview_tests::layered_individual_runtime_failure_does_not_use_automatic_policy ... ok
+test server::tests::reader_rejects_an_action_heavy_window_before_admission ... ok
+test parameter_queries::cache::tests::oversized_assembly_and_terminal_errors_leave_no_positive_metadata ... ok
+test server::voice_preview_tests::layered_policy_fallback_uses_shared_without_a_choice_patch ... ok
+test server::voice_preview_tests::layered_individual_preview_keeps_duplicate_row_identity_and_cannot_substitute ... ok
+test server::voice_preview_tests::layered_preview_default_and_zero_restore_captured_host_rate_above_one ... ok
+test server::voice_preview_tests::mixed_timeline_tests::mixed_timeline_admission_tests::mixed_queue_and_active_replacement_domains_keep_v3_separate ... ok
+test server::voice_preview_tests::mixed_timeline_tests::a_legacy_run_starts_neutral_even_when_its_registered_voice_has_effects ... ok
+test server::voice_preview_tests::layered_preview_freezes_private_policy_disable_union_and_full_queue_payload ... ok
+test server::voice_preview_tests::complete_preview_terminal_metadata_is_bounded_and_correlated ... ok
+test server::voice_preview_tests::mixed_timeline_tests::mixed_timeline_admission_tests::multipart_v4_requires_one_complete_version_and_rejects_replay ... ok
+test server::voice_preview_tests::mixed_timeline_tests::mixed_timeline_admission_tests::palette_letter_rejects_invalid_or_stale_input_before_interruption ... ok
+test server::voice_preview_tests::layered_preview_rejects_unreportable_actual_voice_before_synthesis ... ok
+test server::voice_preview_tests::layered_preview_empty_stale_and_failed_stream_terminals_are_truthful ... ok
+test server::voice_preview_tests::mixed_timeline_tests::mixed_timeline_admission_tests::rich_timeline_admission_tests::rich_multipart_preserves_shapes_and_rejects_version_or_size_mismatch ... ok
+test server::voice_preview_tests::mixed_timeline_tests::mixed_timeline_admission_tests::rich_timeline_admission_tests::rich_admission_and_replacement_keep_old_versions_and_other_keys_independent ... ok
+test routing::tests::choice_tests::native_tests::native_timeline_playback::native_timeline_fallback_reports_consumed_choice_for_every_playback_mode ... ok
+test server::voice_preview_tests::layered_preview_fallback_uses_actual_patch_in_all_output_mode_combinations ... ok
+test server::voice_preview_tests::mixed_timeline_tests::unresolved_layered_span_fails_without_unrelated_legacy_voice ... ok
+test server::voice_preview_tests::mixed_timeline_tests::ordinary_playback_keeps_the_admitted_registry_after_live_replacement ... ok
+test server::voice_preview_tests::mixed_timeline_tests::ordinary_mixed_spans_apply_actual_choice_and_end_legacy_effect_runs ... ok
+test pipeline::tests::tone_tests::standalone_and_timeline_share_shape_gain_and_routing_for_insert_and_overlay ... ok
+test routing::tests::choice_tests::native_tests::native_timeline_playback::native_timeline_unconsumed_audio_never_claims_applied ... ok
+test parameter_queries::tests::catalogue_timeout_keeps_admission_bounded_and_discards_late_reply ... ok
+test server::voice_preview_tests::private_preview_respects_external_selection_permission_at_audio_execution ... ok
+test text::tests::configured_names_preservation_and_unicode_offsets_agree ... ok
+test text::tests::default_apostrophes_preserve_prose_and_speak_at_all_without_configuration ... ok
+test text::tests::historical_tables_preserve_unicode_for_engine_prosody ... ok
+test text::tests::legacy_speech_separator_is_consumed_before_punctuation ... ok
+test text::tests::legacy_speech_separator_remaps_utf8_boundaries ... ok
+test text::tests::named_profile_preserves_source_offsets_and_reset_builtins ... ok
+test server::voice_preview_tests::native_preview_tests::native_preview_empty_stale_and_post_pcm_failure_keep_truthful_terminals ... ok
+test text::tests::prepared_chunking_falls_back_to_the_hard_word_limit ... ok
+test text::tests::prepared_chunking_prefers_sentences_then_clauses ... ok
+test text::tests::prepared_chunking_rebases_capitalization_offsets ... ok
+test text::tests::prepared_chunking_treats_newlines_and_unicode_closers_as_sentences ... ok
+test text::tests::queued_preparation_does_not_infer_capitalization_actions ... ok
+test text::tests::speech_preprocessing_remaps_requested_utf8_boundaries ... ok
+test text::tests::test_expand_tilde_no_tilde ... ok
+test server::voice_preview_tests::native_preview_tests::native_preview_without_native_edits_reports_required_null_application ... ok
+test server::voice_preview_tests::native_preview_tests::native_preview_private_admission_freezes_policy_rate_and_native_payload ... ok
+test text::tests::test_extract_voice ... ok
+test text::tests::test_insert_space_before_uppercase ... ok
+test text::tests::test_extract_pitch ... ok
+test text::tests::test_normalize_rate_clamp ... ok
+test text::tests::test_normalize_rate_integer_scale ... ok
+test text::tests::test_normalize_rate_normal ... ok
+test text::tests::test_parse_resource_path_decodes_emacsvox_tcl_word ... ok
+test text::tests::test_extract_logical_voice ... ok
+test text::tests::test_parse_resource_path_rejects_malformed_tcl_word ... ok
+test text::tests::test_parse_resource_path_preserves_unquoted_windows_backslashes ... ok
+test text::tests::test_rate_scaled_padding ... ok
+test text::tests::ascii_punctuation_contract_is_exhaustive_at_every_level ... ok
+test text::tests::unicode_defaults_name_common_forms_and_preserve_unlisted_characters ... ok
+test transaction::tests::adjacent_ordered_and_urgent_timelines_preserve_order ... ok
+test transaction::tests::adjacent_timelines_coalesce_only_with_the_same_replacement_key ... ok
+test transaction::tests::deprecated_commands_reach_dispatch_for_explicit_rejection ... ok
+test transaction::tests::consecutive_frames_select_the_highest_generation ... ok
+test transaction::tests::failed_validation_does_not_consume_the_generation ... ok
+test transaction::tests::multipart_timeline_rejects_missing_reordered_and_mismatched_parts ... ok
+test transaction::tests::direct_timeline_rejections_retain_owned_identity_without_committing ... ok
+test transaction::tests::older_same_key_candidate_is_cancelled_without_reordering ... ok
+test transaction::tests::framed_presentations_validate_tone_modes_atomically ... ok
+test transaction::tests::oversized_silence_rejects_the_frame_without_consuming_its_generation ... ok
+test transaction::tests::prepares_a_complete_transaction_before_commit ... ok
+test transaction::tests::rejects_control_and_stop_commands_atomically ... ok
+test transaction::tests::stop_barrier_can_consume_a_selected_generation ... ok
+test transaction::tests::stop_barrier_consumes_a_structured_generation ... ok
+test transaction::tests::structured_and_legacy_presentations_share_one_generation_clock ... ok
+test voice_acquisition::tests::verified_copy_rejects_short_long_corrupt_and_cancelled_downloads ... ok
+test voice_library::tests::empty_path_fails_instead_of_selecting_legacy_mode ... ok
+test voice_library::tests::override_preserves_global_exclusions_and_status_matches_inventory_snapshot ... ok
+test voice_library::tests::managed_startup_pins_bytes_and_omits_empty_helpers ... ok
+test voice_observations::tests::accepted_and_cancelled_before_consumption_has_no_last_started_voice ... ok
+test voice_observations::tests::consumption_before_acceptance_bookkeeping_is_preserved ... ok
+test voice_observations::tests::equal_physical_voices_with_different_resolution_or_degradation_are_distinct ... ok
+test voice_observations::tests::last_started_survives_list_truncation_and_unconsumed_later_attempts ... ok
+test routing::tests::choice_tests::native_tests::native_timeline_playback::palette_letter_native_fallback_keeps_parameters_and_capital_cue ... ok
+test voice_observations::tests::repeated_sources_share_started_evidence_but_each_updates_last_once ... ok
+test voice_validation::owned::tests::bounded_reader_rejects_oversized_receipt_without_retaining_output ... ok
+test server::voice_preview_tests::native_preview_tests::native_preview_exact_duplicate_voice_choice_keeps_its_tuning_and_never_substitutes ... ok
+test engine::configuration_tests::rescan_reuses_captured_registration_after_manifest_replacement ... ok
+test voice_validation::owned::tests::record_gate_fixture ... ok
+test voice_validation::supported::evidence::tests::reports_preserve_existing_destinations_and_cancel_before_publication ... ok
+test voice_validation::supported::evidence::tests::saved_evidence_rejects_data_and_loader_overrides ... ok
+test voice_validation::supported::manager::tests::manager_fixture ... ok
+test voice_observations::tests::native_evidence_retains_accepted_without_inventing_start_and_distinguishes_plans ... ok
+test voice_validation::supported::manager::tests::supervisor_fixture ... ok
+test voice_validation::supported::tests::validation_options_require_bounded_unambiguous_limits ... ok
+test work_queue::tests::admission_commit_runs_only_for_accepted_work ... ok
+test work_queue::tests::capacity_pressure_evicts_replaceable_work_before_ordered_work ... ok
+test work_queue::tests::exact_item_and_payload_limits_are_accepted ... ok
+test work_queue::tests::failed_replacement_does_not_discard_admitted_work ... ok
+test work_queue::tests::interrupt_frees_a_full_ordered_queue_for_current_work ... ok
+test work_queue::tests::interrupt_retires_only_older_generations ... ok
+test work_queue::tests::one_request_larger_than_the_byte_limit_is_rejected ... ok
+test work_queue::tests::producer_and_consumer_make_progress_under_sustained_pressure ... ok
+test work_queue::tests::receiver_drains_admitted_work_after_sender_closes ... ok
+test server::voice_preview_tests::native_preview_tests::native_preview_inapplicable_or_invalid_receipts_cannot_play_common_only ... ok
+test work_queue::tests::same_domain_replacement_is_atomic_and_keeps_the_newest_request ... ok
+test work_queue::tests::sender_rejects_work_after_the_receiver_closes ... ok
+test worker_startup::tests::partial_oversized_and_legacy_gates_do_not_construct_a_snapshot ... ok
+test worker_startup::tests::complete_gate_preserves_configuration_and_following_speech_commands ... ok
+test voice_validation::owned::tests::failed_ownership_record_keeps_the_worker_gate_closed ... ok
+test server::voice_preview_tests::native_preview_tests::native_preview_automatic_fallback_retains_actual_controls_in_all_audio_modes ... ok
+test voice_validation::owned::tests::cleanup_retires_children_and_inherited_pipes_before_another_probe ... ok
+test voice_library::tests::required_helper_inventory_and_complete_transport_size_are_checked ... ok
+test server::voice_preview_tests::mixed_timeline_tests::mixed_timeline_admission_tests::mixed_reader_to_worker_reports_consumed_choices_before_one_terminal_record ... ok
+test engine::configuration_tests::unknown_helper_works_in_server_and_exact_diagnostics_with_literal_arguments ... ok
+test engine::configuration_tests::external_and_shipped_definition_paths_preserve_adapter_identity_and_pcm ... ok
+test voice_validation::supported::manager::tests::supervisor_finishes_cleanup_after_manager_death_or_cancellation ... ok
+test server::voice_preview_tests::mixed_timeline_tests::palette_letter_preserves_actual_fallback_tuning_rate_pitch_and_receipts ... ok
+test transaction::tests::multipart_timeline_is_prepared_only_after_exact_reassembly ... ok
+test voice_acquisition::tests::cancellation_interrupts_a_stalled_network_reader ... ok
+test text::tests::punctuation_contract_is_identical_with_structured_offsets ... ok
+test engine_execution::tests::repeated_stop_never_creates_a_second_abandoned_call_for_an_engine ... ok
+test lightweight::tests::maximum_valid_policy_installs_as_one_snapshot ... ok
+test server::voice_preview_tests::mixed_timeline_tests::invalid_later_spans_or_windows_reject_before_any_earlier_audio ... ok
+test engine_execution::tests::global_budget_rejects_a_third_native_call ... ok
+test engine_execution::tests::newer_generation_returns_without_waiting_and_stale_result_is_discarded ... ok
+test parameter_queries::cache::tests::encoded_byte_budget_evicts_before_the_entry_limit ... ok
+test server::voice_preview_tests::mixed_timeline_tests::mixed_timeline_admission_tests::reader_rejects_invalid_v4_before_any_replacement_can_be_prepared ... ok
+test emergency::tests::emergency_snapshot_cannot_construct_optional_engines_or_reload_files ... ok
+
+test result: ok. 364 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 5.52s
+
+     Running unittests src/lib.rs (/home/bart/tmp/ovlw-check/debug/deps/omnivox_core-b059ca0485f59c9d)
+
+running 65 tests
+test command::tests::numeric_settings_reject_nonfinite_values_without_changing_finite_ranges ... ok
+test command::tests::silence_duration_rejects_oversized_and_malformed_requests ... ok
+test command::tests::presentation_tone_parser_rejects_versions_modes_and_unbounded_audio ... ok
+test command::tests::test_parse_empty_line ... ok
+test command::tests::test_parse_semicolons_in_block_arg ... ok
+test command::tests::test_parse_queue_with_empty_block ... ok
+test command::tests::test_parse_queue_with_block_args ... ok
+test command::tests::test_parse_dispatch_no_args ... ok
+test command::tests::test_parse_letter ... ok
+test command::tests::test_parse_stop_no_args ... ok
+test command::tests::deprecated_commands_remain_parseable_during_migration ... ok
+test command::tests::test_parse_emacsvox_marker_dispatch_identifier ... ok
+test command::tests::test_parse_silence ... ok
+test command::tests::test_parse_tone_with_space_args ... ok
+test command::tests::test_parse_audio_icon_preserves_quoted_tcl_word ... ok
+test command::tests::test_parse_emacsvox_tracked_dispatch_identifier ... ok
+test command::tests::presentation_tone_parser_preserves_explicit_clock_mode ... ok
+test command::tests::test_parse_capitalization_presentation ... ok
+test command::tests::test_parse_emacsvox_transaction_arguments ... ok
+test command::tests::test_parse_code_with_block_args ... ok
+test command::tests::test_parse_dtk_speak_format ... ok
+test command::tests::test_parse_emacsvox_timeline_payload ... ok
+test command::tests::test_parse_tts_set_speech_rate ... ok
+test command::tests::test_parse_omnivox_control_payload ... ok
+test command::tests::test_parse_multiline_block_args ... ok
+test command::tests::test_parse_semicolons_with_quote_after ... ok
+test command::tests::test_parse_emacsvox_timeline_part ... ok
+test command::tests::test_parse_tts_sync_state ... ok
+test command::tests::test_parse_unknown_command ... ok
+test command::tests::test_parse_version_no_args ... ok
+test command::tests::test_parse_whitespace_only ... ok
+test command::tests::tone_parser_accepts_fractional_frequency_and_rejects_unbounded_audio ... ok
+test queue::tests::test_clear ... ok
+test queue::tests::test_dispatch_clears_queue ... ok
+test queue::tests::test_dispatch_returns_fifo ... ok
+test queue::tests::test_enqueue_multiple_items ... ok
+test queue::tests::test_enqueue_speech ... ok
+test queue::tests::test_new_queue_is_empty ... ok
+test queue::tests::test_peek ... ok
+test queue::tests::test_peek_empty_queue ... ok
+test queue::tests::test_queue_audio_icon ... ok
+test queue::tests::test_queue_silence ... ok
+test queue::tests::test_queue_tone ... ok
+test state::tests::process_channel_mode_routes_every_owned_output_stream ... ok
+test state::tests::test_audio_routing ... ok
+test state::tests::test_audio_routing_default ... ok
+test state::tests::test_capitalization_presentation_parse_and_components ... ok
+test state::tests::test_channel_mode_parse ... ok
+test state::tests::test_character_rate ... ok
+test state::tests::reset_restores_the_startup_channel_for_every_stream ... ok
+test timeline::tests::effect_state_persists_and_changes_in_stable_order ... ok
+test state::tests::reset_restores_saved_speech_and_clears_transient_state ... ok
+test state::tests::test_punctuation_level_parse ... ok
+test state::tests::test_reset ... ok
+test state::tests::test_consume_next_pre_delay ... ok
+test timeline::tests::equal_frames_keep_input_order_and_insertions_shift_later_actions ... ok
+test timeline::tests::cancellation_projection_separates_tails_from_unreached_events ... ok
+test state::tests::test_default_state ... ok
+test timeline::tests::overlay_tail_extends_completion_without_advancing_primary_clock ... ok
+test timeline::tests::identifiers_are_bounded ... ok
+test timeline::tests::invalid_effect_transition_and_out_of_bounds_action_are_rejected ... ok
+test tone_command::tests::preserves_modes_gain_and_short_envelopes_without_normalizing ... ok
+test tone_command::tests::extended_tones_validate_options_without_widening_old_versions ... ok
+test tone_command::tests::queue_decoder_preserves_old_items_and_freezes_rich_parameters ... ok
+test tone_command::tests::rejects_malformed_and_out_of_bounds_parameters ... ok
+
+test result: ok. 65 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/bart/tmp/ovlw-check/debug/deps/omnivox_flite_helper-6c629e9690e63c9a)
+
+running 7 tests
+test library::tests::export_bundled_fixture ... ok
+test tests::rate_mapping_is_calibrated_and_bounds_extremes ... ok
+test tests::bundled_slt_engine_describes_and_synthesizes ... ok
+test tests::progressive_flite_stops_after_request_cancellation ... ok
+test tests::progressive_flite_propagates_sink_backpressure ... ok
+test tests::bundled_slt_streams_word_markers_and_anchors_before_pcm ... ok
+test library::tests::managed_native_files_enforce_identity_enablement_and_complete_loading ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.56s
+
+     Running unittests src/main.rs (/home/bart/tmp/ovlw-check/debug/deps/omnivox_flite_helper-d2bc435bf08698a2)
+
+running 1 test
+test tests::startup_requires_one_unambiguous_library_or_legacy_environment ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/bart/tmp/ovlw-check/debug/deps/omnivox_flite_sys-293b66eedd19d5ed)
+
+running 2 tests
+test tests::bundled_slt_voice_streams_pcm_and_word_markers ... ok
+test tests::bundled_slt_voice_synthesizes_pcm ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running unittests src/lib.rs (/home/bart/tmp/ovlw-check/debug/deps/omnivox_helper_host-ec8631f57c63f44f)
+
+running 9 tests
+test tests::malformed_input_receives_an_unowned_protocol_error ... ok
+test tests::empty_synthesis_omits_empty_stream_frames ... ok
+test tests::native_strict_failure_precedes_start_and_preserves_followup_queries ... ok
+test tests::unavailable_engine_negotiates_and_reports_runtime_diagnostics ... ok
+test tests::cancel_is_acknowledged_while_native_synthesis_is_blocked ... ok
+test tests::shutdown_does_not_wait_for_a_blocked_native_call ... ok
+test tests::unknown_native_fields_never_reach_the_engine ... ok
+test tests::negotiates_and_streams_bounded_canonical_pcm ... ok
+test tests::progressive_engine_publishes_audio_before_native_completion ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/bart/tmp/ovlw-check/debug/deps/omnivox_linux_helpers-df7912748fbb72ea)
+
+running 6 tests
+test markers::tests::dectalk_anchors_follow_windows_word_affinity_and_span_fallback ... ok
+test markers::tests::exact_anchors_preserve_same_offset_order_and_reject_missing_or_duplicate_indexes ... ok
+test markers::tests::text_spans_keep_utf8_offsets_and_sentence_punctuation ... ok
+test native::tests::encoding_preserves_latin1_and_rejects_unrepresentable_input ... ok
+test native::tests::runtime_loader_rejects_windows_and_mismatched_elf_abis ... ok
+test native::tests::stop_unblocks_full_native_pcm_queue_without_a_consumer ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/dectalk.rs (/home/bart/tmp/ovlw-check/debug/deps/omnivox_dectalk_helper-2447d0af4c53a23f)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/bin/eloquence.rs (/home/bart/tmp/ovlw-check/debug/deps/omnivox_eloquence_helper-0c997ccc9318face)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/runtime.rs (/home/bart/tmp/ovlw-check/debug/deps/runtime-c30f9d9b15a180ac)
+
+running 6 tests
+test missing_libraries_remain_protocol_unavailability ... ok
+test invalid_callback_lengths_fail_without_crashing_the_helper ... ok
+test missing_or_duplicate_native_anchors_fail_without_retiring_the_protocol ... ok
+test voxin_clear_input_workaround_is_limited_to_the_verified_version ... ok
+test native_markers_keep_utf8_positions_and_precede_audio_even_with_late_dectalk_callbacks ... ok
+test both_native_abis_stream_cancel_and_resume ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.91s
+
+     Running unittests src/main.rs (/home/bart/tmp/ovlw-check/debug/deps/omnivox_mbrola_helper-88d2b9c2028cfa69)
+
+running 3 tests
+test tests::startup_requires_one_unambiguous_library_or_legacy_environment ... ok
+test engine::tests::missing_bundle_never_advertises_a_voice_or_accepts_base_alias ... ok
+test process::tests::bounds_output_and_retires_blocked_input_before_reuse ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running unittests src/lib.rs (/home/bart/tmp/ovlw-check/debug/deps/omnivox_piper_sys-4b56315f184882ea)
+
+running 3 tests
+test bindgen_test_layout_piper_audio_chunk ... ok
+test bindgen_test_layout_piper_create_options ... ok
+test bindgen_test_layout_piper_synthesize_options ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/bart/tmp/ovlw-check/debug/deps/omnivox_rhvoice_helper-94dbb0875573f820)
+
+running 8 tests
+test tests::native_markers_are_validated_and_rescaled ... ok
+test tests::language_and_country_become_one_bcp47_style_tag ... ok
+test tests::parameter_mappings_preserve_calibrated_rate_and_other_endpoints ... ok
+test tests::missing_runtime_still_has_a_protocol_usable_descriptor ... ok
+test managed::tests::unrelated_missing_voice_files_do_not_block_rhvoice_verification ... ok
+test tests::supported_runtime_versions_keep_the_stable_one_x_abi ... ok
+test tests::native_rhvoice_marks_stream_as_exact_anchors ... ok
+test tests::streaming_callbacks_emit_markers_before_progressive_audio ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running unittests src/main.rs (/home/bart/tmp/ovlw-check/debug/deps/omnivox_rhvoice_helper-518e8b31ad218dfd)
+
+running 1 test
+test tests::startup_requires_one_unambiguous_library_or_legacy_environment ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/bart/tmp/ovlw-check/debug/deps/omnivox_rutts_helper-dd1adb664228ec0f)
+
+running 7 tests
+test tests::koi8_r_encoding_matches_the_upstream_input_contract ... ok
+test tests::parameter_mappings_preserve_calibrated_rate_and_other_bounds ... ok
+test tests::request_cancellation_stops_native_pcm_collection ... ok
+test tests::progressive_synthesis_propagates_sink_backpressure ... ok
+test tests::progressive_synthesis_stops_after_request_cancellation ... ok
+test tests::progressive_synthesis_emits_bounded_audio_and_exact_completion ... ok
+test tests::engine_exposes_and_synthesizes_both_built_in_voices ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.21s
+
+     Running unittests src/main.rs (/home/bart/tmp/ovlw-check/debug/deps/omnivox_rutts_helper-ea9a6bc1d737de93)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/bart/tmp/ovlw-check/debug/deps/omnivox_rutts_sys-631103954f985e82)
+
+running 3 tests
+test tests::cancellation_suppresses_late_upstream_pcm ... ok
+test tests::male_voice_synthesizes_signed_eight_bit_pcm ... ok
+test tests::female_voice_synthesizes_distinct_pcm ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/bart/tmp/ovlw-check/debug/deps/omnivox_tgspeechbox_helper-10b6e2ae8f1e34b3)
+
+running 11 tests
+test tests::native_indexes_are_unique_across_requests_and_reset_before_overflow ... ok
+test tests::calibrated_rate_mapping_is_monotonic_and_has_expected_landmarks ... ok
+test tests::exact_anchor_results_keep_opaque_ids ... ok
+test parameters::tests::invalid_values_and_stale_runtimes_cannot_form_a_native_plan ... ok
+test parameters::tests::default_and_zero_restore_the_profile_after_a_custom_style ... ok
+test tests::native_indexes_resolve_every_crossed_anchor_batch ... ok
+test tests::pitch_mapping_uses_the_tgspeechbox_normal_baseline ... ok
+test tests::sample_rate_configuration_accepts_only_the_comparison_rates ... ok
+test tests::only_native_canonical_rate_advertises_progressive_pcm ... ok
+test tests::voice_inventory_crosses_each_language_with_each_profile ... ok
+test parameters::tests::explanations_retain_actual_voice_and_bound_the_plan_cache ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/main.rs (/home/bart/tmp/ovlw-check/debug/deps/omnivox_tgspeechbox_helper-258d3ab01d60bb50)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/bart/tmp/ovlw-check/debug/deps/omnivox_tgspeechbox_sys-357f783271114d38)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/home/bart/tmp/ovlw-check/debug/deps/omnivox_tts-3e85216125545c02)
+
+running 510 tests
+test contracts::tests::legacy_marker_inventory_defaults_requested_anchors_to_none ... ok
+test contracts::tests::legacy_voice_info_promotes_without_joining_identifiers ... ok
+test contracts::tests::normalized_acss_clamps_values_and_replaces_nan ... ok
+test contracts::tests::normalized_acss_records_unsupported_dimensions ... ok
+test contracts::tests::physical_voice_identity_keeps_engine_and_native_id_separate ... ok
+test contracts::tests::post_synthesis_style_clamps_and_degrades_independently ... ok
+test contracts::tests::relative_rate_uses_direct_points_and_clamps_at_scale_edges ... ok
+test contracts::tests::text_repertoires_distinguish_single_byte_inputs_from_unicode ... ok
+test contracts::tests::legacy_capability_descriptors_default_to_an_ascii_only_guarantee ... ok
+test contracts::tests::unsupported_text_position_uses_utf8_byte_offsets ... ok
+test control::tests::capabilities_response_preserves_request_id ... ok
+test control::tests::inventory_response_carries_generation_and_descriptors ... ok
+test control::tests::malformed_payload_returns_unowned_error ... ok
+test control::tests::preview_request_round_trip_preserves_exact_route_and_unsaved_acss ... ok
+test control::choice_tests::duplicate_keys_are_rejected_at_every_depth_and_identity_is_unambiguous ... ok
+test control::tests::logical_voice_registration_commits_and_reports_resolution ... ok
+test control::choice_tests::stale_conflict_and_zero_generations_are_reported_without_publishing ... ok
+test control::tests::complete_preview_wire_examples_round_trip_without_changing_old_preview ... ok
+test control::tests::invalid_registration_returns_a_configuration_error ... ok
+test control::tests::parameter_catalogue_wire_is_strict_and_preserves_required_nulls ... ok
+test control::tests::encoded_payload_is_bounded_before_decoding ... ok
+test control::tests::inventory_projects_policy_disablement_without_losing_order ... ok
+test control::tests::logical_voice_json_keeps_engine_and_voice_ids_separate ... ok
+test control::tests::request_round_trip_is_base64_json ... ok
+test control::tests::malformed_complete_preview_keeps_request_correlation ... ok
+test control::tests::routing_policy_applies_atomically_and_re_resolves_logical_voices ... ok
+test control::tests::stale_registration_returns_a_request_owned_error ... ok
+test engine_configuration::environment::tests::applying_a_snapshot_replaces_pending_environment_without_disclosure ... ok
+test engine_configuration::environment::tests::retained_legacy_maps_and_native_records_preserve_values ... ok
+test control::tests::unsupported_version_returns_structured_error ... ok
+test control::voice_library_contract_tests::accepted_status_examples_match_the_wire_types_and_required_fields ... ok
+test engine_configuration::punctuation_tests::all_shipped_tables_are_valid_and_ascii_is_unchanged ... ok
+test engine_configuration::punctuation_editor::tests::redirected_config_is_never_replaced ... ok
+test engine_configuration::resolved::tests::disablement_and_external_permission_remain_independent_of_preference ... ok
+test engine_configuration::punctuation_tests::older_public_configurations_get_apostrophe_defaults_and_explicit_preservation_wins ... ok
+test engine_configuration::resolved::tests::empty_legacy_environment_uses_the_local_program_and_shipped_defaults ... ok
+test control::tests::complete_preview_requires_explicit_arrays_and_complete_policy ... ok
+test control::native::tests::policy_disablement_and_effective_fallback_control_public_acknowledgement ... ok
+test engine_configuration::resolved::tests::enabling_a_manifest_preserves_routing_and_runtime_exclusions ... ok
+test control::choice_tests::malformed_new_forms_and_patch_bounds_leave_the_registry_unchanged ... ok
+test engine_configuration::resolved::tests::empty_preference_preserves_default_selection_without_populating_policy ... ok
+test engine_configuration::punctuation_tests::sparse_overrides_preserve_other_levels_and_defaults ... ok
+test control::choice_tests::registration_fixture_roundtrips_and_returns_bounded_flat_acknowledgement ... ok
+test engine_configuration::resolved::tests::launch_fields_resolve_independently_and_arguments_stay_literal ... ok
+test engine_configuration::resolved::tests::managed_invocations_reject_argument_replacement_even_when_disabled ... ok
+test control::native::tests::metadata_can_change_status_on_idempotent_retry_without_rewriting_saved_settings ... ok
+test engine_configuration::punctuation_tests::profiles_inherit_saved_builtins_without_changing_them ... ok
+test engine_configuration::punctuation_editor::tests::missing_default_root_is_created_only_on_save ... ok
+test engine_configuration::settings_editor::tests::registration_rejects_implicit_activation_and_missing_programs ... ok
+test engine_configuration::settings_editor::tests::invalid_launch_overrides_do_not_write_configuration ... ok
+test engine_configuration::punctuation_editor::tests::invalid_drafts_conflicts_and_changed_targets_never_overwrite ... ok
+test engine_configuration::settings_editor::tests::adding_an_installed_helper_is_disabled_and_does_not_replace_files ... ok
+test control::native::tests::native_registration_fixture_roundtrips_and_advertises_complete_execution ... ok
+test engine_configuration::settings_editor::tests::punctuation_and_engine_edits_conflict_without_losing_either_draft ... ok
+test engine_configuration::snapshot::tests::preparation_does_not_silently_replace_an_inconsistent_environment ... ok
+test engine_configuration::snapshot::tests::historical_snapshots_keep_fifteen_words_and_their_old_wire_shape ... ok
+test engine_configuration::punctuation_tests::punctuation_rejects_unknown_levels_invalid_scalars_names_and_limits ... ok
+test engine_configuration::snapshot::tests::native_non_unicode_environment_and_legacy_arguments_survive_handoff ... ok
+test engine_configuration::snapshot::tests::complete_record_round_trips_without_files_or_environment_reads ... ok
+test engine_configuration::settings_editor::tests::review_is_read_only_and_save_retains_other_preferences ... ok
+test control::choice_tests::maximum_registry_ack_and_utf8_errors_fit_their_bounds ... ok
+test engine_configuration::status::tests::status_is_read_only_and_rejects_executable_definitions_or_duplicate_keys ... ok
+test engine_configuration::status::tests::launch_failure_does_not_disclose_private_launch_fields_in_status_reasons ... ok
+test engine_configuration::settings_editor::tests::concurrent_distinct_registrations_cannot_exceed_the_directory_limit ... ok
+test control::native::tests::mixed_definitions_share_generations_and_cannot_smuggle_native_fields_into_old_modes ... ok
+test engine_configuration::tests::explicit_root_precedence_and_errors_apply_on_every_platform ... ok
+test engine_configuration::tests::audio_settings_are_sparse_strict_and_bounded ... ok
+test engine_configuration::punctuation_editor::tests::review_is_read_only_and_save_preserves_unrelated_settings_and_permissions ... ok
+test engine_configuration::status::tests::acknowledgement_comes_from_bound_snapshot_and_cannot_be_rebound ... ok
+test engine_configuration::tests::helper_directory_failure_preserves_policy_but_invalidates_dependent_override ... ok
+test engine_configuration::tests::capital_pitch_is_sparse_bounded_and_requires_registered_engine_ids ... ok
+test engine_configuration::status::tests::unavailable_reason_is_utf8_bounded_without_losing_the_identity ... ok
+test control::native::tests::invalid_values_generations_ids_and_conflicting_metadata_never_publish ... ok
+test engine_configuration::snapshot::tests::captured_native_environment_can_prepare_and_restore_a_snapshot ... ok
+test engine_configuration::tests::native_paths_are_checked_independently_of_test_platform ... ok
+test engine_configuration::tests::root_precedence_and_native_defaults_do_not_merge ... ok
+test engine_configuration::snapshot::tests::named_profiles_are_frozen_and_rejected_by_historical_snapshot_shapes ... ok
+test engine_configuration::tests::file_and_nesting_bounds_include_bom_and_invalid_values ... ok
+test engine_configuration::tests::shipped_metadata_preserves_platform_paths_and_explicit_overrides ... ok
+test engine_configuration::tests::optional_roots_and_missing_files_preserve_defaults_without_writes ... ok
+test engine_configuration::tests::strict_json_rejects_ambiguous_input_without_disclosing_values ... ok
+test engine_configuration::tests::manifest_identity_and_literal_arguments_are_validated ... ok
+test engine_configuration::tests::speech_preferences_require_schema_two_and_a_bounded_integer ... ok
+test engine_configuration::tests::timeout_overrides_are_unsigned_bounded_and_partial ... ok
+test engine_configuration::tests::unknown_fields_fail_at_every_level_including_future_language_policy ... ok
+test engine_configuration::tests::manifest_order_collisions_and_invalid_files_preserve_unrelated_engines ... ok
+test engine_configuration::tests::omitted_and_empty_routing_lists_have_distinct_meanings ... ok
+test control::native::tests::malformed_native_envelopes_preserve_correlation_and_registry ... ok
+test engine_configuration::snapshot::tests::managed_generation_keeps_exact_bytes_hash_and_provider_owned_arguments ... ok
+test engine_configuration::tests::redirected_root_is_supported_but_linked_and_special_manifests_are_not_read ... ok
+test engine_registry::tests::descriptor_refresh_advances_only_after_a_change ... ok
+test engine_configuration::snapshot::tests::environment_rejects_duplicates_and_invalid_native_process_values ... ok
+test engine_registry::tests::duplicate_engine_is_rejected_without_mutation ... ok
+test engine_registry::tests::invalid_descriptor_is_rejected_atomically ... ok
+test engine_configuration::tests::speech_defaults_are_sparse_bounded_and_strict ... ok
+test engine_registry::tests::stop_all_requests_cancellation_from_every_engine ... ok
+test engine_registry::tests::registry_inventory_is_sorted_by_stable_engine_id ... ok
+test engine_registry::tests::local_disablement_cannot_be_bypassed_by_registration_or_rescan ... ok
+test engine_configuration::snapshot::tests::punctuation_is_complete_frozen_and_historical_schemas_keep_ascii_behavior ... ok
+test engine_configuration::snapshot::tests::speech_preferences_survive_complete_snapshot_round_trips ... ok
+test engine_configuration::snapshot::tests::audio_is_complete_frozen_and_old_snapshots_keep_their_shape ... ok
+test engine_configuration::snapshot::tests::capital_pitch_is_frozen_and_schema_three_retains_its_old_shape ... ok
+test engine_registry::tests::startup_rescan_keeps_inventory_and_fallback_responsive ... ok
+test engine_registry::tests::lookup_returns_the_registered_engine ... ok
+test engine_voice_choices::tests::portable_selector_is_requalified_against_the_actual_voices_metadata ... ok
+test espeak::tests::cached_voice_inventory_round_trips_without_native_discovery ... ok
+test engine_voice_choices::tests::selected_occurrence_preserves_native_zero_default_and_equal_context ... ok
+test engine_configuration::tests::override_references_and_in_process_restrictions_fail_closed ... ok
+test espeak::tests::native_character_ranges_become_utf8_byte_ranges ... ok
+test espeak::tests::native_markers_include_unicode_words_and_sentence_spans ... ok
+test engine_voice_choices::tests::independent_native_choice_fixture_registers_without_losing_occurrence_identity ... ok
+
+running 1 test
+test engine_voice_choices::tests::stale_or_inapplicable_entire_blocks_degrade_only_with_explicit_policy ... ok
+test espeak::tests::reported_voice_preserves_inventory_case_after_backend_normalization ... ok
+test engine_voice_choices::tests::conflicting_metadata_and_unsupported_voice_parameters_are_not_mistaken_for_ready ... ok
+test espeak::tests::stress_repeated_synthesis_session ... ignored, long-session synthesis stress test
+test espeak::tests::test_backend_voice_name_accepts_structured_ids ... ok
+test engine_configuration::snapshot::tests::parsing_rejects_partial_registration_sets_and_permission_changes ... ok
+test engine_voice_choices::tests::known_schema_rejects_unknown_parameters_invalid_types_and_wrong_scopes_atomically ... ok
+test engine_registry::tests::failed_panicking_and_mismatched_rescans_remain_retryable ... ok
+test engine_voice_choices::tests::metadata_refresh_changes_execution_identity_without_changing_saved_registry_generation ... ok
+test engine_voice_choices::tests::invalid_native_replacement_and_conflicting_retries_leave_all_registry_state_intact ... ok
+test engine_voice_choices::tests::missing_engines_unknown_schemas_and_busy_metadata_remain_saved_but_inert ... ok
+test espeak::tests::test_pitch_mapping ... ok
+test espeak::tests::test_rate_mapping ... ok
+test espeak::tests::test_volume_mapping ... ok
+test engine_configuration::snapshot::tests::saved_defaults_are_complete_and_old_chunk_snapshots_keep_their_wire_shape ... ok
+test espeak::tests::voice_cache_rejects_version_mismatch_and_invalid_records ... ok
+test espeak::variants::tests::bounded_combinations_reject_native_aliases_traversal_and_overflow ... ok
+test espeak::tests::voice_cache_requires_a_lowercase_sha256_data_directory ... ok
+test engine_voice_choices::tests::native_wire_body_is_bounded_strict_and_old_modes_do_not_accept_extensions ... ok
+test helper_engine::initialization::tests::expired_budget_never_invokes_a_job_and_panics_do_not_escape_the_batch ... ok
+test espeak::tests::test_espeak_descriptor_is_self_consistent ... ok
+test engine_configuration::tests::candidate_and_aggregate_limits_reject_entire_external_set ... ok
+test helper_engine::tests::assembles_valid_pcm_and_markers_after_terminal_frame_count ... ok
+test helper_engine::tests::cancel_acceptance_does_not_release_the_target_owner ... ok
+test helper_engine::tests::cancellation_and_remote_errors_are_terminal ... ok
+test helper_engine::initialization::tests::concurrency_is_bounded_and_every_admitted_job_runs_once ... ok
+test helper_engine::tests::canonicalizes_native_progressive_windows_and_marker_frames ... ok
+test helper_engine::initialization::tests::one_batch_deadline_retires_active_work_and_does_not_admit_the_rest ... ok
+test helper_engine::tests::current_helper_protocol_returns_exact_requested_anchors ... ok
+test helper_engine::tests::deferred_helper_can_prewarm_without_synthesizing ... ok
+test helper_engine::tests::deferred_helper_rejects_a_live_descriptor_that_differs_from_cache ... ok
+test helper_engine::tests::deferred_helper_uses_cached_descriptor_and_connects_on_first_synthesis ... ok
+test helper_engine::tests::descriptor_cache_loads_and_canonicalizes_a_valid_inventory ... ok
+test engine_configuration::snapshot::tests::every_complete_record_field_is_required_even_when_nullable ... ok
+test helper_engine::tests::expired_initialization_budget_does_not_spawn_a_process ... ok
+test helper_engine::tests::failed_negotiation_retains_cleanup_ownership_before_retry ... ok
+test helper_engine::tests::first_initialization_failure_retains_ownership_until_cleanup_is_confirmed ... ok
+test helper_engine::tests::helper_engine_maps_physical_voice_failures ... ok
+test helper_engine::tests::helper_engine_negotiates_inventory_and_returns_validated_pcm ... ok
+test helper_engine::tests::helper_host_retries_negotiation_with_protocol_v1 ... ok
+test helper_engine::tests::helper_markers_preserve_progressive_anchor_resolution ... ok
+test helper_engine::tests::a_ready_connection_cannot_publish_after_admission_expires ... ok
+test helper_engine::tests::native_parent::cache_epoch_is_nonblocking_and_expires_on_helper_replacement ... ok
+test helper_engine::tests::native_parent::invalid_receipts_never_reach_sink_or_application_callback ... ok
+test helper_engine::tests::native_parent::metadata_queries_do_not_start_deferred_helpers ... ok
+test helper_engine::tests::native_parent::native_trait_dispatch_survives_eligibility_and_blocks_disabled_voices ... ok
+test helper_engine::tests::native_parent::old_helper_requires_explicit_common_only_policy ... ok
+test control::native::tests::oversized_native_acknowledgement_does_not_replace_the_registry ... ok
+test helper_engine::tests::native_parent::ordinary_and_native_speech_keep_receipts_separate_and_reset_per_request ... ok
+test helper_engine::tests::native_parent::public_catalogue_guard_is_stale_without_retiring_the_current_helper ... ok
+test helper_engine::tests::native_parent::query_during_speech_is_busy_and_cancellation_keeps_connection_usable ... ok
+test helper_engine::tests::native_parent::receipt_precedes_buffered_and_progressive_sink_start ... ok
+test helper_engine::tests::native_parent::retained_explanation_cannot_change_identity_and_history_is_bounded ... ok
+test engine_configuration::snapshot::tests::parsing_rejects_duplicate_keys_unknown_fields_and_outer_bounds ... ok
+test helper_engine::tests::negotiation_rejects_a_helper_for_the_wrong_engine ... ok
+test helper_engine::tests::panicked_initializations_report_failure_and_release_their_slots ... ok
+test helper_engine::tests::process_cleanup_kills_before_waiting_for_a_blocked_writer ... ok
+test helper_engine::tests::dropping_the_host_retains_a_blocked_initialization_and_cleans_its_late_child ... ok
+test helper_engine::tests::process_connector_reuses_the_owned_environment_after_retirement ... ok
+test helper_engine::tests::protocol_v5_accepts_markers_before_their_audio ... ok
+test helper_engine::tests::protocol_v5_rejects_markers_behind_published_audio ... ok
+test helper_engine::tests::recovery_probe_replaces_and_renegotiates_the_helper ... ok
+test helper_engine::tests::rejects_a_helper_that_synthesizes_with_the_wrong_voice ... ok
+test helper_engine::tests::rejects_audio_after_the_marker_stream_begins ... ok
+test helper_engine::tests::rejects_channel_misalignment_and_false_frame_counts ... ok
+test helper_engine::tests::rejects_unowned_and_wrong_version_responses_before_assembly ... ok
+test helper_engine::tests::rejects_wrong_request_and_out_of_order_chunks ... ok
+test engine_voice_choices::tests::oversized_native_acknowledgement_is_rejected_before_publication ... ok
+test helper_engine::tests::retryable_native_failure_retires_the_helper_before_next_synthesis ... ok
+test espeak::tests::native_marks_preserve_espeak_audio_and_plain_text_ranges ... ok
+test helper_engine::tests::cancelled_progressive_consumer_keeps_the_helper_for_next_synthesis ... ok
+test helper_engine::tests::native_parent::parameter_query_watchdog_wakes_a_blocked_write_without_accumulating_workers ... ok
+test helper_engine::tests::completed_target_retains_late_cancel_response_ownership ... ok
+test helper_engine::tests::native_parent::stalled_query_retires_connection_and_old_applied_references_expire ... ok
+test helper_engine::tests::stalled_real_helper_is_reaped_at_the_batch_deadline ... ok
+test espeak::tests::test_espeak_synthesize_produces_audio ... ok
+test helper_engine::tests::stop_cancels_an_active_helper_request_without_waiting_for_synthesis ... ok
+test helper_engine::tests::streams_canonical_helper_windows_and_markers_to_the_consumer ... ok
+test espeak::tests::test_espeak_voice_listing ... ok
+test helper_engine::tests::synthesis_timeout_invalidates_the_child_until_recovery_restarts_it ... ok
+test helper_engine::tests::target_cancellation_has_one_terminal_or_retirement_winner ... ok
+test helper_engine::tests::unconfirmed_cleanup_blocks_replacement_until_retry_succeeds ... ok
+test helper_engine::tests::unexpected_progressive_consumer_failure_still_retires_the_helper ... ok
+test helper_engine::tests::repeated_stop_after_cancel_acceptance_keeps_one_target_owner ... ok
+test helper_protocol::parameters::tests::busy_and_wrong_catalogue_replies_do_not_advance_pages ... ok
+test espeak::tests::test_espeak_settings ... ok
+test espeak::tests::test_espeak_missing_voice_is_reported ... ok
+test helper_protocol::parameters::tests::duplicate_unknown_and_mixed_shapes_are_rejected ... ok
+test helper_protocol::parameters::tests::dectalk_runtime_exchanges_match_rust_codec_and_catalogue ... ok
+test helper_protocol::parameters::tests::eloquence_runtime_exchanges_match_rust_codec_and_catalogue ... ok
+test helper_protocol::parameters::tests::host_dispatch_rejects_duplicate_members_and_legacy_native_payloads ... ok
+test helper_protocol::parameters::tests::explanation_distinguishes_prediction_from_applied_evidence ... ok
+test helper_protocol::parameters::tests::independent_helper_fixtures_roundtrip ... ok
+test helper_protocol::parameters::tests::limits_and_identity_are_checked_before_execution ... ok
+test helper_protocol::parameters::tests::pages_are_joined_only_with_matching_runtime_and_mapping_identity ... ok
+test helper_protocol::parameters::tests::pagination_rejects_repetition_and_incomplete_references_atomically ... ok
+test helper_engine::tests::initialization_watchdog_bounds_hello_and_descriptor_writes_and_reads ... ok
+test helper_protocol::parameters::tests::receipts_cannot_claim_unrequested_or_stale_application ... ok
+test helper_protocol::parameters::tests::sparse_native_values_and_context_preserve_meaning ... ok
+test helper_protocol::session::tests::v6_control_requests_cannot_accidentally_send_legacy_synthesis ... ok
+test helper_protocol::session::tests::v6_shared_frames_retain_strict_envelopes_and_required_native_start ... ok
+test helper_protocol::tests::pcm_chunks_enforce_alignment_encoding_and_size_bounds ... ok
+test helper_protocol::tests::pcm_chunks_round_trip_signed_little_endian_samples ... ok
+test helper_protocol::tests::protocol_v1_synthesis_omits_the_v2_anchor_field ... ok
+test helper_protocol::tests::protocol_v2_rejects_v3_acss_fields ... ok
+test helper_protocol::tests::protocol_v3_validates_utf8_anchor_boundaries_and_ids ... ok
+test helper_protocol::tests::protocol_v4_extends_the_normalized_rate_range ... ok
+test helper_protocol::tests::reader_accepts_crlf_and_reports_clean_eof ... ok
+test helper_protocol::tests::reader_rejects_a_lone_unicode_surrogate ... ok
+test helper_protocol::tests::reader_rejects_oversized_and_truncated_frames ... ok
+test helper_protocol::tests::request_round_trips_as_one_utf8_json_line ... ok
+test helper_protocol::tests::requested_anchor_markers_carry_optional_v5_resolution ... ok
+test helper_protocol::tests::response_requires_an_owned_request_except_for_unowned_errors ... ok
+test helper_protocol::tests::responses_reject_empty_audio_and_marker_frames ... ok
+test helper_protocol::tests::synthesis_terminal_classification_is_explicit ... ok
+test helper_protocol::tests::validation_rejects_invalid_identifiers_text_and_settings ... ok
+test helper_protocol::parameters::tests::response_shape_and_nested_null_fields_are_strict ... ok
+test helper_protocol::parameters::tests::required_nulls_cannot_be_omitted_or_downgraded ... ok
+test helper_protocol::wire_tests::all_legacy_operation_shapes_reject_extra_members ... ok
+test helper_protocol::wire_tests::escaping_repeated_values_and_legacy_frames_remain_valid ... ok
+test helper_protocol::wire_tests::legacy_requests_cannot_silently_drop_native_parameters ... ok
+test helper_protocol::wire_tests::legacy_responses_reject_native_receipts_and_unknown_payload_fields ... ok
+test helper_protocol::wire_tests::legacy_unowned_errors_may_omit_request_id ... ok
+test helper_protocol::wire_tests::raw_duplicate_members_are_rejected_at_every_depth ... ok
+test helper_protocol::wire_tests::version_specific_fields_are_rejected_even_when_null ... ok
+test host_preferences::tests::local_reload_envelopes_reject_paths_extensions_and_duplicate_keys ... ok
+test logical_voices::tests::identical_generation_retry_is_idempotent ... ok
+test logical_voices::tests::invalid_replacement_does_not_mutate_registry ... ok
+test logical_voices::tests::mixed_registry_has_one_generation_domain_and_retains_record_identity ... ok
+test logical_voices::tests::registration_resolves_and_commits_atomically ... ok
+test logical_voices::tests::stale_and_conflicting_generations_preserve_registry ... ok
+test logical_voices::tests::unresolved_voice_is_retained_with_diagnostics ... ok
+test logical_voices::tests::v2_rejects_zero_invalid_patches_and_duplicate_definitions_atomically ... ok
+test macos::cache_tests::concurrent_inventory_and_descriptor_reads_discover_voices_once ... ok
+test macos::cache_tests::empty_inventory_does_not_trigger_repeated_native_discovery ... ok
+test macos::stream::tests::audio_is_emitted_before_native_completion_and_anchors_remain_omitted ... ok
+test helper_protocol::tests::writer_rejects_an_oversized_frame ... ok
+test helper_protocol::wire_tests::bounded_frames_and_future_negotiation_remain_unchanged ... ok
+test macos::stream::tests::rejects_format_changes_and_invalid_pcm ... ok
+test macos::stream::tests::cancelled_request_cannot_start_or_flush_a_tail ... ok
+test macos::stub_tests::macos_stub_reports_unavailable ... ok
+test macos::timing_tests::inconsistent_offsets_do_not_wrap_into_large_latency_values ... ok
+test macos::timing_tests::missing_callbacks_do_not_become_zero_latency_measurements ... ok
+test macos::timing_tests::separates_audio_generation_from_inactivity_completion_wait ... ok
+test marker_protocol::native_tests::marker_four_fixture_and_required_nullable_receipt ... ok
+test marker_protocol::native_tests::marker_four_rejects_invalid_or_duplicate_native_evidence ... ok
+test marker_protocol::tests::choice_receipt_matches_independent_fixture_and_requires_new_version ... ok
+test marker_protocol::tests::choice_receipt_rejects_missing_unknown_duplicate_and_zero_identity_fields ... ok
+test marker_protocol::tests::encoded_payload_is_bounded_before_decoding ... ok
+test marker_protocol::tests::formatted_event_has_one_machine_readable_prefix ... ok
+test marker_protocol::tests::marker_event_round_trip_is_base64_json ... ok
+test macos::stream::tests::stop_inside_audio_sink_prevents_more_windows_and_success ... ok
+test marker_protocol::tests::semantic_events_require_v2_and_a_bounded_opaque_id ... ok
+test marker_protocol::tests::timeline_diagnostics_round_trip_in_v2 ... ok
+test marker_protocol::tests::utterance_event_preserves_route_and_unicode_text ... ok
+test helper_engine::tests::stop_restarts_a_helper_that_ignores_cancellation_before_next_synthesis ... ok
+test native_parameters::tests::catalogue_and_native_records_round_trip_the_independent_examples ... ok
+test native_parameters::tests::default_omission_and_zero_have_distinct_provenance ... ok
+test native_parameters::tests::catalogue_checks_duplicates_references_scopes_ranges_and_required_nullables ... ok
+test native_parameters::tests::dependencies_reassert_contextual_winners_and_reject_cycles ... ok
+test native_parameters::tests::evidence_is_bound_to_runtime_and_physical_voice_not_just_engine_name ... ok
+test native_parameters::tests::explicit_default_context_masks_choice_even_without_mapped_output ... ok
+test macos::stream::tests::callback_boundaries_do_not_change_pcm_or_frame_count ... ok
+test native_parameters::tests::explicit_zero_rate_offset_still_masks_a_pinned_native_speed ... ok
+test native_parameters::tests::native_block_is_all_or_nothing_even_when_context_masks_invalid_value ... ok
+test native_parameters::tests::no_native_patch_preserves_common_outputs_exactly ... ok
+test native_parameters::tests::old_choice_grammar_does_not_silently_ignore_native_parameters ... ok
+test native_parameters::tests::output_effects_do_not_mask_native_voice_controls ... ok
+test native_parameters::tests::native_fixture_rejections_include_duplicate_keys_and_vendor_commands ... ok
+test native_parameters::tests::payload_and_collection_bounds_are_enforced ... ok
+test native_parameters::tests::repeated_same_voice_choices_never_reuse_mutable_plan_state ... ok
+test native_parameters::tests::scalars_preserve_false_and_zero_and_do_not_force_values_onto_ui_steps ... ok
+test helper_protocol::parameters::tests::catalogue_bounds_cover_encoded_bytes_and_complete_inventory ... ok
+test native_parameters::tests::unknown_schema_is_inert_preservable_data_but_not_executable ... ok
+test native_parameters::tests::unknown_numeric_default_is_honest_and_cannot_restore_a_side_effect ... ok
+test presentation::tests::decodes_a_utf8_transaction ... ok
+test presentation::tests::rejects_invalid_generation_and_word_shape ... ok
+test rate_calibration::tests::interpolates_each_segment ... ok
+test rate_calibration::tests::saturates_and_handles_non_finite_input ... ok
+test native_parameters::tests::unavailable_or_read_only_controls_reject_the_whole_native_block ... ok
+test resolver::tests::configured_fallback_engines_are_tried_in_order ... ok
+test resolver::tests::degraded_engine_remains_eligible ... ok
+test resolver::tests::exact_espeak_variants_resolve_without_enumerating_combinations ... ok
+test resolver::tests::exact_preferred_voice_wins ... ok
+test resolver::tests::global_default_follows_logical_preferences ... ok
+test resolver::tests::external_engines_require_explicit_scope_or_local_automatic_permission ... ok
+test resolver::tests::global_preferred_engines_follow_explicit_logical_alternatives ... ok
+test resolver::tests::local_disablement_applies_to_every_resolution_stage_even_with_automatic_permission ... ok
+test resolver::tests::missing_preferred_voice_uses_explicit_alternative ... ok
+test resolver::tests::property_selector_late_binds_to_each_environment ... ok
+test resolver::tests::resolution_can_be_repeated_after_runtime_failure ... ok
+test resolver::tests::same_language_fallback_prefers_engine_default ... ok
+test resolver::tests::text_resolution_records_repertoire_degradation_before_fallback ... ok
+test resolver::tests::total_failure_returns_all_diagnostic_attempts ... ok
+test routing_policy::tests::disabled_engines_keep_their_configured_positions ... ok
+test routing_policy::tests::local_policy_preserves_omission_and_empty_until_session_replacement ... ok
+test routing_policy::tests::policy_registration_is_generation_safe_and_idempotent ... ok
+test routing_policy::tests::session_policy_cannot_clear_the_local_floor_and_retries_compare_original_input ... ok
+test synthesis::tests::cancellation_tokens_share_one_monotonic_signal ... ok
+test synthesis::tests::normalized_acss_sidecar_clamps_engine_values ... ok
+test synthesis::tests::rejects_a_different_voice_for_an_exact_route ... ok
+test synthesis::tests::rejects_marker_inside_utf8_codepoint ... ok
+test synthesis::tests::rejects_marker_outside_audio ... ok
+test synthesis::tests::requested_anchors_are_unique_bounded_utf8_positions ... ok
+test synthesis::tests::synthesis_request_carries_an_explicit_cancellation_token ... ok
+test synthesis::tests::validates_realized_engine_and_marker_bounds ... ok
+test native_parameters::tests::independent_composition_cases_keep_the_actual_engine_mapping ... ok
+test synthesis::tests::word_only_engines_resolve_by_affinity_and_explicitly_omit_without_support ... ok
+test tests::test_tts_settings_default ... ok
+test timeline_protocol::tests::current_version_validates_policy_and_replacement_identity ... ok
+test timeline_protocol::tests::documented_emacsvox_fixtures_decode_for_both_versions ... ok
+test timeline_protocol::tests::direct_decode_preserves_identity_for_semantic_rejection ... ok
+test timeline_protocol::tests::encoded_payload_is_bounded_before_decoding ... ok
+test timeline_protocol::tests::multipart_decoder_requires_exact_size_and_v3 ... ok
+test timeline_protocol::tests::only_same_key_replaceable_timelines_share_a_domain ... ok
+test timeline_protocol::tests::silence_actions_are_limited_to_fifteen_seconds ... ok
+test timeline_protocol::tests::timeline_part_parser_enforces_transport_bounds ... ok
+test timeline_protocol::tests::timeline_round_trip_preserves_unicode_and_separate_anchors ... ok
+test timeline_protocol::tests::v3_enforces_one_complete_presentation_action_limit ... ok
+test timeline_protocol::tests::validation_rejects_duplicate_ids_and_unknown_spans ... ok
+test timeline_protocol::tests::validation_rejects_invalid_or_ambiguous_rate_offsets ... ok
+test timeline_protocol::tests::validation_rejects_non_boundary_offsets_and_non_finite_values ... ok
+test timeline_protocol::tests::version_one_remains_implicitly_replaceable ... ok
+test timeline_v4::tests::action_validation_crosses_both_span_kinds_and_preserves_utf8_boundaries ... ok
+test presentation::tests::bounds_encoded_payload_before_decoding ... ok
+test timeline_v4::tests::independent_mixed_fixture_roundtrips_without_flattening ... ok
+test timeline_v4::tests::new_timeline_rejects_unknown_missing_mixed_and_duplicate_keys ... ok
+test marker_protocol::tests::marker_v3_bounds_receipts_and_all_encoded_lines_without_changing_old_limits ... ok
+test timeline_v4::tests::registry_references_require_current_layered_definitions_but_allow_unresolved ... ok
+test timeline_v4::tests::semantic_rejection_preserves_trustworthy_dispatch_and_checks_whole_document ... ok
+test timeline_v5::tests::native_multipart_declaration_is_exact_and_replacement_is_version_local ... ok
+test timeline_v5::tests::native_legacy_members_and_actions_reject_unknown_nested_fields ... ok
+test timeline_v5::tests::native_registry_requires_exact_generation_and_definition_mode ... ok
+test timeline_v5::tests::native_timeline_fixture_preserves_context_and_version_boundaries ... ok
+test timeline_v6::tests::classic_omission_preserves_legacy_frequency_range_without_inventing_a_shape ... ok
+test timeline_v6::tests::extended_fixture_preserves_standalone_and_timeline_parameters_and_domains ... ok
+test timeline_v6::tests::invalid_values_and_cross_references_retain_tracking_identity ... ok
+test timeline_protocol::tests::multipart_decoder_reassembles_one_large_v3_timeline ... ok
+test timeline_v6::tests::old_decoders_reject_rich_shapes_and_dispatcher_selects_the_new_version ... ok
+test timeline_v6::tests::programmatic_invalid_shapes_cannot_bypass_shared_validation ... ok
+test timeline_v6::tests::short_envelopes_zero_stages_and_each_waveform_remain_representable ... ok
+test timeline_v6::tests::standalone_and_timeline_preserve_the_same_sound_definition ... ok
+test timeline_v5::tests::native_timeline_rejects_unknown_null_duplicate_and_mixed_fields ... ok
+test timeline_v6::tests::unknown_null_duplicate_and_misplaced_shapes_are_rejected ... ok
+test voice_choices::tests::choice_bounds_and_identity_are_validated_before_composition ... ok
+test voice_choices::tests::audio_identity_matches_preview_and_receipt_contract_examples ... ok
+test voice_choices::tests::compatibility_projection_does_not_bake_a_relative_rate_or_choice_patch ... ok
+test voice_choices::tests::independent_malformed_patches_are_rejected_without_normalizing ... ok
+test voice_choices::tests::defaults_clear_values_before_capability_adaptation_and_placement_stays_separate ... ok
+test voice_choices::tests::inherited_zero_and_default_round_trip_distinctly ... ok
+test voice_choices::tests::new_selector_and_wrapper_fields_are_strict_without_changing_legacy_types ... ok
+test voice_choices::tests::record_selection_uses_resolution_reason_not_physical_identity ... ok
+test helper_engine::tests::process_cleanup_retains_unfinished_reader_for_bounded_retry ... ok
+test voice_choices::tests::shared_base_requires_every_nullable_field_and_rejects_unknowns ... ok
+test voice_explanation::tests::explanation_fixtures_roundtrip_and_validate_without_text ... ok
+test voice_choices::tests::independent_wire_composition_examples ... ok
+test voice_library::acquisition::tests::staging_is_exclusive_verified_and_never_installed_implicitly ... ok
+test voice_library::catalogue::tests::rejects_ambiguous_or_unbounded_catalogue_inputs ... ok
+test voice_library::eligibility::tests::catalogue_respects_disabled_voices_and_empty_managed_providers ... ok
+test voice_explanation::tests::explanation_responses_reject_fabricated_readback_and_invalid_evidence ... ok
+test voice_library::eligibility::tests::exact_default_properties_and_fallback_selectors_share_eligibility ... ok
+test voice_library::eligibility::tests::empty_load_sets_cannot_rescan_and_late_discovery_retains_exclusions ... ok
+test voice_library::eligibility::tests::managed_defaults_follow_projection_order_and_health_remains_separate ... ok
+test voice_library::eligibility::tests::explicit_overrides_preserve_global_exclusions_and_native_defaults ... ok
+test voice_library::eligibility::tests::on_demand_variants_preserve_library_exclusions_and_direct_synthesis_guards ... ok
+test voice_library::eligibility::tests::registry_guards_both_native_paths_and_preserves_excluded_inventory_rows ... ok
+test voice_explanation::tests::explanation_inputs_reject_unknown_missing_duplicate_and_automatic_selection ... ok
+test voice_library::evidence::tests::companion_symlinks_are_not_followed ... ok
+test voice_library::evidence::tests::installation_dates_preserve_the_recorded_validation_instant ... ok
+test voice_library::evidence::tests::companion_target_checks_preserve_executable_boundaries ... ok
+test voice_library::evidence::tests::inventory_rejects_missing_extra_duplicate_and_unsafe_files ... ok
+test voice_library::evidence::tests::exact_generation_bytes_and_every_enabled_speaker_are_bound ... ok
+test voice_library::evidence::tests::saved_evidence_detects_content_changes_even_with_updated_checksums ... ok
+test voice_library::evidence::tests::piper_data_and_native_library_changes_remain_visible_after_rehashing ... ok
+test helper_engine::tests::unfinished_initializations_keep_the_batch_limit_and_forbid_replacement ... ok
+test voice_library::installation::removal::tests::another_profiles_shared_files_and_busy_profile_block_cleanup ... ok
+test voice_library::installation::removal::tests::active_and_unresolved_rollback_generations_retain_packages ... ok
+test timeline_v6::tests::size_limits_exact_declarations_and_replacement_domains_are_preserved ... ok
+test voice_library::installation::removal::tests::builtin_mbrola_en1_and_its_runtime_are_preserved ... ok
+test voice_library::installation::removal::tests::enabled_shared_speakers_and_stale_confirmation_cannot_delete_files ... ok
+test voice_library::installation::removal::tests::damaged_deletion_evidence_blocks_further_cleanup ... ok
+test voice_library::installation::removal::tests::imported_and_builtin_voices_are_never_removal_targets ... ok
+test voice_library::installation::removal::tests::interrupted_index_publication_can_resume_the_same_reviewed_plan ... ok
+test voice_library::installation::removal::tests::interrupted_unlink_resumes_without_claiming_unconfirmed_byte_savings ... ok
+test voice_library::installation::removal::tests::prepared_snapshots_and_storage_gate_do_not_invent_live_owners ... ok
+test voice_library::installation::removal::tests::piper_package_review_includes_every_speaker_and_keeps_shared_model_until_all_disabled ... ok
+test voice_library::installation::removal::tests::reviewed_package_removal_preserves_exclusions_and_permits_reinstallation ... ok
+test voice_library::installation::removal::tests::symlinks_and_shared_hardlinks_never_become_cleanup_authority ... ok
+test voice_library::installation::removal::tests::live_and_legacy_snapshots_pin_files_until_confirmed_native_retirement ... ok
+test voice_library::installation::removal::tests::unexpected_or_changed_files_retain_the_complete_installed_package ... ok
+test voice_library::installation::removal::tests::rhvoice_removal_rejects_unowned_nested_files_and_removes_only_its_package ... ok
+test voice_library::installation::tests::apply_retains_lease_and_publishes_only_after_both_verified_lanes ... ok
+test voice_library::installation::tests::desired_edits_are_atomic_retained_and_do_not_change_active_configuration ... ok
+test voice_library::installation::tests::explicit_builtin_inclusion_and_disablement_are_pending_until_apply ... ok
+test voice_library::installation::tests::imported_files_are_rechecked_before_projecting_enabled_assets ... ok
+test voice_library::installation::tests::changed_generation_or_active_pointer_invalidates_prepared_activation ... ok
+test voice_library::installation::tests::candidate_preparation_retains_active_pointer_and_detects_stale_plans ... ok
+test voice_library::evidence::tests::saved_metadata_never_opens_its_paths_and_rejects_incomplete_reports ... ok
+test voice_library::installation::tests::initialization_and_external_index_edits_never_overwrite_retained_work ... ok
+test voice_library::installation::tests::stale_edits_and_reused_revision_ids_preserve_current_desired_state ... ok
+test voice_library::installation::tests::interrupted_apply_is_retained_and_blocks_another_activation ... ok
+test voice_library::mbrola::tests::en1_and_us1_are_independently_eligible_and_validated ... ok
+test voice_library::mbrola::tests::old_generations_keep_legacy_discovery_and_serialization ... ok
+test voice_library::mbrola::tests::database_mismatch_alias_duplicate_and_disabled_loads_are_rejected ... ok
+test voice_library::local::tests::native_identity_persists_and_does_not_reset_partial_initialization ... ok
+test voice_library::mbrola::tests::only_enabled_databases_are_projected_and_validation_is_required ... ok
+test voice_library::installation::tests::rolled_back_apply_preserves_pointer_and_allows_a_new_reviewed_attempt ... ok
+test voice_library::operations::tests::admission_tests::a_fresh_operation_id_cannot_bypass_unconfirmed_profile_work ... ok
+test voice_library::operations::tests::admission_tests::incomplete_worker_records_cannot_be_reused_or_completed ... ok
+test voice_library::operations::tests::admission_tests::inspection_preserves_missing_initialization_and_missing_claimed_operations ... ok
+test voice_library::operations::tests::admission_tests::only_confirmed_completion_allows_the_next_operation ... ok
+test voice_library::operations::tests::admission_tests::profile_owner_fixture ... ok
+test voice_library::operations::tests::admission_tests::completion_evidence_is_bound_to_the_attempt_and_unchanged_worker_records ... ok
+test voice_library::operations::tests::admission_tests::prepared_claims_resume_only_the_same_operation ... ok
+test helper_engine::tests::startup_deadline_does_not_wait_for_a_blocked_connector ... ok
+test voice_library::operations::tests::admission_tests::recovery_tests::damaged_completion_still_requires_complete_workers_and_a_validating_prefix ... ok
+test helper_engine::tests::startup_deadline_does_not_wait_for_unconfirmed_writer_cleanup ... ok
+test voice_library::operations::tests::admission_tests::recovery_tests::recovery_requires_both_leases_and_an_existing_matching_claim ... ok
+test voice_library::operations::tests::admission_tests::target_mismatch_and_incomplete_history_never_admit_a_worker ... ok
+test voice_library::operations::tests::changed_plan_or_journal_is_rejected_before_an_append ... ok
+test voice_library::operations::tests::clean_terminal_records_require_cleanup_and_remain_bound_to_the_plan ... ok
+test voice_library::operations::tests::admission_tests::recovery_tests::recorded_cleanup_releases_only_new_work_and_preserves_original_evidence ... ok
+test voice_library::operations::tests::existing_operations_are_preserved_and_only_one_writer_can_own_them ... ok
+test voice_library::operations::tests::missing_initialization_is_never_repaired_by_inspection ... ok
+test voice_library::operations::tests::admission_tests::recovery_tests::changed_or_partial_recovery_receipts_cannot_bypass_original_history ... ok
+test voice_library::operations::tests::owner_fixture ... ok
+test voice_library::operations::tests::operation_metadata_symlinks_are_rejected ... ok
+test voice_library::operations::tests::normal_retirement_releases_the_lease_during_an_unrelated_fork ... ok
+test synthesis::tests::standard_format_rescales_markers ... ok
+test voice_library::operations::tests::replacing_the_journal_path_cannot_divert_an_append_to_an_old_file ... ok
+test voice_library::projection::tests::disabled_assets_need_no_validation_or_loading_and_empty_is_not_legacy ... ok
+test voice_library::operations::tests::admission_tests::recovery_tests::torn_completion_can_be_abandoned_without_repairing_or_reusing_the_attempt ... ok
+test voice_library::projection::tests::enabled_inputs_require_matching_validation_and_one_revision_per_model ... ok
+test voice_library::projection::tests::flite_builtin_selection_and_global_exclusions_survive_projection ... ok
+test voice_library::operations::tests::plan_parsing_is_bounded_and_does_not_open_saved_paths ... ok
+test voice_library::retention::tests::busy_or_missing_retention_lock_does_not_get_replaced ... ok
+test voice_library::retention::tests::changed_or_partial_evidence_never_becomes_cleanup ... ok
+test voice_library::projection::tests::enabled_speakers_share_one_model_and_unselected_providers_keep_legacy_mode ... ok
+test voice_library::retention::tests::linked_receipt_is_not_native_retirement_evidence ... ok
+test voice_library::rhvoice::tests::catalogue_rejects_older_schema_and_unreviewed_resource_paths ... ok
+test voice_library::rhvoice::tests::native_validation_isolated_from_external_voices_and_unlisted_files ... ok
+test voice_library::tests::canonical_identity_rules_include_digit_prefixes_and_native_speaker_bound ... ok
+test voice_library::retention::tests::only_exact_retirement_evidence_confirms_cleanup_without_mutation ... ok
+test voice_library::tests::compatible_package_revisions_keep_identity_and_voice_references ... ok
+test voice_library::tests::adoption_preserves_legacy_id_only_for_explicit_imported_default ... ok
+test voice_library::tests::disabled_list_must_be_unique_sorted_and_consistent_with_load_set ... ok
+test voice_library::tests::file_set_hash_input_has_fixed_field_and_role_order ... ok
+test voice_library::tests::disabled_unknown_native_voices_stay_disabled_without_an_index_row ... ok
+test voice_library::operations::tests::partial_reordered_and_modified_frames_block_reuse_without_truncation ... ok
+test voice_library::tests::flite_ids_come_from_native_names_and_cannot_collide ... ok
+test voice_library::tests::legacy_and_new_ids_cannot_alias_one_imported_speaker ... ok
+test voice_library::tests::independent_examples_decode_without_opening_fictitious_assets ... ok
+test voice_library::tests::null_provider_and_explicit_empty_load_set_have_different_meanings ... ok
+test voice_library::tests::original_generation_bytes_survive_parsing_for_exact_digest ... ok
+test voice_library::tests::duplicate_keys_unknown_fields_and_missing_nullable_members_are_rejected ... ok
+test voice_library::tests::malformed_versions_identities_and_asset_records_are_rejected ... ok
+test helper_engine::tests::synthesis_idle_deadline_includes_blocked_pipe_writes ... ok
+test voice_library::tests::separate_imports_with_equal_filenames_have_distinct_stable_ids ... ok
+test voice_library::tests::target_native_paths_are_validated_without_host_filesystem_access ... ok
+test voice_library::tests::validation_evidence_is_structural_not_proof_of_native_readiness ... ok
+test voice_library::tests::validation_units_load_one_model_or_voice_without_mutating_the_generation ... ok
+test voice_library::tests::package_references_roles_provenance_and_provider_must_resolve ... ok
+test voice_library::verification::tests::generation_digest_preserves_source_and_skips_only_overridden_assets ... ok
+test voice_library::verification::tests::native_file_verification_rewinds_and_rejects_replaced_assets ... ok
+test voice_preview_v2::tests::independent_preview_fixture_roundtrips_and_preserves_original_choice_index ... ok
+test voice_library::operations::tests::process_crashes_release_the_lock_but_do_not_clear_unconfirmed_work ... ok
+test voice_library::operations::tests::admission_tests::recovery_tests::incomplete_or_inconsistent_cleanup_never_changes_history_or_releases_admission ... ok
+test voice_preview_v2::tests::terminal_fixture_roundtrips_and_requires_playback_flag ... ok
+test helper_engine::tests::stop_bounds_a_blocked_buffered_synthesis_pipe ... ok
+test voice_library::tests::runtime_limits_reject_excess_without_truncating_valid_boundary ... ok
+test voice_preview_v2::tests::new_preview_rejects_missing_extension_duplicate_and_invalid_nested_fields ... ok
+test voice_preview_v3::tests::native_preview_fixtures_roundtrip_with_explicit_selection_and_receipts ... ok
+test voice_preview_v3::tests::native_preview_preserves_common_bounds_and_selection_validation ... ok
+test voice_library::operations::tests::admission_tests::native_owner_death_keeps_the_profile_claim ... ok
+test voice_preview_v3::tests::native_preview_reply_rejects_duplicate_and_invalid_application_evidence ... ok
+test windows::marker_conversion_tests::converts_inclusive_utf16_ranges_to_utf8_bytes ... ok
+test windows::marker_conversion_tests::converts_winrt_ticks_to_bounded_audio_frames ... ok
+test windows::marker_conversion_tests::rejects_invalid_or_split_utf16_ranges ... ok
+test windows::stub_tests::windows_stub_reports_unavailable ... ok
+test voice_preview_v2::tests::terminal_metadata_reservation_and_identity_are_checked_before_audio ... ok
+test voice_preview_v3::tests::native_preview_rejects_missing_unknown_duplicate_and_old_format_members ... ok
+test timeline_v4::tests::aggregate_bound_does_not_expand_single_frame_or_action_limits ... ok
+test espeak::tests::test_espeak_initialization ... ok
+test espeak::tests::espeak_rejects_an_already_cancelled_request ... ok
+test helper_engine::tests::stop_bounds_a_blocked_progressive_synthesis_pipe ... ok
+test espeak::tests::pitch_range_sets_native_parameter_and_resets_between_styles ... ok
+test voice_library::tests::oversized_readers_stop_after_one_overflow_byte ... ok
+test voice_library::verification::tests::content_verification_checks_exact_bytes_with_bounded_reads ... ok
+test espeak::tests::espeak_streams_ordered_markers_and_audio_windows ... ok
+test voice_preview_v2::tests::terminal_budget_keeps_status_last_started_and_utf8_message ... ok
+test voice_library::tests::model_file_and_index_record_count_limits_are_enforced ... ok
+test voice_preview_v3::tests::native_terminal_truncation_preserves_last_started_and_valid_utf8 ... ok
+test espeak::tests::test_espeak_empty_text ... ok
+test espeak::tests::anchored_espeak_streams_native_marks_before_their_audio ... ok
+test espeak::tests::espeak_streams_complete_markdown_list_sentence ... ok
+test helper_engine::tests::stop_bounds_a_blocked_cancel_write_even_after_target_completion ... ok
+test espeak::variants::tests::native_variants_resolve_on_demand_without_losing_base ... ok
+test espeak::tests::espeak_interrupted_streams_leave_engine_usable ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 509 filtered out; finished in 3.62s
+
+test espeak::tests::espeak_interrupted_streams_leave_engine_usable ... ok
+test voice_library::local::tests::candidate_replaces_only_launcher_fallback_and_freezes_original_startup ... ok
+
+test result: ok. 509 passed; 0 failed; 1 ignored; 0 measured; 0 filtered out; finished in 7.64s
+
+     Running tests/protocol_documentation.rs (/home/bart/tmp/ovlw-check/debug/deps/protocol_documentation-00011f891fe0bcaf)
+
+running 6 tests
+test documented_helper_request_matches_wire_types_and_validation ... ok
+test documented_helper_success_stream_matches_wire_types_and_validation ... ok
+test documented_marker_event_stream_matches_wire_types_and_validation ... ok
+test documented_engine_configuration_acknowledgement_matches_bounded_wire_types ... ok
+test documented_control_inventory_matches_wire_types ... ok
+test documented_timeline_matches_wire_types_and_semantic_validation ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests omnivox_audio
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests omnivox_core
+
+running 1 test
+test omnivox-core/src/command.rs - command::parse_command (line 195) ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
+
+   Doc-tests omnivox_flite_helper
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests omnivox_flite_sys
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests omnivox_helper_host
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests omnivox_linux_helpers
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests omnivox_piper_sys
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests omnivox_rhvoice_helper
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests omnivox_rutts_helper
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests omnivox_rutts_sys
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests omnivox_tgspeechbox_helper
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests omnivox_tgspeechbox_sys
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests omnivox_tts
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

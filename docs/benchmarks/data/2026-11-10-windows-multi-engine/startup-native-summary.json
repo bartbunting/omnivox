@@ -1,0 +1,102 @@
+{
+  "baseline": {
+    "prepare-engine-snapshot": {
+      "n": 20,
+      "median_ms": 13.0995,
+      "min_ms": 11.715,
+      "max_ms": 15.331
+    },
+    "save-startup": {
+      "n": 20,
+      "median_ms": 2.4865,
+      "min_ms": 1.686,
+      "max_ms": 4.106
+    },
+    "guard-verify-startup": {
+      "n": 20,
+      "median_ms": 13.3285,
+      "min_ms": 11.718,
+      "max_ms": 16.444
+    },
+    "guard-launch": {
+      "n": 20,
+      "median_ms": 69.5225,
+      "min_ms": 60.791,
+      "max_ms": 82.649
+    },
+    "guard-ready": {
+      "n": 20,
+      "median_ms": 2.847,
+      "min_ms": 1.966,
+      "max_ms": 4.564
+    },
+    "guard-worker-start": {
+      "n": 20,
+      "median_ms": 93.096,
+      "min_ms": 76.873,
+      "max_ms": 112.18
+    },
+    "send-owned-startup": {
+      "n": 20,
+      "median_ms": 10.731000000000002,
+      "min_ms": 6.251,
+      "max_ms": 14.72
+    },
+    "initialize-engines": {
+      "n": 20,
+      "median_ms": 396.4335,
+      "min_ms": 280.421,
+      "max_ms": 498.921
+    }
+  },
+  "candidate": {
+    "prepare-engine-snapshot": {
+      "n": 20,
+      "median_ms": 13.905999999999999,
+      "min_ms": 11.187,
+      "max_ms": 23.284
+    },
+    "save-startup": {
+      "n": 20,
+      "median_ms": 2.5700000000000003,
+      "min_ms": 1.977,
+      "max_ms": 3.78
+    },
+    "guard-verify-startup": {
+      "n": 20,
+      "median_ms": 13.761,
+      "min_ms": 10.661,
+      "max_ms": 17.557
+    },
+    "guard-launch": {
+      "n": 20,
+      "median_ms": 73.517,
+      "min_ms": 64.799,
+      "max_ms": 85.415
+    },
+    "guard-ready": {
+      "n": 20,
+      "median_ms": 2.872,
+      "min_ms": 2.001,
+      "max_ms": 4.269
+    },
+    "guard-worker-start": {
+      "n": 20,
+      "median_ms": 93.361,
+      "min_ms": 83.725,
+      "max_ms": 104.366
+    },
+    "send-owned-startup": {
+      "n": 20,
+      "median_ms": 10.602,
+      "min_ms": 5.548,
+      "max_ms": 17.247
+    },
+    "initialize-engines": {
+      "n": 20,
+      "median_ms": 354.09749999999997,
+      "min_ms": 249.102,
+      "max_ms": 484.788
+    }
+  }
+}

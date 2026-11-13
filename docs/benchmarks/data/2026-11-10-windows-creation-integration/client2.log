@@ -1,0 +1,22 @@
+Loaded tts-emergency-start from /home/bart/src/emacsvox-lightweight-reload/lisp/speech/tts-speak.elc
+Loaded tts--recover-speaker from /home/bart/src/emacsvox-lightweight-reload/lisp/speech/tts-speak.elc
+Loaded omnivox-library--retire-for-emergency from /home/bart/src/emacsvox-lightweight-reload/lisp/speech/omnivox-library-runtime.elc
+Loaded omnivox-native-guard--retire from /home/bart/src/emacsvox-lightweight-reload/lisp/speech/omnivox-native-guard.elc
+Speech flite source 50.231 ms, completion 64.179 ms
+Speech espeak source 48.974 ms, completion 64.823 ms
+Speech flite source 30.755 ms, completion 44.245 ms
+PASS paused independent guard, minimal speech and healthy peer
+Speech espeak source 24.964 ms, completion 26.241 ms
+Speech flite source 19.130 ms, completion 32.786 ms
+PASS killed independent guard, minimal speech and healthy peer
+Speech espeak source 24.578 ms, completion 43.729 ms
+Speech flite source 20.881 ms, completion 22.140 ms
+PASS repeated independent guard, minimal speech and healthy peer
+Speech espeak source 24.976 ms, completion 28.736 ms
+Speech flite source 36.499 ms, completion 69.860 ms
+PASS lost-reply independent guard, minimal speech and healthy peer
+Speech espeak source 15.181 ms, completion 20.651 ms
+Speech espeak source 30.399 ms, completion 31.787 ms
+Speech flite source 31.450 ms, completion 75.420 ms
+PASS disconnected independent guard, minimal speech and healthy peer
+

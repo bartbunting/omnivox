@@ -1,0 +1,10 @@
+Loaded tts-emergency-start from /home/bart/src/emacsvox-lightweight-reload/lisp/speech/tts-speak.elc
+Loaded tts--recover-speaker from /home/bart/src/emacsvox-lightweight-reload/lisp/speech/tts-speak.elc
+Loaded omnivox-library--retire-for-emergency from /home/bart/src/emacsvox-lightweight-reload/lisp/speech/omnivox-library-runtime.elc
+Loaded omnivox-native-guard--retire from /home/bart/src/emacsvox-lightweight-reload/lisp/speech/omnivox-native-guard.elc
+Speech flite source 53.622 ms, completion 54.993 ms
+PASS preparation 0: 22 completed short utterances, both lanes spoke during preparation
+PASS preparation 1: 24 completed short utterances, both lanes spoke during preparation
+PASS preparation 2: 24 completed short utterances, both lanes spoke during preparation
+PASS preparation 3: 22 completed short utterances, both lanes spoke during preparation
+

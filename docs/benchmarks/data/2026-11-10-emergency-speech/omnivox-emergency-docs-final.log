@@ -1,0 +1,10 @@
+python3 tools/test_documentation_links.py
+.........
+----------------------------------------------------------------------
+Ran 9 tests in 0.004s
+
+OK
+python3 tools/check_documentation_links.py
+/home/bart/src/omnivox-lightweight-reload/docs/benchmarks/2026-11-10-retained-recovery.md:121: missing anchor/search in ../plans/lightweight-preference-reload.md#next-recovery-experiment-and-proposed-emergency-boundary
+/home/bart/src/omnivox-lightweight-reload/docs/benchmarks/2026-11-10-retirement-receipts.md:111: missing anchor/search in ../plans/lightweight-preference-reload.md#next-recovery-experiment-and-proposed-emergency-boundary
+make: *** [Makefile:166: docs-check] Error 1

@@ -1,0 +1,25 @@
+{
+  "omnivox_base": "26843cdecef7f58c5bd1d6119951b6a551f7e64e",
+  "emacsvox_base": "7369d3e831eb10d8c8af752507ec627333696b03",
+  "linux_payload": "/home/bart/src/omnivox-lightweight-reload/target/emergency-speech/payload",
+  "linux_executable_sha256": "ef4310a952c25ad4bba4bf97f6d87e7e4667379932dfee1d7527314f27ba76bf",
+  "windows_runtime": "f5da2adc0cbd255f",
+  "windows_executable_sha256": "85a56121e9c90aefcd98a4ddc491184f3a86ea79b6227483cac301f1afe66654",
+  "release_commit": "246e3b72013b4a8a25c18355d567e4cc8ed3fded",
+  "release_executable": "/home/bart/tmp/ov118-bench/release/omnivox",
+  "release_sha256": "55415b3db325bcab10ea33755738adb45c61f3c05e6c251aec7bd7d0c5eb773c",
+  "previous_receipt_sha256": "d7b2b28c9ecbcff96945466270a768a40665890a97c08e80c458b635830294d9",
+  "rust": "1.97.1",
+  "emacs": "/home/bart/opt/emacs-31/bin/emacs",
+  "kernel": "6.18.54.1-microsoft-standard-WSL2",
+  "workspace_environment": {
+    "CARGO_TARGET_DIR": "/home/bart/tmp/ovlw-check",
+    "OMNIVOX_PIPER_INPUTS_DIR": "/home/bart/src/omnivox/target/piper-inputs/1.7.0/x86_64-unknown-linux-gnu"
+  },
+  "notes": [
+    "Source patches include executable sources and fixtures, not generated manuals or this evidence pack.",
+    "Native sources unchanged after the recorded Linux and full Windows builds. The final client patch includes subsequent failed-initialization ownership retention and active-Apply rejection.",
+    "All native playback observations use null output. WSL client launches native Windows executable. No acoustic or native macOS qualification.",
+    "Early matched blocks overlapped Emacs byte-code compilation. Rotated order, timestamps and system load are retained."
+  ]
+}

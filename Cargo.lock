@@ -737,6 +737,7 @@ name = "omnivox-cli"
 version = "1.18.0"
 dependencies = [
  "anyhow",
+ "libc",
  "omnivox-audio",
  "omnivox-core",
  "omnivox-tts",

@@ -1,0 +1,126 @@
+# ADR 0016: Session-managed voice-library activation
+
+- Status: Accepted for implementation; runtime integration and qualification
+  remain separate.
+- Date: 2026-10-26.
+- Accepted: 2026-10-26, including creation of this record and implementation of
+  the reviewed session-managed voice-library scope.
+- Extends: [Managed voice lifecycle](0007-managed-voice-lifecycle.md) and
+  [session configuration](0011-session-configuration-and-reload.md).
+- Refines: [Private multi-lane sessions](0013-private-sessions-and-multi-lane-supervision.md)
+  for managed activation, retaining the native ownership boundaries in
+  [ADR 0014](0014-unix-session-cleanup-guard.md) and
+  [ADR 0015](0015-windows-session-cleanup-guard.md).
+- Related: [Engine isolation](0001-engine-isolation-and-distribution.md),
+  [registration](0008-extensible-engine-registration.md) and
+  [saved preferences](0009-local-speech-preferences.md).
+
+## Context
+
+The existing voice-library Apply path has Emacsvox coordinate two independently
+owned speech workers. A private session instead retains one profile lease and
+owns 1–32 lanes. The [boundary checks](../benchmarks/2026-10-26-session-library-boundary.md)
+show that the live session excludes existing library inspection and Apply. Closing
+the session restores inspection but removes the speech pair and actual startup
+records expected by the old Apply workflow.
+
+A transition through fresh legacy workers would add another restart, temporarily
+remove Reload and require a policy for additional lanes. Centralized management
+needs an explicit relationship between the session's committed configuration and
+the managed library's active pointer, especially when a crash separates their
+writes. Preference-only reload does not establish that relationship.
+
+## Decision
+
+### Keep library coordination in the owning session
+
+Use the session supervisor's retained file task and profile lease for library
+inspection, desired-state edits and managed Apply. Keep conflicting external
+management excluded. Emacsvox presents review, progress and results and supplies
+its frozen client settings; Omnivox controls native preparation, retirement,
+replacement, publication and recovery. Installation and desired enablement alone
+do not change running speech.
+
+Apply a reviewed managed generation to the complete frozen membership. Preserve
+stable lane identities, independent cancellation, per-lane output and acknowledged
+client settings. Derive candidates from the session's committed launch context
+and selected managed generation. Preserve helper definitions and speech policy;
+unrelated configuration-file edits do not enter this operation. Reject conflicting
+explicit provider overrides before interruption.
+
+Retain exact old settings and candidate recovery records, reviewed index identity,
+the previous active pointer and every worker incarnation. The previous pointer
+and the actual running configuration are separate inputs. Rollback restores the
+actual settings, even when they differ from the profile's previous pointer.
+
+### Verify candidates under retained native ownership
+
+Keep working speech available during preflight. The existing session cleanup
+guard owns at most one additional probe worker at a time, retiring its native
+tree and I/O before the next probe. This operation resource does not increase the
+32-lane membership limit. Candidate and rollback workers also belong to that
+original guard; native admission never implies configuration commitment.
+
+After successful preflight and a final unchanged-input check, close admissions
+and retire the old set. Create fresh candidate incarnations and verify actual
+configuration, eligibility and client readiness on every lane. Open ordinary
+speech only after the complete candidate set and publication are verified.
+Keep strict Apply validation even where ordinary startup permits fallback.
+
+### Use one durable decision for publication and recovery
+
+The retained session decision is the commit authority. Persist Commit only after
+all candidate lanes pass the required readiness checks. Publish the candidate
+active pointer under the held profile lease, retain publication completion, then
+release speech admission. These separate writes are not an atomic filesystem
+transaction.
+
+After a crash, a verified Commit selects the candidate. If the pointer still has
+the exact previous bytes, finish publishing the candidate; if it already has the
+exact candidate bytes, verify completion without applying twice. A conclusively
+absent Commit with an unchanged previous pointer permits Abort. Unexpected
+pointer bytes, damaged history or uncertain writes keep recovery blocked.
+A missing reply or terminal result cannot reverse Commit or invent readiness.
+
+A successor must establish that the original writer is gone and verify cleanup
+of all original, probe, candidate and rollback trees and I/O before completing
+pointer publication or admitting fresh speech. Retain asset references and
+management exclusion until the relevant evidence permits release. Never infer
+cleanup from elapsed time, a free lock or recorded PIDs.
+
+Cancellation before retirement preserves old speech after probe cleanup. Failure
+or cancellation after retirement but before Commit restores the exact old settings
+where proven; failed rollback remains explicitly unavailable. Client loss closes
+the session, and later explicit recovery uses the retained selection. After
+Commit, recovery moves forward. Never reread edited files for recovery or replay
+interrupted speech. Machine-loss and damaged-history recovery have no forced
+repair path.
+
+### Preserve existing boundaries
+
+Use distinct bounded records and negotiated operations. Preserve old history and
+the standalone, old-client and remote contracts. Older executables must reject
+unsupported history before native launch. Arbitrary helper/output configuration
+Apply, shared hosting and remote management remain outside this decision.
+
+Qualify all existing library actions before ordinary session adoption, including
+validation, import and removal. Routing them through the owning session must
+retain their existing asset checks, package references and deletion rules. A
+working Apply alone does not qualify the whole library workflow.
+
+## Consequences and alternatives
+
+One native coordinator preserves all lanes and gives the running session and
+saved voice selection one recovery authority. The cost is new activation history,
+guard admissions and client readiness integration. Sequential preflight bounds
+extra engine residency but can take longer for large memberships.
+
+A bridge to the old two-owner workflow adds a temporary lifecycle and extra
+restarts. Relaxing the profile lease would allow conflicting management without
+settling publication or rollback. Deferring integration keeps private sessions
+experimental and blocks their ordinary adoption.
+
+The [delivery plan](../plans/session-configuration-reload.md#managed-voice-library-integration-review)
+contains the sequence and acceptance requirements. Exact formats belong in the
+references and observed results in the evidence archive. Acceptance establishes
+no working public Apply capability, platform qualification or release availability.

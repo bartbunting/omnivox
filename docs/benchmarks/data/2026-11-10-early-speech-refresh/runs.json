@@ -1,0 +1,158 @@
+[
+  {
+    "case": "cache-prime",
+    "profile": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-listening-performance-20261110/682ccee0-70cd-4598-9ab1-1d70a399863c",
+    "passed": true,
+    "failed": false
+  },
+  {
+    "case": "cache-warm",
+    "profile": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-listening-performance-20261110/2a780ccc-aa54-4eff-a0fa-25627abbcdc9",
+    "passed": true,
+    "failed": false
+  },
+  {
+    "case": "eager-control",
+    "profile": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-listening-performance-20261110/1cd2817f-fbc0-49cb-9f0d-3379ea94e405",
+    "passed": true,
+    "failed": false
+  },
+  {
+    "case": "final-changed",
+    "profile": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-listening-performance-20261110/c36913c4-2d35-4bab-9838-1b589aa7d883",
+    "passed": false,
+    "failed": true
+  },
+  {
+    "case": "final-saved",
+    "profile": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-listening-performance-20261110/b11cdfd2-b650-4b6c-8308-01fe9382d644",
+    "passed": true,
+    "failed": false
+  },
+  {
+    "case": "gui-changed",
+    "profile": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-listening-performance-20261110/62d93eaf-2138-44e7-8b31-56205930a2c6",
+    "passed": true,
+    "failed": false
+  },
+  {
+    "case": "gui-failed",
+    "profile": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-listening-performance-20261110/2c6436ef-5538-4fec-b2eb-f7c741ce5c18",
+    "passed": true,
+    "failed": false
+  },
+  {
+    "case": "gui-restart",
+    "profile": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-listening-performance-20261110/ed50ad82-4446-4f55-9fad-c6069c0933ad",
+    "passed": true,
+    "failed": false
+  },
+  {
+    "case": "gui-saved",
+    "profile": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-listening-performance-20261110/b8742cf7-141c-40d4-b9fc-392bf22a9a93",
+    "passed": true,
+    "failed": false
+  },
+  {
+    "case": "profile-args",
+    "profile": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-listening-performance-20261110/76ae80a7-295a-45ef-9d61-f73cddbf8ce8",
+    "passed": true,
+    "failed": false
+  },
+  {
+    "case": "profile-expanded",
+    "profile": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-listening-performance-20261110/d862e9e4-66de-42fe-8ee6-ce6f16b9dde7",
+    "passed": true,
+    "failed": false
+  },
+  {
+    "case": "profile",
+    "profile": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-listening-performance-20261110/fb8857c1-5fa1-4d9e-add5-aafd373cf04f",
+    "passed": false,
+    "failed": true
+  },
+  {
+    "case": "qualified-changed",
+    "profile": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-listening-performance-20261110/cdb2dc97-0006-489d-8730-22fad732b632",
+    "passed": true,
+    "failed": false
+  },
+  {
+    "case": "qualified-failed",
+    "profile": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-listening-performance-20261110/adc55cb4-5b38-4ced-8dd4-c0acc466346a",
+    "passed": true,
+    "failed": false
+  },
+  {
+    "case": "qualified-restart",
+    "profile": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-listening-performance-20261110/532269e8-7c08-4420-a26f-9db9acbfbfda",
+    "passed": true,
+    "failed": false
+  },
+  {
+    "case": "qualified-saved",
+    "profile": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-listening-performance-20261110/77214baa-9cf9-442e-9999-b80f7e334c68",
+    "passed": true,
+    "failed": false
+  },
+  {
+    "case": "real-0-eloquence",
+    "profile": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-listening-performance-20261110/b55bcdc1-14a4-4c44-86df-ab9212f6d82c",
+    "passed": true,
+    "failed": false
+  },
+  {
+    "case": "real-1-dectalk",
+    "profile": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-listening-performance-20261110/e698200d-358c-4f15-983f-488bb9ca2e1b",
+    "passed": true,
+    "failed": false
+  },
+  {
+    "case": "real-2-rhvoice",
+    "profile": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-listening-performance-20261110/9fc4c8c9-bc33-4a78-bfe9-30c3126b40d8",
+    "passed": true,
+    "failed": false
+  },
+  {
+    "case": "real-3-flite",
+    "profile": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-listening-performance-20261110/3597387a-658a-4cf5-9455-2f6694553de0",
+    "passed": true,
+    "failed": false
+  },
+  {
+    "case": "real-4-flite",
+    "profile": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-listening-performance-20261110/f7b0f678-f5ba-431a-bd03-fd86bd64291b",
+    "passed": true,
+    "failed": false
+  },
+  {
+    "case": "real-5-flite",
+    "profile": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-listening-performance-20261110/3af17501-9642-496a-b4ed-7d87e0ee4459",
+    "passed": true,
+    "failed": false
+  },
+  {
+    "case": "real-flite-rerun",
+    "profile": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-listening-performance-20261110/7e3c54f1-5325-4a7e-8287-a2ccd99caadb",
+    "passed": true,
+    "failed": false
+  },
+  {
+    "case": "real-flite",
+    "profile": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-listening-performance-20261110/6f5f4769-6d31-44f6-8239-19befbacf79b",
+    "passed": false,
+    "failed": true
+  },
+  {
+    "case": "recovery",
+    "profile": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-listening-performance-20261110/39a674b6-1155-4f73-b660-aae0acac9ff8",
+    "passed": true,
+    "failed": false
+  },
+  {
+    "case": "shortcut-batch",
+    "profile": "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-listening-performance-20261110/0da11975-70dc-4e27-9b48-1b59f207842c",
+    "passed": true,
+    "failed": false
+  }
+]

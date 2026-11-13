@@ -1,0 +1,25 @@
+{
+  "summary": [
+    "Ran 4690 tests, 4435 results as expected, 17 unexpected, 238 skipped (2026-11-10 19:56:52+1100, 289.768173 sec)"
+  ],
+  "failures": [
+    "emacsvox-aural-audit-current-tree-is-clean",
+    "emacsvox-magit-nested-staging-has-one-owner",
+    "emacsvox-magit-programmatic-staging-remains-silent",
+    "emacsvox-magit-real-fetch-failure-is-never-success",
+    "emacsvox-magit-real-fetch-reports-partial-failure",
+    "emacsvox-magit-real-fetch-success-is-confirmed",
+    "emacsvox-magit-real-file-buffer-staging-keeps-confirmation",
+    "emacsvox-magit-real-hunk-staging-speaks-remaining-hunk",
+    "emacsvox-magit-real-stage-error-is-preserved",
+    "emacsvox-magit-real-stage-failure-never-emits-staged",
+    "emacsvox-magit-real-staging-and-unstaging-identify-files",
+    "emacsvox-magit-real-staging-speaks-next-file-and-final-destination",
+    "emacsvox-magit-real-staging-view-keeps-failure-and-no-change-feedback",
+    "emacsvox-magit-real-unstaging-speaks-refreshed-destination",
+    "emacsvox-magit-untracked-file-voices-survive-navigation",
+    "emacsvox-native-windows-guide-is-bounded-and-complete",
+    "emacsvox-notmuch-task-guide-covers-live-keys-and-defaults"
+  ],
+  "same_as_previous": true
+}

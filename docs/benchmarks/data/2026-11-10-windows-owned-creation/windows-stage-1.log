@@ -1,0 +1,1295 @@
+make OMNIVOX_ALLOW_DIRTY=1 \
+	OMNIVOX_BUILD_KIND=local-dirty-worktree \
+	OMNIVOX_RECORD_RHVOICE=1 \
+	OMNIVOX_INCLUDE_TGSPEECHBOX=1 \
+	OMNIVOX_INCLUDE_PINNED_PIPER=0 windows-omnivox
+make verify-windows-omnivox-toolchain
+OMNIVOX_RELEASE_IMAGE="emacsvox-omnivox-windows-gnu:lightweight-20261110" \
+	"/home/bart/src/emacsvox-lightweight-reload/dist/lightweight-release/verify-toolchain.sh"
+#0 building with "default" instance using docker driver
+
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 1.65kB done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/rust@sha256:e544a8ee0b93bb2ddc8c67a80606f040998eff3847e4deed988d0874559f52a8
+#2 DONE 2.3s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 47B done
+#3 DONE 0.0s
+
+#4 [1/2] FROM docker.io/library/rust@sha256:e544a8ee0b93bb2ddc8c67a80606f040998eff3847e4deed988d0874559f52a8
+#4 resolve docker.io/library/rust@sha256:e544a8ee0b93bb2ddc8c67a80606f040998eff3847e4deed988d0874559f52a8 0.0s done
+#4 DONE 0.0s
+
+#5 [2/2] RUN rm -f /etc/apt/sources.list /etc/apt/sources.list.d/debian.sources     && printf '%s\n'        "deb http://snapshot.debian.org/archive/debian/20260805T000000Z bookworm main"        "deb http://snapshot.debian.org/archive/debian/20260805T000000Z bookworm-updates main"        "deb http://snapshot.debian.org/archive/debian-security/20260805T000000Z bookworm-security main"        > /etc/apt/sources.list     && printf '%s\n' 'Acquire::Check-Valid-Until "false";'        > /etc/apt/apt.conf.d/99snapshot     && apt-get update     && apt-get install -y --no-install-recommends        binutils-mingw-w64-x86-64=2.40-2+10.4        cmake=3.25.1-1        g++-mingw-w64-x86-64-posix=12.2.0-14+deb12u1+25.2+b1        gcc-mingw-w64-x86-64-posix=12.2.0-14+deb12u1+25.2+b1        g++-mingw-w64-x86-64-win32=12.2.0-14+deb12u1+25.2+b1        gcc-mingw-w64-x86-64-win32=12.2.0-14+deb12u1+25.2+b1        libasound2-dev=1.2.8-1+b1        libclang-dev=1:14.0-55.7~deb12u1        mingw-w64-common=10.0.0-3        mingw-w64-x86-64-dev=10.0.0-3        pkg-config=1.8.1-1     && rustup target add x86_64-pc-windows-gnu     && rm -rf /var/lib/apt/lists/*
+#5 CACHED
+
+#6 exporting to image
+#6 exporting layers 0.0s done
+#6 exporting manifest sha256:991f4ce7d85634b88c33bce5cba2c4624cd0578c12ed2f0a05816c1358ad060e 0.0s done
+#6 exporting config sha256:1e0eb74d200666d029042285eaf6f3b4bd9280ba3f8fa4b6021d446cb7493c9d
+#6 exporting config sha256:1e0eb74d200666d029042285eaf6f3b4bd9280ba3f8fa4b6021d446cb7493c9d done
+#6 naming to docker.io/library/emacsvox-omnivox-windows-gnu:lightweight-20261110 done
+#6 unpacking to docker.io/library/emacsvox-omnivox-windows-gnu:lightweight-20261110 0.0s done
+#6 DONE 0.1s
+release_contract=1
+release_image=emacsvox-omnivox-windows-gnu:lightweight-20261110
+release_image_id=sha256:991f4ce7d85634b88c33bce5cba2c4624cd0578c12ed2f0a05816c1358ad060e
+rustc=1.97.1
+mingw_gcc=12-win32
+mingw_gcc_package=12.2.0-14+deb12u1+25.2+b1
+mingw_posix_package=12.2.0-14+deb12u1+25.2+b1
+mingw_binutils_package=2.40-2+10.4
+libclang_package=1:14.0-55.7~deb12u1
+roslyn_csc=5.6.0-2.26263.10 (c0573ed0a7dc3e3b4d2e70da47f97cc51a35524f)
+roslyn_csc_sha256=4256dca0b33648340966f0656d03159a625e7f3ea43d2fc19c7397e089578cee
+dotnet_framework_release=533509
+make verify-windows-omnivox-helpers
+"/home/bart/src/emacsvox-lightweight-reload/dist/lightweight-release/verify-helper-determinism.sh" \
+	"/home/bart/src/omnivox-lightweight-reload" "/home/bart/src/emacsvox-lightweight-reload/dist/lightweight-release/cache/roslyn-5.6.0/tasks/net472/csc.exe" "/home/bart/src/emacsvox-lightweight-reload/dist/lightweight-release/cache/net40-reference-assemblies-1.0.3/build/.NETFramework/v4.0"
+9d606769093895d01e9ad8ab0202d72b1721087509664886b1628873e3fe93b8  /home/bart/src/omnivox-lightweight-reload/windows-helpers/bin/OmnivoxEloquenceHelper32.exe
+b7f07601865080d0106214c8b8c8d4a4db770f198ca84a957098d7545ad29e1b  /home/bart/src/omnivox-lightweight-reload/windows-helpers/bin/OmnivoxDectalkHelper32.exe
+docker run --rm --platform linux/amd64 \
+	--user "$(id -u):$(id -g)" \
+	--env HOME=/workspace/omnivox/target/emacsvox-home \
+	--env CARGO_HOME=/workspace/omnivox/target/emacsvox-cargo-home \
+	--env CARGO_TARGET_DIR=/workspace/omnivox/target/emacsvox-release \
+	--volume "/home/bart/src/omnivox-lightweight-reload:/workspace/omnivox" \
+	--volume "/home/bart/src/emacsvox-lightweight-reload/dist/lightweight-release:/workspace/emacsvox-release:ro" \
+	--workdir /workspace/omnivox \
+	"emacsvox-omnivox-windows-gnu:lightweight-20261110" sh -eu -c ' \
+		mkdir -p "$HOME" "$CARGO_HOME"; \
+		if [ "$CARGO_TARGET_DIR" != \
+			/workspace/omnivox/target/emacsvox-release ]; then \
+			echo "Refusing to clean unexpected release target: $CARGO_TARGET_DIR" >&2; \
+			exit 1; \
+		fi; \
+		if [ "$(readlink -f -- "${CARGO_TARGET_DIR%/*}")" != \
+			/workspace/omnivox/target ]; then \
+			echo "Refusing to clean through a redirected target parent" >&2; \
+			exit 1; \
+		fi; \
+		if [ -L "$CARGO_TARGET_DIR" ]; then \
+			echo "Refusing to clean symlinked release target: $CARGO_TARGET_DIR" >&2; \
+			exit 1; \
+		fi; \
+		rm -rf -- "$CARGO_TARGET_DIR"; \
+		mkdir -p "$CARGO_TARGET_DIR"; \
+		cargo build --locked --release -p omnivox-cli; \
+		export CC_x86_64_pc_windows_gnu=x86_64-w64-mingw32-gcc-win32; \
+		export CXX_x86_64_pc_windows_gnu=x86_64-w64-mingw32-g++-win32; \
+		export AR_x86_64_pc_windows_gnu=x86_64-w64-mingw32-ar; \
+		export CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER=x86_64-w64-mingw32-gcc-win32; \
+		export CARGO_TARGET_X86_64_PC_WINDOWS_GNU_RUSTFLAGS="-C link-arg=-Wl,--no-insert-timestamp"; \
+		if [ "0" = 1 ]; then \
+			cargo build --locked --release -p omnivox-cli --features piper \
+				--target x86_64-pc-windows-gnu; \
+		else \
+			cargo build --locked --release -p omnivox-cli \
+				--target x86_64-pc-windows-gnu; \
+		fi; \
+		python3 tools/build_rhvoice.py --release \
+			--target x86_64-pc-windows-gnu; \
+		python3 tools/build_flite.py --release \
+			--target x86_64-pc-windows-gnu; \
+		python3 tools/build_rutts.py --release \
+			--target x86_64-pc-windows-gnu; \
+		if [ "1" = 1 ]; then \
+			CXX_x86_64_pc_windows_gnu="x86_64-w64-mingw32-g++-posix" \
+				python3 /workspace/emacsvox-release/build-tgspeechbox.py build \
+					--repository /workspace/omnivox; \
+		fi; \
+		cp "$CARGO_TARGET_DIR/x86_64-pc-windows-gnu/release/omnivox.exe" \
+			"$CARGO_TARGET_DIR/x86_64-pc-windows-gnu/release/omnivox.unstripped.exe"; \
+		SOURCE_DATE_EPOCH=0 x86_64-w64-mingw32-strip --strip-all \
+			"$CARGO_TARGET_DIR/x86_64-pc-windows-gnu/release/omnivox.exe" \
+			"$CARGO_TARGET_DIR/x86_64-pc-windows-gnu/release/rhvoice/omnivox-rhvoice-helper.exe" \
+			"$CARGO_TARGET_DIR/x86_64-pc-windows-gnu/release/flite/omnivox-flite-helper.exe" \
+			"$CARGO_TARGET_DIR/x86_64-pc-windows-gnu/release/rutts/omnivox-rutts-helper.exe"; \
+		flite_dir="$CARGO_TARGET_DIR/x86_64-pc-windows-gnu/release/flite"; \
+		flite_manifest="$CARGO_TARGET_DIR/x86_64-pc-windows-gnu/release/flite-SHA256SUMS"; \
+		(cd "$flite_dir" && \
+			find . -type f ! -name SHA256SUMS -printf "%P\0" | LC_ALL=C sort -z | \
+			xargs -0 sha256sum) > "$flite_manifest"; \
+		mv "$flite_manifest" "$flite_dir/SHA256SUMS"; \
+		rutts_dir="$CARGO_TARGET_DIR/x86_64-pc-windows-gnu/release/rutts"; \
+		rutts_manifest="$CARGO_TARGET_DIR/x86_64-pc-windows-gnu/release/rutts-SHA256SUMS"; \
+		(cd "$rutts_dir" && \
+			find . -type f ! -name SHA256SUMS -print0 | LC_ALL=C sort -z | \
+			xargs -0 sha256sum) > "$rutts_manifest"; \
+		mv "$rutts_manifest" "$rutts_dir/SHA256SUMS"; \
+		mkdir -p "$CARGO_TARGET_DIR/windows-runtime"; \
+		cp "$(x86_64-w64-mingw32-g++-win32 -print-file-name=libstdc++-6.dll)" \
+			"$CARGO_TARGET_DIR/windows-runtime/libstdc++-6.dll"; \
+		cp "$(x86_64-w64-mingw32-g++-win32 -print-file-name=libgcc_s_seh-1.dll)" \
+			"$CARGO_TARGET_DIR/windows-runtime/libgcc_s_seh-1.dll"; \
+	'
+info: syncing channel updates for 1.97.1-x86_64-unknown-linux-gnu
+info: latest update on 2026-07-16 for version 1.97.1 (8bab26f4f 2026-07-14)
+info: downloading component clippy
+   Compiling proc-macro2 v1.0.106
+   Compiling quote v1.0.45
+   Compiling unicode-ident v1.0.24
+   Compiling shlex v1.3.0
+   Compiling find-msvc-tools v0.1.9
+   Compiling cfg-if v1.0.4
+   Compiling libc v0.2.183
+   Compiling autocfg v1.5.0
+   Compiling once_cell v1.21.4
+   Compiling glob v0.3.3
+   Compiling log v0.4.29
+   Compiling rustix v0.38.44
+   Compiling pkg-config v0.3.32
+   Compiling prettyplease v0.2.37
+   Compiling either v1.15.0
+   Compiling memchr v2.8.0
+   Compiling serde_core v1.0.228
+   Compiling linux-raw-sys v0.4.15
+   Compiling minimal-lexical v0.2.1
+   Compiling regex-syntax v0.8.10
+   Compiling bitflags v2.11.0
+   Compiling libloading v0.8.9
+   Compiling cc v1.2.57
+   Compiling tracing-core v0.1.36
+   Compiling strength_reduce v0.2.4
+   Compiling typenum v1.20.1
+   Compiling bindgen v0.69.5
+   Compiling home v0.5.12
+   Compiling thiserror v1.0.69
+   Compiling itertools v0.12.1
+   Compiling lazy_static v1.5.0
+   Compiling rustc-hash v1.1.0
+   Compiling clang-sys v1.8.1
+   Compiling cpal v0.15.3
+   Compiling zeroize v1.9.0
+   Compiling itoa v1.0.18
+   Compiling num-traits v0.2.19
+   Compiling tinyvec_macros v0.1.1
+   Compiling lazycell v1.3.0
+   Compiling nom v7.1.3
+   Compiling serde v1.0.228
+   Compiling alsa-sys v0.3.1
+   Compiling byteorder v1.5.0
+   Compiling aho-corasick v1.1.4
+   Compiling tinyvec v1.11.0
+   Compiling rustls-pki-types v1.15.1
+   Compiling sharded-slab v0.1.7
+   Compiling thread_local v1.1.9
+   Compiling tracing-log v0.2.0
+   Compiling pin-project-lite v0.2.17
+   Compiling zmij v1.0.23
+   Compiling ogg v0.8.0
+   Compiling smallvec v1.15.1
+   Compiling dasp_sample v0.11.0
+   Compiling syn v2.0.117
+   Compiling hybrid-array v0.4.15
+   Compiling cmake v0.1.57
+   Compiling nu-ansi-term v0.50.3
+   Compiling untrusted v0.9.0
+   Compiling regex-automata v0.4.14
+   Compiling anyhow v1.0.102
+   Compiling httparse v1.10.1
+   Compiling lewton v0.10.2
+   Compiling num-integer v0.1.46
+   Compiling num-complex v0.4.6
+   Compiling getrandom v0.2.17
+   Compiling tracing-subscriber v0.3.23
+   Compiling block-buffer v0.12.1
+   Compiling crypto-common v0.2.2
+   Compiling serde_json v1.0.151
+   Compiling bytes v1.11.1
+   Compiling const-oid v0.10.2
+   Compiling primal-check v0.3.4
+   Compiling transpose v0.2.3
+   Compiling ring v0.17.14
+   Compiling alsa v0.9.1
+   Compiling rustls v0.23.45
+   Compiling hound v3.5.1
+   Compiling omnivox-tts v1.18.0 (/workspace/omnivox/omnivox-tts)
+   Compiling rustfft v6.4.1
+   Compiling cexpr v0.6.0
+   Compiling which v4.4.2
+   Compiling subtle v2.6.1
+   Compiling base64 v0.22.1
+   Compiling base64 v0.23.1
+   Compiling cpufeatures v0.3.1
+   Compiling webpki-roots v1.0.9
+   Compiling omnivox-cli v1.18.0 (/workspace/omnivox/omnivox-cli)
+   Compiling utf8-zero v0.8.1
+   Compiling digest v0.11.3
+   Compiling percent-encoding v2.3.2
+   Compiling http v1.5.0
+   Compiling sha2 v0.11.0
+   Compiling regex v1.12.3
+   Compiling ureq-proto v0.6.3
+   Compiling thiserror-impl v1.0.69
+   Compiling serde_derive v1.0.228
+   Compiling tracing-attributes v0.1.31
+   Compiling tracing v0.1.44
+   Compiling rodio v0.19.0
+   Compiling realfft v3.5.0
+   Compiling rubato v0.16.2
+   Compiling omnivox-core v1.18.0 (/workspace/omnivox/omnivox-core)
+   Compiling omnivox-audio v1.18.0 (/workspace/omnivox/omnivox-audio)
+   Compiling espeak-rs-sys v0.1.9
+   Compiling rustls-webpki v0.103.15
+   Compiling ureq v3.3.0
+    Finished `release` profile [optimized] target(s) in 1m 21s
+   Compiling windows_x86_64_gnu v0.52.6
+   Compiling cfg-if v1.0.4
+   Compiling once_cell v1.21.4
+   Compiling log v0.4.29
+   Compiling memchr v2.8.0
+   Compiling serde_core v1.0.228
+   Compiling strength_reduce v0.2.4
+   Compiling typenum v1.20.1
+   Compiling windows-link v0.2.1
+   Compiling num-traits v0.2.19
+   Compiling thiserror v1.0.69
+   Compiling itoa v1.0.18
+   Compiling ring v0.17.14
+   Compiling regex-syntax v0.8.10
+   Compiling byteorder v1.5.0
+   Compiling lazy_static v1.5.0
+   Compiling tinyvec_macros v0.1.1
+   Compiling zeroize v1.9.0
+   Compiling cpal v0.15.3
+   Compiling getrandom v0.2.17
+   Compiling windows-sys v0.61.2
+   Compiling thread_local v1.1.9
+   Compiling windows-implement v0.58.0
+   Compiling serde v1.0.228
+   Compiling windows-interface v0.58.0
+   Compiling sharded-slab v0.1.7
+   Compiling tinyvec v1.11.0
+   Compiling dasp_sample v0.11.0
+   Compiling smallvec v1.15.1
+   Compiling windows-targets v0.52.6
+   Compiling rustls-pki-types v1.15.1
+   Compiling pin-project-lite v0.2.17
+   Compiling windows-result v0.1.2
+   Compiling tracing-core v0.1.36
+   Compiling windows-result v0.2.0
+   Compiling untrusted v0.9.0
+   Compiling ogg v0.8.0
+   Compiling anyhow v1.0.102
+   Compiling zmij v1.0.23
+   Compiling httparse v1.10.1
+   Compiling bytes v1.11.1
+   Compiling const-oid v0.10.2
+   Compiling hound v3.5.1
+   Compiling serde_json v1.0.151
+   Compiling espeak-rs-sys v0.1.9
+   Compiling windows-core v0.54.0
+   Compiling aho-corasick v1.1.4
+   Compiling tracing-log v0.2.0
+   Compiling windows-strings v0.1.0
+   Compiling tracing v0.1.44
+   Compiling lewton v0.10.2
+   Compiling subtle v2.6.1
+   Compiling windows-core v0.58.0
+   Compiling base64 v0.22.1
+   Compiling base64 v0.23.1
+   Compiling cpufeatures v0.3.1
+   Compiling omnivox-tts v1.18.0 (/workspace/omnivox/omnivox-tts)
+   Compiling webpki-roots v1.0.9
+   Compiling utf8-zero v0.8.1
+   Compiling percent-encoding v2.3.2
+   Compiling num-integer v0.1.46
+   Compiling hybrid-array v0.4.15
+   Compiling num-complex v0.4.6
+   Compiling http v1.5.0
+   Compiling omnivox-cli v1.18.0 (/workspace/omnivox/omnivox-cli)
+   Compiling nu-ansi-term v0.50.3
+   Compiling transpose v0.2.3
+   Compiling primal-check v0.3.4
+   Compiling windows v0.58.0
+   Compiling windows v0.54.0
+   Compiling tracing-subscriber v0.3.23
+   Compiling block-buffer v0.12.1
+   Compiling crypto-common v0.2.2
+   Compiling rustfft v6.4.1
+   Compiling regex-automata v0.4.14
+   Compiling ureq-proto v0.6.3
+   Compiling digest v0.11.3
+   Compiling sha2 v0.11.0
+   Compiling regex v1.12.3
+   Compiling omnivox-core v1.18.0 (/workspace/omnivox/omnivox-core)
+   Compiling rustls v0.23.45
+   Compiling realfft v3.5.0
+   Compiling rubato v0.16.2
+   Compiling rustls-webpki v0.103.15
+   Compiling ureq v3.3.0
+   Compiling rodio v0.19.0
+   Compiling omnivox-audio v1.18.0 (/workspace/omnivox/omnivox-audio)
+    Finished `release` profile [optimized] target(s) in 1m 17s
++ cargo build --locked --message-format=json-render-diagnostics --package omnivox-rhvoice-helper --release --target x86_64-pc-windows-gnu
+   Compiling libloading v0.8.9
+   Compiling omnivox-tts v1.18.0 (/workspace/omnivox/omnivox-tts)
+   Compiling omnivox-helper-host v1.18.0 (/workspace/omnivox/omnivox-helper-host)
+   Compiling omnivox-rhvoice-helper v1.18.0 (/workspace/omnivox/omnivox-rhvoice-helper)
+    Finished `release` profile [optimized] target(s) in 43.41s
+Staged RHVoice helper in /workspace/omnivox/target/emacsvox-release/x86_64-pc-windows-gnu/release/rhvoice
++ /usr/bin/python3 /workspace/omnivox/tools/prepare_flite_inputs.py
+Prepared and verified Flite inputs in /workspace/omnivox/target/flite-inputs/2.2
++ cargo build --locked --message-format=json-render-diagnostics --package omnivox-flite-helper --release --target x86_64-pc-windows-gnu
+   Compiling omnivox-flite-sys v1.18.0 (/workspace/omnivox/omnivox-flite-sys)
+   Compiling omnivox-flite-helper v1.18.0 (/workspace/omnivox/omnivox-flite-helper)
+    Finished `release` profile [optimized] target(s) in 1m 35s
+Staged Flite companion in /workspace/omnivox/target/emacsvox-release/x86_64-pc-windows-gnu/release/flite
++ /usr/bin/python3 /workspace/omnivox/tools/prepare_rutts_inputs.py
+Prepared and verified RuTTS inputs in /workspace/omnivox/target/rutts-inputs/6.3.3
++ cargo build --locked --message-format=json-render-diagnostics --package omnivox-rutts-helper --release --target x86_64-pc-windows-gnu
+   Compiling omnivox-rutts-sys v1.18.0 (/workspace/omnivox/omnivox-rutts-sys)
+   Compiling omnivox-rutts-helper v1.18.0 (/workspace/omnivox/omnivox-rutts-helper)
+    Finished `release` profile [optimized] target(s) in 4.87s
+Staged RuTTS companion in /workspace/omnivox/target/emacsvox-release/x86_64-pc-windows-gnu/release/rutts
++ /usr/bin/python3 /workspace/omnivox/tools/prepare_tgspeechbox_inputs.py
+Prepared and verified TGSpeechBox inputs in /workspace/omnivox/target/tgspeechbox-inputs/v-310@25b0e1a
++ cargo build --locked --message-format=json-render-diagnostics --package omnivox-tgspeechbox-helper --release --target x86_64-pc-windows-gnu
+   Compiling omnivox-tgspeechbox-sys v1.18.0 (/workspace/omnivox/omnivox-tgspeechbox-sys)
+   Compiling espeak-rs-sys v0.1.9
+   Compiling omnivox-tgspeechbox-helper v1.18.0 (/workspace/omnivox/omnivox-tgspeechbox-helper)
+    Finished `release` profile [optimized] target(s) in 1m 01s
++ cargo build --locked --message-format=json-render-diagnostics --package omnivox-tgspeechbox-helper --release  # host-generated portable eSpeak data
+   Compiling omnivox-tts v1.18.0 (/workspace/omnivox/omnivox-tts)
+   Compiling omnivox-tgspeechbox-sys v1.18.0 (/workspace/omnivox/omnivox-tgspeechbox-sys)
+   Compiling espeak-rs-sys v0.1.9
+   Compiling omnivox-helper-host v1.18.0 (/workspace/omnivox/omnivox-helper-host)
+   Compiling omnivox-tgspeechbox-helper v1.18.0 (/workspace/omnivox/omnivox-tgspeechbox-helper)
+    Finished `release` profile [optimized] target(s) in 1m 13s
++ /usr/bin/python3 /home/bart/src/omnivox-lightweight-reload/tools/prepare_tgspeechbox_inputs.py
+Prepared and verified TGSpeechBox inputs in /home/bart/src/omnivox-lightweight-reload/target/tgspeechbox-inputs/v-310@25b0e1a
++ /home/bart/src/omnivox-lightweight-reload/target/emacsvox-release/x86_64-pc-windows-gnu/release/.tgspeechbox.tmp-1169107-8gpz1xkm/omnivox-tgspeechbox-helper.exe  # generate cached voice inventory
++ /home/bart/src/omnivox-lightweight-reload/target/emacsvox-release/x86_64-pc-windows-gnu/release/.tgspeechbox.tmp-1169107-8gpz1xkm/omnivox-tgspeechbox-helper.exe  # generate cached voice inventory
+Staged TGSpeechBox companion in /home/bart/src/omnivox-lightweight-reload/target/emacsvox-release/x86_64-pc-windows-gnu/release/tgspeechbox
+EMACSVOX_STAGE_ROOT="/home/bart/src/emacsvox-lightweight-reload" \
+	OMNIVOX_BUILD_KIND="local-dirty-worktree" \
+	OMNIVOX_CSC="/home/bart/src/emacsvox-lightweight-reload/dist/lightweight-release/cache/roslyn-5.6.0/tasks/net472/csc.exe" \
+	OMNIVOX_DIR="/home/bart/src/omnivox-lightweight-reload" \
+	OMNIVOX_HELPER_DIR="/home/bart/src/omnivox-lightweight-reload/windows-helpers" \
+	OMNIVOX_INCLUDE_PINNED_PIPER="0" \
+	OMNIVOX_INCLUDE_TGSPEECHBOX="1" \
+	OMNIVOX_PIPER_COMPANION_ARCHIVE_SHA256="bf56ebc52f7a13d28e005d3584b60b62f7be202dc875aaf80c4c975c4e600b99" \
+	OMNIVOX_PIPER_COMPANION_COMMIT="246e3b72013b4a8a25c18355d567e4cc8ed3fded" \
+	OMNIVOX_PIPER_COMPANION_STATE="official-omnivox-release" \
+	OMNIVOX_PIPER_COMPANION_VERSION="1.18.0" \
+	OMNIVOX_PIPER_DIR="/home/bart/src/emacsvox-lightweight-reload/dist/lightweight-release/cache/piper-1.18.0/companion-bf56ebc52f7a13d28e005d3584b60b62f7be202dc875aaf80c4c975c4e600b99/piper" \
+	OMNIVOX_RECORD_RHVOICE="1" \
+	OMNIVOX_RELEASE_DIR="/home/bart/src/emacsvox-lightweight-reload/dist/lightweight-release" \
+	OMNIVOX_RELEASE_IMAGE="emacsvox-omnivox-windows-gnu:lightweight-20261110" \
+	OMNIVOX_RELEASE_TARGET_DIR="/home/bart/src/omnivox-lightweight-reload/target/emacsvox-release" \
+	OMNIVOX_RUNTIME_DIR="/home/bart/src/emacsvox-lightweight-reload/servers/omnivox-bin" \
+	OMNIVOX_TARGET="x86_64-pc-windows-gnu" \
+	OMNIVOX_TGSPEECHBOX_CXX="x86_64-w64-mingw32-g++-posix" \
+	reference_assemblies_nupkg_sha256="54d6e20a1b61caf79395d6d71d091265e81f5a5705ac4ae52af45ca143c3c694" \
+	roslyn_nupkg_sha256="302310963f0c98c53e1c4d77594341a09a98c34f67b524f4b3d1158393bf6401" \
+	"/home/bart/src/emacsvox-lightweight-reload/dist/lightweight-release/stage-runtime.sh"
+omnivox.exe: OK
+libstdc++-6.dll: OK
+libgcc_s_seh-1.dll: OK
+OmnivoxEloquenceHelper32.exe: OK
+OmnivoxDectalkHelper32.exe: OK
+WINDOWS-HELPERS-COPYING: OK
+OMNIVOX-LICENSE: OK
+PROVENANCE: OK
+flite/LICENSE: OK
+flite/LICENSING.md: OK
+flite/README.md: OK
+flite/SHA256SUMS: OK
+flite/SOURCE-PROVENANCE.json: OK
+flite/omnivox-flite-helper.exe: OK
+flite/source-inputs.json: OK
+flite/third-party-licenses/Flite-COPYING.txt: OK
+flite/third-party-licenses/omnivox-Cargo.lock: OK
+rhvoice/omnivox-rhvoice-helper.exe: OK
+rutts/LICENSE: OK
+rutts/LICENSING.md: OK
+rutts/README.md: OK
+rutts/SHA256SUMS: OK
+rutts/SOURCE-PROVENANCE.json: OK
+rutts/omnivox-rutts-helper.exe: OK
+rutts/source-inputs.json: OK
+rutts/third-party-licenses/RuTTS-LICENSE.txt: OK
+rutts/third-party-licenses/omnivox-Cargo.lock: OK
+tgspeechbox/LICENSE: OK
+tgspeechbox/LICENSING.md: OK
+tgspeechbox/README.md: OK
+tgspeechbox/SHA256SUMS: OK
+tgspeechbox/SOURCE-PROVENANCE.json: OK
+tgspeechbox/VOICE-INVENTORY-22050.json: OK
+tgspeechbox/VOICE-INVENTORY-44100.json: OK
+tgspeechbox/VOICE-INVENTORY.json: OK
+tgspeechbox/espeak-ng-data/af_dict: OK
+tgspeechbox/espeak-ng-data/am_dict: OK
+tgspeechbox/espeak-ng-data/an_dict: OK
+tgspeechbox/espeak-ng-data/ar_dict: OK
+tgspeechbox/espeak-ng-data/as_dict: OK
+tgspeechbox/espeak-ng-data/az_dict: OK
+tgspeechbox/espeak-ng-data/ba_dict: OK
+tgspeechbox/espeak-ng-data/be_dict: OK
+tgspeechbox/espeak-ng-data/bg_dict: OK
+tgspeechbox/espeak-ng-data/bn_dict: OK
+tgspeechbox/espeak-ng-data/bpy_dict: OK
+tgspeechbox/espeak-ng-data/bs_dict: OK
+tgspeechbox/espeak-ng-data/ca_dict: OK
+tgspeechbox/espeak-ng-data/chr_dict: OK
+tgspeechbox/espeak-ng-data/cmn_dict: OK
+tgspeechbox/espeak-ng-data/cs_dict: OK
+tgspeechbox/espeak-ng-data/cv_dict: OK
+tgspeechbox/espeak-ng-data/cy_dict: OK
+tgspeechbox/espeak-ng-data/da_dict: OK
+tgspeechbox/espeak-ng-data/de_dict: OK
+tgspeechbox/espeak-ng-data/el_dict: OK
+tgspeechbox/espeak-ng-data/en_dict: OK
+tgspeechbox/espeak-ng-data/eo_dict: OK
+tgspeechbox/espeak-ng-data/es_dict: OK
+tgspeechbox/espeak-ng-data/et_dict: OK
+tgspeechbox/espeak-ng-data/eu_dict: OK
+tgspeechbox/espeak-ng-data/fa_dict: OK
+tgspeechbox/espeak-ng-data/fi_dict: OK
+tgspeechbox/espeak-ng-data/fr_dict: OK
+tgspeechbox/espeak-ng-data/ga_dict: OK
+tgspeechbox/espeak-ng-data/gd_dict: OK
+tgspeechbox/espeak-ng-data/gn_dict: OK
+tgspeechbox/espeak-ng-data/grc_dict: OK
+tgspeechbox/espeak-ng-data/gu_dict: OK
+tgspeechbox/espeak-ng-data/hak_dict: OK
+tgspeechbox/espeak-ng-data/haw_dict: OK
+tgspeechbox/espeak-ng-data/he_dict: OK
+tgspeechbox/espeak-ng-data/hi_dict: OK
+tgspeechbox/espeak-ng-data/hr_dict: OK
+tgspeechbox/espeak-ng-data/ht_dict: OK
+tgspeechbox/espeak-ng-data/hu_dict: OK
+tgspeechbox/espeak-ng-data/hy_dict: OK
+tgspeechbox/espeak-ng-data/ia_dict: OK
+tgspeechbox/espeak-ng-data/id_dict: OK
+tgspeechbox/espeak-ng-data/intonations: OK
+tgspeechbox/espeak-ng-data/io_dict: OK
+tgspeechbox/espeak-ng-data/is_dict: OK
+tgspeechbox/espeak-ng-data/it_dict: OK
+tgspeechbox/espeak-ng-data/ja_dict: OK
+tgspeechbox/espeak-ng-data/jbo_dict: OK
+tgspeechbox/espeak-ng-data/ka_dict: OK
+tgspeechbox/espeak-ng-data/kk_dict: OK
+tgspeechbox/espeak-ng-data/kl_dict: OK
+tgspeechbox/espeak-ng-data/kn_dict: OK
+tgspeechbox/espeak-ng-data/ko_dict: OK
+tgspeechbox/espeak-ng-data/kok_dict: OK
+tgspeechbox/espeak-ng-data/ku_dict: OK
+tgspeechbox/espeak-ng-data/ky_dict: OK
+tgspeechbox/espeak-ng-data/la_dict: OK
+tgspeechbox/espeak-ng-data/lang/aav/vi: OK
+tgspeechbox/espeak-ng-data/lang/aav/vi-VN-x-central: OK
+tgspeechbox/espeak-ng-data/lang/aav/vi-VN-x-south: OK
+tgspeechbox/espeak-ng-data/lang/art/eo: OK
+tgspeechbox/espeak-ng-data/lang/art/ia: OK
+tgspeechbox/espeak-ng-data/lang/art/io: OK
+tgspeechbox/espeak-ng-data/lang/art/jbo: OK
+tgspeechbox/espeak-ng-data/lang/art/lfn: OK
+tgspeechbox/espeak-ng-data/lang/art/piqd: OK
+tgspeechbox/espeak-ng-data/lang/art/py: OK
+tgspeechbox/espeak-ng-data/lang/art/qdb: OK
+tgspeechbox/espeak-ng-data/lang/art/qya: OK
+tgspeechbox/espeak-ng-data/lang/art/sjn: OK
+tgspeechbox/espeak-ng-data/lang/art/xex: OK
+tgspeechbox/espeak-ng-data/lang/azc/nci: OK
+tgspeechbox/espeak-ng-data/lang/bat/lt: OK
+tgspeechbox/espeak-ng-data/lang/bat/ltg: OK
+tgspeechbox/espeak-ng-data/lang/bat/lv: OK
+tgspeechbox/espeak-ng-data/lang/bnt/sw: OK
+tgspeechbox/espeak-ng-data/lang/bnt/tn: OK
+tgspeechbox/espeak-ng-data/lang/ccs/ka: OK
+tgspeechbox/espeak-ng-data/lang/cel/cy: OK
+tgspeechbox/espeak-ng-data/lang/cel/ga: OK
+tgspeechbox/espeak-ng-data/lang/cel/gd: OK
+tgspeechbox/espeak-ng-data/lang/cus/om: OK
+tgspeechbox/espeak-ng-data/lang/dra/kn: OK
+tgspeechbox/espeak-ng-data/lang/dra/ml: OK
+tgspeechbox/espeak-ng-data/lang/dra/ta: OK
+tgspeechbox/espeak-ng-data/lang/dra/te: OK
+tgspeechbox/espeak-ng-data/lang/esx/kl: OK
+tgspeechbox/espeak-ng-data/lang/eu: OK
+tgspeechbox/espeak-ng-data/lang/gmq/da: OK
+tgspeechbox/espeak-ng-data/lang/gmq/fo: OK
+tgspeechbox/espeak-ng-data/lang/gmq/is: OK
+tgspeechbox/espeak-ng-data/lang/gmq/nb: OK
+tgspeechbox/espeak-ng-data/lang/gmq/sv: OK
+tgspeechbox/espeak-ng-data/lang/gmw/af: OK
+tgspeechbox/espeak-ng-data/lang/gmw/de: OK
+tgspeechbox/espeak-ng-data/lang/gmw/en: OK
+tgspeechbox/espeak-ng-data/lang/gmw/en-029: OK
+tgspeechbox/espeak-ng-data/lang/gmw/en-GB-scotland: OK
+tgspeechbox/espeak-ng-data/lang/gmw/en-GB-x-gbclan: OK
+tgspeechbox/espeak-ng-data/lang/gmw/en-GB-x-gbcwmd: OK
+tgspeechbox/espeak-ng-data/lang/gmw/en-GB-x-rp: OK
+tgspeechbox/espeak-ng-data/lang/gmw/en-Shaw: OK
+tgspeechbox/espeak-ng-data/lang/gmw/en-US: OK
+tgspeechbox/espeak-ng-data/lang/gmw/en-US-nyc: OK
+tgspeechbox/espeak-ng-data/lang/gmw/lb: OK
+tgspeechbox/espeak-ng-data/lang/gmw/nl: OK
+tgspeechbox/espeak-ng-data/lang/grk/el: OK
+tgspeechbox/espeak-ng-data/lang/grk/grc: OK
+tgspeechbox/espeak-ng-data/lang/inc/as: OK
+tgspeechbox/espeak-ng-data/lang/inc/bn: OK
+tgspeechbox/espeak-ng-data/lang/inc/bpy: OK
+tgspeechbox/espeak-ng-data/lang/inc/gu: OK
+tgspeechbox/espeak-ng-data/lang/inc/hi: OK
+tgspeechbox/espeak-ng-data/lang/inc/kok: OK
+tgspeechbox/espeak-ng-data/lang/inc/mr: OK
+tgspeechbox/espeak-ng-data/lang/inc/ne: OK
+tgspeechbox/espeak-ng-data/lang/inc/or: OK
+tgspeechbox/espeak-ng-data/lang/inc/pa: OK
+tgspeechbox/espeak-ng-data/lang/inc/sd: OK
+tgspeechbox/espeak-ng-data/lang/inc/si: OK
+tgspeechbox/espeak-ng-data/lang/inc/ur: OK
+tgspeechbox/espeak-ng-data/lang/ine/hy: OK
+tgspeechbox/espeak-ng-data/lang/ine/hyw: OK
+tgspeechbox/espeak-ng-data/lang/ine/sq: OK
+tgspeechbox/espeak-ng-data/lang/ira/fa: OK
+tgspeechbox/espeak-ng-data/lang/ira/fa-Latn: OK
+tgspeechbox/espeak-ng-data/lang/ira/ku: OK
+tgspeechbox/espeak-ng-data/lang/iro/chr: OK
+tgspeechbox/espeak-ng-data/lang/itc/la: OK
+tgspeechbox/espeak-ng-data/lang/jpx/ja: OK
+tgspeechbox/espeak-ng-data/lang/ko: OK
+tgspeechbox/espeak-ng-data/lang/map/haw: OK
+tgspeechbox/espeak-ng-data/lang/miz/mto: OK
+tgspeechbox/espeak-ng-data/lang/myn/quc: OK
+tgspeechbox/espeak-ng-data/lang/poz/id: OK
+tgspeechbox/espeak-ng-data/lang/poz/mi: OK
+tgspeechbox/espeak-ng-data/lang/poz/ms: OK
+tgspeechbox/espeak-ng-data/lang/qu: OK
+tgspeechbox/espeak-ng-data/lang/roa/an: OK
+tgspeechbox/espeak-ng-data/lang/roa/ca: OK
+tgspeechbox/espeak-ng-data/lang/roa/ca-ba: OK
+tgspeechbox/espeak-ng-data/lang/roa/ca-nw: OK
+tgspeechbox/espeak-ng-data/lang/roa/ca-va: OK
+tgspeechbox/espeak-ng-data/lang/roa/es: OK
+tgspeechbox/espeak-ng-data/lang/roa/es-419: OK
+tgspeechbox/espeak-ng-data/lang/roa/fr: OK
+tgspeechbox/espeak-ng-data/lang/roa/fr-BE: OK
+tgspeechbox/espeak-ng-data/lang/roa/fr-CH: OK
+tgspeechbox/espeak-ng-data/lang/roa/ht: OK
+tgspeechbox/espeak-ng-data/lang/roa/it: OK
+tgspeechbox/espeak-ng-data/lang/roa/pap: OK
+tgspeechbox/espeak-ng-data/lang/roa/pt: OK
+tgspeechbox/espeak-ng-data/lang/roa/pt-BR: OK
+tgspeechbox/espeak-ng-data/lang/roa/ro: OK
+tgspeechbox/espeak-ng-data/lang/sai/gn: OK
+tgspeechbox/espeak-ng-data/lang/sem/am: OK
+tgspeechbox/espeak-ng-data/lang/sem/ar: OK
+tgspeechbox/espeak-ng-data/lang/sem/he: OK
+tgspeechbox/espeak-ng-data/lang/sem/mt: OK
+tgspeechbox/espeak-ng-data/lang/sem/ti: OK
+tgspeechbox/espeak-ng-data/lang/sit/cmn: OK
+tgspeechbox/espeak-ng-data/lang/sit/cmn-Latn-pinyin: OK
+tgspeechbox/espeak-ng-data/lang/sit/hak: OK
+tgspeechbox/espeak-ng-data/lang/sit/my: OK
+tgspeechbox/espeak-ng-data/lang/sit/yue: OK
+tgspeechbox/espeak-ng-data/lang/sit/yue-Latn-jyutping: OK
+tgspeechbox/espeak-ng-data/lang/tai/shn: OK
+tgspeechbox/espeak-ng-data/lang/tai/th: OK
+tgspeechbox/espeak-ng-data/lang/trk/az: OK
+tgspeechbox/espeak-ng-data/lang/trk/ba: OK
+tgspeechbox/espeak-ng-data/lang/trk/cv: OK
+tgspeechbox/espeak-ng-data/lang/trk/kaa: OK
+tgspeechbox/espeak-ng-data/lang/trk/kk: OK
+tgspeechbox/espeak-ng-data/lang/trk/ky: OK
+tgspeechbox/espeak-ng-data/lang/trk/nog: OK
+tgspeechbox/espeak-ng-data/lang/trk/tk: OK
+tgspeechbox/espeak-ng-data/lang/trk/tr: OK
+tgspeechbox/espeak-ng-data/lang/trk/tt: OK
+tgspeechbox/espeak-ng-data/lang/trk/ug: OK
+tgspeechbox/espeak-ng-data/lang/trk/uz: OK
+tgspeechbox/espeak-ng-data/lang/urj/et: OK
+tgspeechbox/espeak-ng-data/lang/urj/fi: OK
+tgspeechbox/espeak-ng-data/lang/urj/hu: OK
+tgspeechbox/espeak-ng-data/lang/urj/smj: OK
+tgspeechbox/espeak-ng-data/lang/zle/be: OK
+tgspeechbox/espeak-ng-data/lang/zle/ru: OK
+tgspeechbox/espeak-ng-data/lang/zle/ru-LV: OK
+tgspeechbox/espeak-ng-data/lang/zle/ru-cl: OK
+tgspeechbox/espeak-ng-data/lang/zle/uk: OK
+tgspeechbox/espeak-ng-data/lang/zls/bg: OK
+tgspeechbox/espeak-ng-data/lang/zls/bs: OK
+tgspeechbox/espeak-ng-data/lang/zls/hr: OK
+tgspeechbox/espeak-ng-data/lang/zls/mk: OK
+tgspeechbox/espeak-ng-data/lang/zls/sl: OK
+tgspeechbox/espeak-ng-data/lang/zls/sr: OK
+tgspeechbox/espeak-ng-data/lang/zlw/cs: OK
+tgspeechbox/espeak-ng-data/lang/zlw/pl: OK
+tgspeechbox/espeak-ng-data/lang/zlw/sk: OK
+tgspeechbox/espeak-ng-data/lb_dict: OK
+tgspeechbox/espeak-ng-data/lfn_dict: OK
+tgspeechbox/espeak-ng-data/lt_dict: OK
+tgspeechbox/espeak-ng-data/lv_dict: OK
+tgspeechbox/espeak-ng-data/mi_dict: OK
+tgspeechbox/espeak-ng-data/mk_dict: OK
+tgspeechbox/espeak-ng-data/ml_dict: OK
+tgspeechbox/espeak-ng-data/mr_dict: OK
+tgspeechbox/espeak-ng-data/ms_dict: OK
+tgspeechbox/espeak-ng-data/mt_dict: OK
+tgspeechbox/espeak-ng-data/mto_dict: OK
+tgspeechbox/espeak-ng-data/my_dict: OK
+tgspeechbox/espeak-ng-data/nci_dict: OK
+tgspeechbox/espeak-ng-data/ne_dict: OK
+tgspeechbox/espeak-ng-data/nl_dict: OK
+tgspeechbox/espeak-ng-data/no_dict: OK
+tgspeechbox/espeak-ng-data/nog_dict: OK
+tgspeechbox/espeak-ng-data/om_dict: OK
+tgspeechbox/espeak-ng-data/or_dict: OK
+tgspeechbox/espeak-ng-data/pa_dict: OK
+tgspeechbox/espeak-ng-data/pap_dict: OK
+tgspeechbox/espeak-ng-data/phondata: OK
+tgspeechbox/espeak-ng-data/phondata-manifest: OK
+tgspeechbox/espeak-ng-data/phonindex: OK
+tgspeechbox/espeak-ng-data/phontab: OK
+tgspeechbox/espeak-ng-data/piqd_dict: OK
+tgspeechbox/espeak-ng-data/pl_dict: OK
+tgspeechbox/espeak-ng-data/pt_dict: OK
+tgspeechbox/espeak-ng-data/py_dict: OK
+tgspeechbox/espeak-ng-data/qdb_dict: OK
+tgspeechbox/espeak-ng-data/qu_dict: OK
+tgspeechbox/espeak-ng-data/quc_dict: OK
+tgspeechbox/espeak-ng-data/qya_dict: OK
+tgspeechbox/espeak-ng-data/ro_dict: OK
+tgspeechbox/espeak-ng-data/ru_dict: OK
+tgspeechbox/espeak-ng-data/sd_dict: OK
+tgspeechbox/espeak-ng-data/shn_dict: OK
+tgspeechbox/espeak-ng-data/si_dict: OK
+tgspeechbox/espeak-ng-data/sjn_dict: OK
+tgspeechbox/espeak-ng-data/sk_dict: OK
+tgspeechbox/espeak-ng-data/sl_dict: OK
+tgspeechbox/espeak-ng-data/smj_dict: OK
+tgspeechbox/espeak-ng-data/sq_dict: OK
+tgspeechbox/espeak-ng-data/sr_dict: OK
+tgspeechbox/espeak-ng-data/sv_dict: OK
+tgspeechbox/espeak-ng-data/sw_dict: OK
+tgspeechbox/espeak-ng-data/ta_dict: OK
+tgspeechbox/espeak-ng-data/te_dict: OK
+tgspeechbox/espeak-ng-data/th_dict: OK
+tgspeechbox/espeak-ng-data/ti_dict: OK
+tgspeechbox/espeak-ng-data/tk_dict: OK
+tgspeechbox/espeak-ng-data/tn_dict: OK
+tgspeechbox/espeak-ng-data/tr_dict: OK
+tgspeechbox/espeak-ng-data/tt_dict: OK
+tgspeechbox/espeak-ng-data/ug_dict: OK
+tgspeechbox/espeak-ng-data/uk_dict: OK
+tgspeechbox/espeak-ng-data/ur_dict: OK
+tgspeechbox/espeak-ng-data/uz_dict: OK
+tgspeechbox/espeak-ng-data/vi_dict: OK
+'tgspeechbox/espeak-ng-data/voices/!v/Alex': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Alicia': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Andrea': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Andy': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Annie': OK
+'tgspeechbox/espeak-ng-data/voices/!v/AnxiousAndy': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Demonic': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Denis': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Diogo': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Gene': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Gene2': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Henrique': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Hugo': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Jacky': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Lee': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Marco': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Mario': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Michael': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Mike': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Mr serious': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Nguyen': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Reed': OK
+'tgspeechbox/espeak-ng-data/voices/!v/RicishayMax': OK
+'tgspeechbox/espeak-ng-data/voices/!v/RicishayMax2': OK
+'tgspeechbox/espeak-ng-data/voices/!v/RicishayMax3': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Storm': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Tweaky': OK
+'tgspeechbox/espeak-ng-data/voices/!v/UniRobot': OK
+'tgspeechbox/espeak-ng-data/voices/!v/adam': OK
+'tgspeechbox/espeak-ng-data/voices/!v/anika': OK
+'tgspeechbox/espeak-ng-data/voices/!v/anikaRobot': OK
+'tgspeechbox/espeak-ng-data/voices/!v/announcer': OK
+'tgspeechbox/espeak-ng-data/voices/!v/antonio': OK
+'tgspeechbox/espeak-ng-data/voices/!v/aunty': OK
+'tgspeechbox/espeak-ng-data/voices/!v/belinda': OK
+'tgspeechbox/espeak-ng-data/voices/!v/benjamin': OK
+'tgspeechbox/espeak-ng-data/voices/!v/boris': OK
+'tgspeechbox/espeak-ng-data/voices/!v/caleb': OK
+'tgspeechbox/espeak-ng-data/voices/!v/croak': OK
+'tgspeechbox/espeak-ng-data/voices/!v/david': OK
+'tgspeechbox/espeak-ng-data/voices/!v/ed': OK
+'tgspeechbox/espeak-ng-data/voices/!v/edward': OK
+'tgspeechbox/espeak-ng-data/voices/!v/edward2': OK
+'tgspeechbox/espeak-ng-data/voices/!v/f1': OK
+'tgspeechbox/espeak-ng-data/voices/!v/f2': OK
+'tgspeechbox/espeak-ng-data/voices/!v/f3': OK
+'tgspeechbox/espeak-ng-data/voices/!v/f4': OK
+'tgspeechbox/espeak-ng-data/voices/!v/f5': OK
+'tgspeechbox/espeak-ng-data/voices/!v/fast': OK
+'tgspeechbox/espeak-ng-data/voices/!v/grandma': OK
+'tgspeechbox/espeak-ng-data/voices/!v/grandpa': OK
+'tgspeechbox/espeak-ng-data/voices/!v/gustave': OK
+'tgspeechbox/espeak-ng-data/voices/!v/ian': OK
+'tgspeechbox/espeak-ng-data/voices/!v/iven': OK
+'tgspeechbox/espeak-ng-data/voices/!v/iven2': OK
+'tgspeechbox/espeak-ng-data/voices/!v/iven3': OK
+'tgspeechbox/espeak-ng-data/voices/!v/iven4': OK
+'tgspeechbox/espeak-ng-data/voices/!v/john': OK
+'tgspeechbox/espeak-ng-data/voices/!v/kaukovalta': OK
+'tgspeechbox/espeak-ng-data/voices/!v/klatt': OK
+'tgspeechbox/espeak-ng-data/voices/!v/klatt2': OK
+'tgspeechbox/espeak-ng-data/voices/!v/klatt3': OK
+'tgspeechbox/espeak-ng-data/voices/!v/klatt4': OK
+'tgspeechbox/espeak-ng-data/voices/!v/klatt5': OK
+'tgspeechbox/espeak-ng-data/voices/!v/klatt6': OK
+'tgspeechbox/espeak-ng-data/voices/!v/linda': OK
+'tgspeechbox/espeak-ng-data/voices/!v/m1': OK
+'tgspeechbox/espeak-ng-data/voices/!v/m2': OK
+'tgspeechbox/espeak-ng-data/voices/!v/m3': OK
+'tgspeechbox/espeak-ng-data/voices/!v/m4': OK
+'tgspeechbox/espeak-ng-data/voices/!v/m5': OK
+'tgspeechbox/espeak-ng-data/voices/!v/m6': OK
+'tgspeechbox/espeak-ng-data/voices/!v/m7': OK
+'tgspeechbox/espeak-ng-data/voices/!v/m8': OK
+'tgspeechbox/espeak-ng-data/voices/!v/marcelo': OK
+'tgspeechbox/espeak-ng-data/voices/!v/max': OK
+'tgspeechbox/espeak-ng-data/voices/!v/michel': OK
+'tgspeechbox/espeak-ng-data/voices/!v/miguel': OK
+'tgspeechbox/espeak-ng-data/voices/!v/mike2': OK
+'tgspeechbox/espeak-ng-data/voices/!v/norbert': OK
+'tgspeechbox/espeak-ng-data/voices/!v/pablo': OK
+'tgspeechbox/espeak-ng-data/voices/!v/paul': OK
+'tgspeechbox/espeak-ng-data/voices/!v/pedro': OK
+'tgspeechbox/espeak-ng-data/voices/!v/quincy': OK
+'tgspeechbox/espeak-ng-data/voices/!v/rob': OK
+'tgspeechbox/espeak-ng-data/voices/!v/robert': OK
+'tgspeechbox/espeak-ng-data/voices/!v/robosoft': OK
+'tgspeechbox/espeak-ng-data/voices/!v/robosoft2': OK
+'tgspeechbox/espeak-ng-data/voices/!v/robosoft3': OK
+'tgspeechbox/espeak-ng-data/voices/!v/robosoft4': OK
+'tgspeechbox/espeak-ng-data/voices/!v/robosoft5': OK
+'tgspeechbox/espeak-ng-data/voices/!v/robosoft6': OK
+'tgspeechbox/espeak-ng-data/voices/!v/robosoft7': OK
+'tgspeechbox/espeak-ng-data/voices/!v/robosoft8': OK
+'tgspeechbox/espeak-ng-data/voices/!v/sandro': OK
+'tgspeechbox/espeak-ng-data/voices/!v/shelby': OK
+'tgspeechbox/espeak-ng-data/voices/!v/steph': OK
+'tgspeechbox/espeak-ng-data/voices/!v/steph2': OK
+'tgspeechbox/espeak-ng-data/voices/!v/steph3': OK
+'tgspeechbox/espeak-ng-data/voices/!v/travis': OK
+'tgspeechbox/espeak-ng-data/voices/!v/victor': OK
+'tgspeechbox/espeak-ng-data/voices/!v/whisper': OK
+'tgspeechbox/espeak-ng-data/voices/!v/whisperf': OK
+'tgspeechbox/espeak-ng-data/voices/!v/zac': OK
+tgspeechbox/espeak-ng-data/yue_dict: OK
+tgspeechbox/omnivox-tgspeechbox-helper.exe: OK
+tgspeechbox/packs/dict/LICENSE-CMUdict.txt: OK
+tgspeechbox/packs/dict/en-compounds.tsv: OK
+tgspeechbox/packs/dict/en-gb-stress.tsv: OK
+tgspeechbox/packs/dict/en-us-dict.tsv: OK
+tgspeechbox/packs/dict/en-us-stress.tsv: OK
+tgspeechbox/packs/dict/en-us-user.tsv: OK
+tgspeechbox/packs/dict/es-letters.tsv: OK
+tgspeechbox/packs/dict/pt-letters.tsv: OK
+tgspeechbox/packs/lang/bg.yaml: OK
+tgspeechbox/packs/lang/cs.yaml: OK
+tgspeechbox/packs/lang/da.yaml: OK
+tgspeechbox/packs/lang/de.yaml: OK
+tgspeechbox/packs/lang/default.yaml: OK
+tgspeechbox/packs/lang/en-au.yaml: OK
+tgspeechbox/packs/lang/en-ca.yaml: OK
+tgspeechbox/packs/lang/en-gb.yaml: OK
+tgspeechbox/packs/lang/en-us.yaml: OK
+tgspeechbox/packs/lang/en.yaml: OK
+tgspeechbox/packs/lang/es-es.yaml: OK
+tgspeechbox/packs/lang/es-mx.yaml: OK
+tgspeechbox/packs/lang/es.yaml: OK
+tgspeechbox/packs/lang/fi.yaml: OK
+tgspeechbox/packs/lang/fr.yaml: OK
+tgspeechbox/packs/lang/hr.yaml: OK
+tgspeechbox/packs/lang/hu.yaml: OK
+tgspeechbox/packs/lang/it.yaml: OK
+tgspeechbox/packs/lang/nl.yaml: OK
+tgspeechbox/packs/lang/pl.yaml: OK
+tgspeechbox/packs/lang/pt-br.yaml: OK
+tgspeechbox/packs/lang/pt-pt.yaml: OK
+tgspeechbox/packs/lang/pt.yaml: OK
+tgspeechbox/packs/lang/ro.yaml: OK
+tgspeechbox/packs/lang/ru.yaml: OK
+tgspeechbox/packs/lang/sk.yaml: OK
+tgspeechbox/packs/lang/sv.yaml: OK
+tgspeechbox/packs/lang/tr.yaml: OK
+tgspeechbox/packs/lang/uk.yaml: OK
+tgspeechbox/packs/lang/zh.yaml: OK
+tgspeechbox/packs/phonemes.yaml: OK
+tgspeechbox/source-inputs.json: OK
+tgspeechbox/third-party-licenses/TGSpeechBox-LICENSE.txt: OK
+tgspeechbox/third-party-licenses/Unicode-Data-License.txt: OK
+tgspeechbox/third-party-licenses/eSpeak-NG-GPL-3.0.txt: OK
+tgspeechbox/third-party-licenses/omnivox-Cargo.lock: OK
+Staged Omnivox runtime 242ab510fb56456f
+make verify-windows-omnivox-runtime
+"/home/bart/src/emacsvox-lightweight-reload/dist/lightweight-release/verify-runtime.sh" \
+	"/home/bart/src/emacsvox-lightweight-reload/servers/omnivox-bin" "/home/bart/src/emacsvox-lightweight-reload/dist/lightweight-release"
+omnivox.exe: OK
+libstdc++-6.dll: OK
+libgcc_s_seh-1.dll: OK
+OmnivoxEloquenceHelper32.exe: OK
+OmnivoxDectalkHelper32.exe: OK
+WINDOWS-HELPERS-COPYING: OK
+OMNIVOX-LICENSE: OK
+PROVENANCE: OK
+flite/LICENSE: OK
+flite/LICENSING.md: OK
+flite/README.md: OK
+flite/SHA256SUMS: OK
+flite/SOURCE-PROVENANCE.json: OK
+flite/omnivox-flite-helper.exe: OK
+flite/source-inputs.json: OK
+flite/third-party-licenses/Flite-COPYING.txt: OK
+flite/third-party-licenses/omnivox-Cargo.lock: OK
+rhvoice/omnivox-rhvoice-helper.exe: OK
+rutts/LICENSE: OK
+rutts/LICENSING.md: OK
+rutts/README.md: OK
+rutts/SHA256SUMS: OK
+rutts/SOURCE-PROVENANCE.json: OK
+rutts/omnivox-rutts-helper.exe: OK
+rutts/source-inputs.json: OK
+rutts/third-party-licenses/RuTTS-LICENSE.txt: OK
+rutts/third-party-licenses/omnivox-Cargo.lock: OK
+tgspeechbox/LICENSE: OK
+tgspeechbox/LICENSING.md: OK
+tgspeechbox/README.md: OK
+tgspeechbox/SHA256SUMS: OK
+tgspeechbox/SOURCE-PROVENANCE.json: OK
+tgspeechbox/VOICE-INVENTORY-22050.json: OK
+tgspeechbox/VOICE-INVENTORY-44100.json: OK
+tgspeechbox/VOICE-INVENTORY.json: OK
+tgspeechbox/espeak-ng-data/af_dict: OK
+tgspeechbox/espeak-ng-data/am_dict: OK
+tgspeechbox/espeak-ng-data/an_dict: OK
+tgspeechbox/espeak-ng-data/ar_dict: OK
+tgspeechbox/espeak-ng-data/as_dict: OK
+tgspeechbox/espeak-ng-data/az_dict: OK
+tgspeechbox/espeak-ng-data/ba_dict: OK
+tgspeechbox/espeak-ng-data/be_dict: OK
+tgspeechbox/espeak-ng-data/bg_dict: OK
+tgspeechbox/espeak-ng-data/bn_dict: OK
+tgspeechbox/espeak-ng-data/bpy_dict: OK
+tgspeechbox/espeak-ng-data/bs_dict: OK
+tgspeechbox/espeak-ng-data/ca_dict: OK
+tgspeechbox/espeak-ng-data/chr_dict: OK
+tgspeechbox/espeak-ng-data/cmn_dict: OK
+tgspeechbox/espeak-ng-data/cs_dict: OK
+tgspeechbox/espeak-ng-data/cv_dict: OK
+tgspeechbox/espeak-ng-data/cy_dict: OK
+tgspeechbox/espeak-ng-data/da_dict: OK
+tgspeechbox/espeak-ng-data/de_dict: OK
+tgspeechbox/espeak-ng-data/el_dict: OK
+tgspeechbox/espeak-ng-data/en_dict: OK
+tgspeechbox/espeak-ng-data/eo_dict: OK
+tgspeechbox/espeak-ng-data/es_dict: OK
+tgspeechbox/espeak-ng-data/et_dict: OK
+tgspeechbox/espeak-ng-data/eu_dict: OK
+tgspeechbox/espeak-ng-data/fa_dict: OK
+tgspeechbox/espeak-ng-data/fi_dict: OK
+tgspeechbox/espeak-ng-data/fr_dict: OK
+tgspeechbox/espeak-ng-data/ga_dict: OK
+tgspeechbox/espeak-ng-data/gd_dict: OK
+tgspeechbox/espeak-ng-data/gn_dict: OK
+tgspeechbox/espeak-ng-data/grc_dict: OK
+tgspeechbox/espeak-ng-data/gu_dict: OK
+tgspeechbox/espeak-ng-data/hak_dict: OK
+tgspeechbox/espeak-ng-data/haw_dict: OK
+tgspeechbox/espeak-ng-data/he_dict: OK
+tgspeechbox/espeak-ng-data/hi_dict: OK
+tgspeechbox/espeak-ng-data/hr_dict: OK
+tgspeechbox/espeak-ng-data/ht_dict: OK
+tgspeechbox/espeak-ng-data/hu_dict: OK
+tgspeechbox/espeak-ng-data/hy_dict: OK
+tgspeechbox/espeak-ng-data/ia_dict: OK
+tgspeechbox/espeak-ng-data/id_dict: OK
+tgspeechbox/espeak-ng-data/intonations: OK
+tgspeechbox/espeak-ng-data/io_dict: OK
+tgspeechbox/espeak-ng-data/is_dict: OK
+tgspeechbox/espeak-ng-data/it_dict: OK
+tgspeechbox/espeak-ng-data/ja_dict: OK
+tgspeechbox/espeak-ng-data/jbo_dict: OK
+tgspeechbox/espeak-ng-data/ka_dict: OK
+tgspeechbox/espeak-ng-data/kk_dict: OK
+tgspeechbox/espeak-ng-data/kl_dict: OK
+tgspeechbox/espeak-ng-data/kn_dict: OK
+tgspeechbox/espeak-ng-data/ko_dict: OK
+tgspeechbox/espeak-ng-data/kok_dict: OK
+tgspeechbox/espeak-ng-data/ku_dict: OK
+tgspeechbox/espeak-ng-data/ky_dict: OK
+tgspeechbox/espeak-ng-data/la_dict: OK
+tgspeechbox/espeak-ng-data/lang/aav/vi: OK
+tgspeechbox/espeak-ng-data/lang/aav/vi-VN-x-central: OK
+tgspeechbox/espeak-ng-data/lang/aav/vi-VN-x-south: OK
+tgspeechbox/espeak-ng-data/lang/art/eo: OK
+tgspeechbox/espeak-ng-data/lang/art/ia: OK
+tgspeechbox/espeak-ng-data/lang/art/io: OK
+tgspeechbox/espeak-ng-data/lang/art/jbo: OK
+tgspeechbox/espeak-ng-data/lang/art/lfn: OK
+tgspeechbox/espeak-ng-data/lang/art/piqd: OK
+tgspeechbox/espeak-ng-data/lang/art/py: OK
+tgspeechbox/espeak-ng-data/lang/art/qdb: OK
+tgspeechbox/espeak-ng-data/lang/art/qya: OK
+tgspeechbox/espeak-ng-data/lang/art/sjn: OK
+tgspeechbox/espeak-ng-data/lang/art/xex: OK
+tgspeechbox/espeak-ng-data/lang/azc/nci: OK
+tgspeechbox/espeak-ng-data/lang/bat/lt: OK
+tgspeechbox/espeak-ng-data/lang/bat/ltg: OK
+tgspeechbox/espeak-ng-data/lang/bat/lv: OK
+tgspeechbox/espeak-ng-data/lang/bnt/sw: OK
+tgspeechbox/espeak-ng-data/lang/bnt/tn: OK
+tgspeechbox/espeak-ng-data/lang/ccs/ka: OK
+tgspeechbox/espeak-ng-data/lang/cel/cy: OK
+tgspeechbox/espeak-ng-data/lang/cel/ga: OK
+tgspeechbox/espeak-ng-data/lang/cel/gd: OK
+tgspeechbox/espeak-ng-data/lang/cus/om: OK
+tgspeechbox/espeak-ng-data/lang/dra/kn: OK
+tgspeechbox/espeak-ng-data/lang/dra/ml: OK
+tgspeechbox/espeak-ng-data/lang/dra/ta: OK
+tgspeechbox/espeak-ng-data/lang/dra/te: OK
+tgspeechbox/espeak-ng-data/lang/esx/kl: OK
+tgspeechbox/espeak-ng-data/lang/eu: OK
+tgspeechbox/espeak-ng-data/lang/gmq/da: OK
+tgspeechbox/espeak-ng-data/lang/gmq/fo: OK
+tgspeechbox/espeak-ng-data/lang/gmq/is: OK
+tgspeechbox/espeak-ng-data/lang/gmq/nb: OK
+tgspeechbox/espeak-ng-data/lang/gmq/sv: OK
+tgspeechbox/espeak-ng-data/lang/gmw/af: OK
+tgspeechbox/espeak-ng-data/lang/gmw/de: OK
+tgspeechbox/espeak-ng-data/lang/gmw/en: OK
+tgspeechbox/espeak-ng-data/lang/gmw/en-029: OK
+tgspeechbox/espeak-ng-data/lang/gmw/en-GB-scotland: OK
+tgspeechbox/espeak-ng-data/lang/gmw/en-GB-x-gbclan: OK
+tgspeechbox/espeak-ng-data/lang/gmw/en-GB-x-gbcwmd: OK
+tgspeechbox/espeak-ng-data/lang/gmw/en-GB-x-rp: OK
+tgspeechbox/espeak-ng-data/lang/gmw/en-Shaw: OK
+tgspeechbox/espeak-ng-data/lang/gmw/en-US: OK
+tgspeechbox/espeak-ng-data/lang/gmw/en-US-nyc: OK
+tgspeechbox/espeak-ng-data/lang/gmw/lb: OK
+tgspeechbox/espeak-ng-data/lang/gmw/nl: OK
+tgspeechbox/espeak-ng-data/lang/grk/el: OK
+tgspeechbox/espeak-ng-data/lang/grk/grc: OK
+tgspeechbox/espeak-ng-data/lang/inc/as: OK
+tgspeechbox/espeak-ng-data/lang/inc/bn: OK
+tgspeechbox/espeak-ng-data/lang/inc/bpy: OK
+tgspeechbox/espeak-ng-data/lang/inc/gu: OK
+tgspeechbox/espeak-ng-data/lang/inc/hi: OK
+tgspeechbox/espeak-ng-data/lang/inc/kok: OK
+tgspeechbox/espeak-ng-data/lang/inc/mr: OK
+tgspeechbox/espeak-ng-data/lang/inc/ne: OK
+tgspeechbox/espeak-ng-data/lang/inc/or: OK
+tgspeechbox/espeak-ng-data/lang/inc/pa: OK
+tgspeechbox/espeak-ng-data/lang/inc/sd: OK
+tgspeechbox/espeak-ng-data/lang/inc/si: OK
+tgspeechbox/espeak-ng-data/lang/inc/ur: OK
+tgspeechbox/espeak-ng-data/lang/ine/hy: OK
+tgspeechbox/espeak-ng-data/lang/ine/hyw: OK
+tgspeechbox/espeak-ng-data/lang/ine/sq: OK
+tgspeechbox/espeak-ng-data/lang/ira/fa: OK
+tgspeechbox/espeak-ng-data/lang/ira/fa-Latn: OK
+tgspeechbox/espeak-ng-data/lang/ira/ku: OK
+tgspeechbox/espeak-ng-data/lang/iro/chr: OK
+tgspeechbox/espeak-ng-data/lang/itc/la: OK
+tgspeechbox/espeak-ng-data/lang/jpx/ja: OK
+tgspeechbox/espeak-ng-data/lang/ko: OK
+tgspeechbox/espeak-ng-data/lang/map/haw: OK
+tgspeechbox/espeak-ng-data/lang/miz/mto: OK
+tgspeechbox/espeak-ng-data/lang/myn/quc: OK
+tgspeechbox/espeak-ng-data/lang/poz/id: OK
+tgspeechbox/espeak-ng-data/lang/poz/mi: OK
+tgspeechbox/espeak-ng-data/lang/poz/ms: OK
+tgspeechbox/espeak-ng-data/lang/qu: OK
+tgspeechbox/espeak-ng-data/lang/roa/an: OK
+tgspeechbox/espeak-ng-data/lang/roa/ca: OK
+tgspeechbox/espeak-ng-data/lang/roa/ca-ba: OK
+tgspeechbox/espeak-ng-data/lang/roa/ca-nw: OK
+tgspeechbox/espeak-ng-data/lang/roa/ca-va: OK
+tgspeechbox/espeak-ng-data/lang/roa/es: OK
+tgspeechbox/espeak-ng-data/lang/roa/es-419: OK
+tgspeechbox/espeak-ng-data/lang/roa/fr: OK
+tgspeechbox/espeak-ng-data/lang/roa/fr-BE: OK
+tgspeechbox/espeak-ng-data/lang/roa/fr-CH: OK
+tgspeechbox/espeak-ng-data/lang/roa/ht: OK
+tgspeechbox/espeak-ng-data/lang/roa/it: OK
+tgspeechbox/espeak-ng-data/lang/roa/pap: OK
+tgspeechbox/espeak-ng-data/lang/roa/pt: OK
+tgspeechbox/espeak-ng-data/lang/roa/pt-BR: OK
+tgspeechbox/espeak-ng-data/lang/roa/ro: OK
+tgspeechbox/espeak-ng-data/lang/sai/gn: OK
+tgspeechbox/espeak-ng-data/lang/sem/am: OK
+tgspeechbox/espeak-ng-data/lang/sem/ar: OK
+tgspeechbox/espeak-ng-data/lang/sem/he: OK
+tgspeechbox/espeak-ng-data/lang/sem/mt: OK
+tgspeechbox/espeak-ng-data/lang/sem/ti: OK
+tgspeechbox/espeak-ng-data/lang/sit/cmn: OK
+tgspeechbox/espeak-ng-data/lang/sit/cmn-Latn-pinyin: OK
+tgspeechbox/espeak-ng-data/lang/sit/hak: OK
+tgspeechbox/espeak-ng-data/lang/sit/my: OK
+tgspeechbox/espeak-ng-data/lang/sit/yue: OK
+tgspeechbox/espeak-ng-data/lang/sit/yue-Latn-jyutping: OK
+tgspeechbox/espeak-ng-data/lang/tai/shn: OK
+tgspeechbox/espeak-ng-data/lang/tai/th: OK
+tgspeechbox/espeak-ng-data/lang/trk/az: OK
+tgspeechbox/espeak-ng-data/lang/trk/ba: OK
+tgspeechbox/espeak-ng-data/lang/trk/cv: OK
+tgspeechbox/espeak-ng-data/lang/trk/kaa: OK
+tgspeechbox/espeak-ng-data/lang/trk/kk: OK
+tgspeechbox/espeak-ng-data/lang/trk/ky: OK
+tgspeechbox/espeak-ng-data/lang/trk/nog: OK
+tgspeechbox/espeak-ng-data/lang/trk/tk: OK
+tgspeechbox/espeak-ng-data/lang/trk/tr: OK
+tgspeechbox/espeak-ng-data/lang/trk/tt: OK
+tgspeechbox/espeak-ng-data/lang/trk/ug: OK
+tgspeechbox/espeak-ng-data/lang/trk/uz: OK
+tgspeechbox/espeak-ng-data/lang/urj/et: OK
+tgspeechbox/espeak-ng-data/lang/urj/fi: OK
+tgspeechbox/espeak-ng-data/lang/urj/hu: OK
+tgspeechbox/espeak-ng-data/lang/urj/smj: OK
+tgspeechbox/espeak-ng-data/lang/zle/be: OK
+tgspeechbox/espeak-ng-data/lang/zle/ru: OK
+tgspeechbox/espeak-ng-data/lang/zle/ru-LV: OK
+tgspeechbox/espeak-ng-data/lang/zle/ru-cl: OK
+tgspeechbox/espeak-ng-data/lang/zle/uk: OK
+tgspeechbox/espeak-ng-data/lang/zls/bg: OK
+tgspeechbox/espeak-ng-data/lang/zls/bs: OK
+tgspeechbox/espeak-ng-data/lang/zls/hr: OK
+tgspeechbox/espeak-ng-data/lang/zls/mk: OK
+tgspeechbox/espeak-ng-data/lang/zls/sl: OK
+tgspeechbox/espeak-ng-data/lang/zls/sr: OK
+tgspeechbox/espeak-ng-data/lang/zlw/cs: OK
+tgspeechbox/espeak-ng-data/lang/zlw/pl: OK
+tgspeechbox/espeak-ng-data/lang/zlw/sk: OK
+tgspeechbox/espeak-ng-data/lb_dict: OK
+tgspeechbox/espeak-ng-data/lfn_dict: OK
+tgspeechbox/espeak-ng-data/lt_dict: OK
+tgspeechbox/espeak-ng-data/lv_dict: OK
+tgspeechbox/espeak-ng-data/mi_dict: OK
+tgspeechbox/espeak-ng-data/mk_dict: OK
+tgspeechbox/espeak-ng-data/ml_dict: OK
+tgspeechbox/espeak-ng-data/mr_dict: OK
+tgspeechbox/espeak-ng-data/ms_dict: OK
+tgspeechbox/espeak-ng-data/mt_dict: OK
+tgspeechbox/espeak-ng-data/mto_dict: OK
+tgspeechbox/espeak-ng-data/my_dict: OK
+tgspeechbox/espeak-ng-data/nci_dict: OK
+tgspeechbox/espeak-ng-data/ne_dict: OK
+tgspeechbox/espeak-ng-data/nl_dict: OK
+tgspeechbox/espeak-ng-data/no_dict: OK
+tgspeechbox/espeak-ng-data/nog_dict: OK
+tgspeechbox/espeak-ng-data/om_dict: OK
+tgspeechbox/espeak-ng-data/or_dict: OK
+tgspeechbox/espeak-ng-data/pa_dict: OK
+tgspeechbox/espeak-ng-data/pap_dict: OK
+tgspeechbox/espeak-ng-data/phondata: OK
+tgspeechbox/espeak-ng-data/phondata-manifest: OK
+tgspeechbox/espeak-ng-data/phonindex: OK
+tgspeechbox/espeak-ng-data/phontab: OK
+tgspeechbox/espeak-ng-data/piqd_dict: OK
+tgspeechbox/espeak-ng-data/pl_dict: OK
+tgspeechbox/espeak-ng-data/pt_dict: OK
+tgspeechbox/espeak-ng-data/py_dict: OK
+tgspeechbox/espeak-ng-data/qdb_dict: OK
+tgspeechbox/espeak-ng-data/qu_dict: OK
+tgspeechbox/espeak-ng-data/quc_dict: OK
+tgspeechbox/espeak-ng-data/qya_dict: OK
+tgspeechbox/espeak-ng-data/ro_dict: OK
+tgspeechbox/espeak-ng-data/ru_dict: OK
+tgspeechbox/espeak-ng-data/sd_dict: OK
+tgspeechbox/espeak-ng-data/shn_dict: OK
+tgspeechbox/espeak-ng-data/si_dict: OK
+tgspeechbox/espeak-ng-data/sjn_dict: OK
+tgspeechbox/espeak-ng-data/sk_dict: OK
+tgspeechbox/espeak-ng-data/sl_dict: OK
+tgspeechbox/espeak-ng-data/smj_dict: OK
+tgspeechbox/espeak-ng-data/sq_dict: OK
+tgspeechbox/espeak-ng-data/sr_dict: OK
+tgspeechbox/espeak-ng-data/sv_dict: OK
+tgspeechbox/espeak-ng-data/sw_dict: OK
+tgspeechbox/espeak-ng-data/ta_dict: OK
+tgspeechbox/espeak-ng-data/te_dict: OK
+tgspeechbox/espeak-ng-data/th_dict: OK
+tgspeechbox/espeak-ng-data/ti_dict: OK
+tgspeechbox/espeak-ng-data/tk_dict: OK
+tgspeechbox/espeak-ng-data/tn_dict: OK
+tgspeechbox/espeak-ng-data/tr_dict: OK
+tgspeechbox/espeak-ng-data/tt_dict: OK
+tgspeechbox/espeak-ng-data/ug_dict: OK
+tgspeechbox/espeak-ng-data/uk_dict: OK
+tgspeechbox/espeak-ng-data/ur_dict: OK
+tgspeechbox/espeak-ng-data/uz_dict: OK
+tgspeechbox/espeak-ng-data/vi_dict: OK
+'tgspeechbox/espeak-ng-data/voices/!v/Alex': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Alicia': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Andrea': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Andy': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Annie': OK
+'tgspeechbox/espeak-ng-data/voices/!v/AnxiousAndy': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Demonic': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Denis': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Diogo': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Gene': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Gene2': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Henrique': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Hugo': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Jacky': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Lee': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Marco': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Mario': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Michael': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Mike': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Mr serious': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Nguyen': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Reed': OK
+'tgspeechbox/espeak-ng-data/voices/!v/RicishayMax': OK
+'tgspeechbox/espeak-ng-data/voices/!v/RicishayMax2': OK
+'tgspeechbox/espeak-ng-data/voices/!v/RicishayMax3': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Storm': OK
+'tgspeechbox/espeak-ng-data/voices/!v/Tweaky': OK
+'tgspeechbox/espeak-ng-data/voices/!v/UniRobot': OK
+'tgspeechbox/espeak-ng-data/voices/!v/adam': OK
+'tgspeechbox/espeak-ng-data/voices/!v/anika': OK
+'tgspeechbox/espeak-ng-data/voices/!v/anikaRobot': OK
+'tgspeechbox/espeak-ng-data/voices/!v/announcer': OK
+'tgspeechbox/espeak-ng-data/voices/!v/antonio': OK
+'tgspeechbox/espeak-ng-data/voices/!v/aunty': OK
+'tgspeechbox/espeak-ng-data/voices/!v/belinda': OK
+'tgspeechbox/espeak-ng-data/voices/!v/benjamin': OK
+'tgspeechbox/espeak-ng-data/voices/!v/boris': OK
+'tgspeechbox/espeak-ng-data/voices/!v/caleb': OK
+'tgspeechbox/espeak-ng-data/voices/!v/croak': OK
+'tgspeechbox/espeak-ng-data/voices/!v/david': OK
+'tgspeechbox/espeak-ng-data/voices/!v/ed': OK
+'tgspeechbox/espeak-ng-data/voices/!v/edward': OK
+'tgspeechbox/espeak-ng-data/voices/!v/edward2': OK
+'tgspeechbox/espeak-ng-data/voices/!v/f1': OK
+'tgspeechbox/espeak-ng-data/voices/!v/f2': OK
+'tgspeechbox/espeak-ng-data/voices/!v/f3': OK
+'tgspeechbox/espeak-ng-data/voices/!v/f4': OK
+'tgspeechbox/espeak-ng-data/voices/!v/f5': OK
+'tgspeechbox/espeak-ng-data/voices/!v/fast': OK
+'tgspeechbox/espeak-ng-data/voices/!v/grandma': OK
+'tgspeechbox/espeak-ng-data/voices/!v/grandpa': OK
+'tgspeechbox/espeak-ng-data/voices/!v/gustave': OK
+'tgspeechbox/espeak-ng-data/voices/!v/ian': OK
+'tgspeechbox/espeak-ng-data/voices/!v/iven': OK
+'tgspeechbox/espeak-ng-data/voices/!v/iven2': OK
+'tgspeechbox/espeak-ng-data/voices/!v/iven3': OK
+'tgspeechbox/espeak-ng-data/voices/!v/iven4': OK
+'tgspeechbox/espeak-ng-data/voices/!v/john': OK
+'tgspeechbox/espeak-ng-data/voices/!v/kaukovalta': OK
+'tgspeechbox/espeak-ng-data/voices/!v/klatt': OK
+'tgspeechbox/espeak-ng-data/voices/!v/klatt2': OK
+'tgspeechbox/espeak-ng-data/voices/!v/klatt3': OK
+'tgspeechbox/espeak-ng-data/voices/!v/klatt4': OK
+'tgspeechbox/espeak-ng-data/voices/!v/klatt5': OK
+'tgspeechbox/espeak-ng-data/voices/!v/klatt6': OK
+'tgspeechbox/espeak-ng-data/voices/!v/linda': OK
+'tgspeechbox/espeak-ng-data/voices/!v/m1': OK
+'tgspeechbox/espeak-ng-data/voices/!v/m2': OK
+'tgspeechbox/espeak-ng-data/voices/!v/m3': OK
+'tgspeechbox/espeak-ng-data/voices/!v/m4': OK
+'tgspeechbox/espeak-ng-data/voices/!v/m5': OK
+'tgspeechbox/espeak-ng-data/voices/!v/m6': OK
+'tgspeechbox/espeak-ng-data/voices/!v/m7': OK
+'tgspeechbox/espeak-ng-data/voices/!v/m8': OK
+'tgspeechbox/espeak-ng-data/voices/!v/marcelo': OK
+'tgspeechbox/espeak-ng-data/voices/!v/max': OK
+'tgspeechbox/espeak-ng-data/voices/!v/michel': OK
+'tgspeechbox/espeak-ng-data/voices/!v/miguel': OK
+'tgspeechbox/espeak-ng-data/voices/!v/mike2': OK
+'tgspeechbox/espeak-ng-data/voices/!v/norbert': OK
+'tgspeechbox/espeak-ng-data/voices/!v/pablo': OK
+'tgspeechbox/espeak-ng-data/voices/!v/paul': OK
+'tgspeechbox/espeak-ng-data/voices/!v/pedro': OK
+'tgspeechbox/espeak-ng-data/voices/!v/quincy': OK
+'tgspeechbox/espeak-ng-data/voices/!v/rob': OK
+'tgspeechbox/espeak-ng-data/voices/!v/robert': OK
+'tgspeechbox/espeak-ng-data/voices/!v/robosoft': OK
+'tgspeechbox/espeak-ng-data/voices/!v/robosoft2': OK
+'tgspeechbox/espeak-ng-data/voices/!v/robosoft3': OK
+'tgspeechbox/espeak-ng-data/voices/!v/robosoft4': OK
+'tgspeechbox/espeak-ng-data/voices/!v/robosoft5': OK
+'tgspeechbox/espeak-ng-data/voices/!v/robosoft6': OK
+'tgspeechbox/espeak-ng-data/voices/!v/robosoft7': OK
+'tgspeechbox/espeak-ng-data/voices/!v/robosoft8': OK
+'tgspeechbox/espeak-ng-data/voices/!v/sandro': OK
+'tgspeechbox/espeak-ng-data/voices/!v/shelby': OK
+'tgspeechbox/espeak-ng-data/voices/!v/steph': OK
+'tgspeechbox/espeak-ng-data/voices/!v/steph2': OK
+'tgspeechbox/espeak-ng-data/voices/!v/steph3': OK
+'tgspeechbox/espeak-ng-data/voices/!v/travis': OK
+'tgspeechbox/espeak-ng-data/voices/!v/victor': OK
+'tgspeechbox/espeak-ng-data/voices/!v/whisper': OK
+'tgspeechbox/espeak-ng-data/voices/!v/whisperf': OK
+'tgspeechbox/espeak-ng-data/voices/!v/zac': OK
+tgspeechbox/espeak-ng-data/yue_dict: OK
+tgspeechbox/omnivox-tgspeechbox-helper.exe: OK
+tgspeechbox/packs/dict/LICENSE-CMUdict.txt: OK
+tgspeechbox/packs/dict/en-compounds.tsv: OK
+tgspeechbox/packs/dict/en-gb-stress.tsv: OK
+tgspeechbox/packs/dict/en-us-dict.tsv: OK
+tgspeechbox/packs/dict/en-us-stress.tsv: OK
+tgspeechbox/packs/dict/en-us-user.tsv: OK
+tgspeechbox/packs/dict/es-letters.tsv: OK
+tgspeechbox/packs/dict/pt-letters.tsv: OK
+tgspeechbox/packs/lang/bg.yaml: OK
+tgspeechbox/packs/lang/cs.yaml: OK
+tgspeechbox/packs/lang/da.yaml: OK
+tgspeechbox/packs/lang/de.yaml: OK
+tgspeechbox/packs/lang/default.yaml: OK
+tgspeechbox/packs/lang/en-au.yaml: OK
+tgspeechbox/packs/lang/en-ca.yaml: OK
+tgspeechbox/packs/lang/en-gb.yaml: OK
+tgspeechbox/packs/lang/en-us.yaml: OK
+tgspeechbox/packs/lang/en.yaml: OK
+tgspeechbox/packs/lang/es-es.yaml: OK
+tgspeechbox/packs/lang/es-mx.yaml: OK
+tgspeechbox/packs/lang/es.yaml: OK
+tgspeechbox/packs/lang/fi.yaml: OK
+tgspeechbox/packs/lang/fr.yaml: OK
+tgspeechbox/packs/lang/hr.yaml: OK
+tgspeechbox/packs/lang/hu.yaml: OK
+tgspeechbox/packs/lang/it.yaml: OK
+tgspeechbox/packs/lang/nl.yaml: OK
+tgspeechbox/packs/lang/pl.yaml: OK
+tgspeechbox/packs/lang/pt-br.yaml: OK
+tgspeechbox/packs/lang/pt-pt.yaml: OK
+tgspeechbox/packs/lang/pt.yaml: OK
+tgspeechbox/packs/lang/ro.yaml: OK
+tgspeechbox/packs/lang/ru.yaml: OK
+tgspeechbox/packs/lang/sk.yaml: OK
+tgspeechbox/packs/lang/sv.yaml: OK
+tgspeechbox/packs/lang/tr.yaml: OK
+tgspeechbox/packs/lang/uk.yaml: OK
+tgspeechbox/packs/lang/zh.yaml: OK
+tgspeechbox/packs/phonemes.yaml: OK
+tgspeechbox/source-inputs.json: OK
+tgspeechbox/third-party-licenses/TGSpeechBox-LICENSE.txt: OK
+tgspeechbox/third-party-licenses/Unicode-Data-License.txt: OK
+tgspeechbox/third-party-licenses/eSpeak-NG-GPL-3.0.txt: OK
+tgspeechbox/third-party-licenses/omnivox-Cargo.lock: OK
+verified_build_id=242ab510fb56456f
+repository_runtime=/home/bart/src/emacsvox-lightweight-reload/servers/omnivox-bin/versions/242ab510fb56456f
+launcher_runtime=/mnt/c/Users/bart/AppData/Local/Temp/omnivox-lightweight-20261110/Emacsvox/Omnivox/runtime/242ab510fb56456f
+local_diagnostics=/home/bart/src/emacsvox-lightweight-reload/dist/lightweight-release/cache/diagnostics/242ab510fb56456f
+make verify-windows-omnivox-live
+"/home/bart/src/emacsvox-lightweight-reload/dist/lightweight-release/verify-runtime-live.sh" \
+	"/home/bart/src/emacsvox-lightweight-reload/servers/omnivox-bin" "/home/bart/src/emacsvox-lightweight-reload/dist/lightweight-release"
+live_espeak_cache=/mnt/c/Users/bart/AppData/Local/Temp/omnivox-lightweight-20261110/Emacsvox/Omnivox/espeak-data/9a2e176369cfe0b982737abf6c26037f21d2b9af2a2fabcc08062864d0157718/omnivox-espeak-voices-v1.json
+live_flite_voice=cmu_us_slt
+live_rutts_voices=male,female
+live_tgspeechbox_voice=en-us/beth
+live_tgspeechbox_sample_rates=44100,22050
+live_piper_voice=not-included
+live_runtime=/mnt/c/Users/bart/AppData/Local/Temp/omnivox-lightweight-20261110/Emacsvox/Omnivox/runtime/242ab510fb56456f

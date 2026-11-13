@@ -1,0 +1,13 @@
+
+thread 'native_guard::windows_owned::tests::changed_identity_and_duplicate_creation_fail_without_unbounded_children' (34964) panicked at omnivox-cli/src/native_guard/windows/owned_tests.rs:41:28:
+called `Result::unwrap()` on an `Err` value: Access is denied. (os error 5)
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'native_guard::windows_owned::tests::lost_offer_or_ack_retires_the_receiver_and_actual_helper' (27236) panicked at omnivox-cli/src/native_guard/windows/owned_tests.rs:41:28:
+called `Result::unwrap()` on an `Err` value: Access is denied. (os error 5)
+
+thread 'native_guard::windows_owned::tests::unaccounted_job_member_never_becomes_a_retirement_receipt' (18852) panicked at omnivox-cli/src/native_guard/windows/owned_tests.rs:41:28:
+called `Result::unwrap()` on an `Err` value: Access is denied. (os error 5)
+
+thread 'native_guard::windows_owned::tests::worker_loss_during_creation_cannot_release_a_late_helper' (19732) panicked at omnivox-cli/src/native_guard/windows/owned_tests.rs:41:28:
+called `Result::unwrap()` on an `Err` value: Access is denied. (os error 5)

@@ -9,6 +9,46 @@ records publication and platform acceptance separately.
 tracks outstanding work, and [retained evidence](benchmarks/README.md) records
 actual runs and their limits.
 
+Development `main` includes independent ordinary-worker preferences under
+[ADR 0017](adr/0017-independent-host-preference-reload.md). The
+[resident preference implementation](protocols/control.md#independent-local-punctuation-reload)
+and paired Emacsvox command/editor integration replace the private test socket.
+[Delivery evidence](benchmarks/2026-11-10-resident-reload.md) records native failure
+checks, client and performance qualification separately. The
+[complete host preference extension](benchmarks/2026-11-10-host-preferences.md)
+adds capital pitch, chunking and saved Reset defaults with the same independent
+boundary. Paired [retained recovery](benchmarks/2026-11-10-retained-recovery.md)
+handles confirmed native worker failure without replacing the healthy peer.
+[Receipt reconciliation](benchmarks/2026-11-10-retirement-receipts.md) restores
+speech after lost replies while preserving the damaged/missing-evidence boundary.
+[Minimal emergency speech](benchmarks/2026-11-10-emergency-speech.md) now bypasses
+damaged or unwritable management state after proven native cleanup under
+[ADR 0018](adr/0018-minimal-emergency-speech.md). A bounded
+[owner-failure experiment](benchmarks/2026-11-10-owner-authority.md) confirms the
+need for independent cleanup authority. The opt-in
+[Linux integration](benchmarks/2026-11-10-guard-integration.md) now covers owner
+loss and blocked forwarding with a surviving guard, including compiled-client
+minimal recovery. Guard loss remains blocked. Integrated Linux partial-transfer
+and status-backpressure checks pass. The
+[Windows transport investigation](benchmarks/2026-11-10-windows-guard-qualification.md)
+found that job accounting could precede actual helper completion. The bounded
+[handoff experiment](benchmarks/2026-11-10-guard-handoff-and-preparation.md) and
+[Rust components](benchmarks/2026-11-10-windows-owned-creation.md) led to
+[integrated guarded eSpeak/Flite](benchmarks/2026-11-10-windows-creation-integration.md):
+actual process ownership, native failure checks and compiled-client recovery now
+pass. The [multi-engine follow-up](benchmarks/2026-11-10-windows-multi-engine.md)
+extends Windows x64 coverage to WinRT, RuTTS, TGSpeechBox, Eloquence, DECtalk and
+RHVoice, including six independently retained helpers in each worker.
+It remains opt-in; unsupported engines use ordinary launch and lightweight reload.
+Concurrent client bridge preparation now also applies to ordinary startup.
+The expanded timing probes leave a Flite replacement penalty and a foreground
+handover gap unresolved; functional engine coverage is not performance acceptance.
+Remaining engine coverage, acoustic/listening acceptance and native macOS remain in the
+[plan](plans/lightweight-preference-reload.md). These changes are not in a
+published release. The qualified personal Windows and WSL development launchers
+are separate deployments; merging source does not update installed speech or
+enable the experimental guard and early-discovery switches by default.
+
 [Omnivox 1.18.0 is published](https://github.com/bartbunting/omnivox/releases/tag/v1.18.0).
 It adds individual tone gain, waveforms, Pulse width, pitch sweeps and shaped
 envelopes. All 74 release jobs passed, and the Homebrew and Emacsvox installer

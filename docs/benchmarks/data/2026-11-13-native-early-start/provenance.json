@@ -1,0 +1,34 @@
+{
+  "source_commit": "0acf2deae811a920b49db325eaaa3f9b31a7e8ce",
+  "baseline_commit": "a366a7fe9fd1ba2cb6bb29dec8a9bff9a4b458a8",
+  "client_patch_sha256": "4dbf8c657711ddecc27d0fd7369edea6354f76cd7a21a49405fdbb647b63b4a7",
+  "runtime_build": "4e1c1561f51908a6",
+  "runtime_sha256": "529499252023e106b0329e670b13f85fb9cb3a6b729acddabe394b92208dee28",
+  "native_emacs": "31.1",
+  "data_files_verified": 812,
+  "early_speech": true,
+  "default_engine": "eloquence",
+  "workstation_default_commit": "80cd555128285473c0cde077ca398af3246df470",
+  "final_native_engines": [
+    "winrt",
+    "flite",
+    "eloquence",
+    "dectalk"
+  ],
+  "native_personal_engines": [
+    "eloquence",
+    "dectalk",
+    "winrt"
+  ],
+  "wsl_engines": [
+    "eloquence",
+    "dectalk"
+  ],
+  "focused_tests": {
+    "expected": 709,
+    "skipped": 9,
+    "unexpected": 0
+  },
+  "targeted_control_queue_tests": 53,
+  "phase_notes": "First seven candidate native runs preceded the highest-generation correction; four runs from 16:57 UTC qualify the final code. Profile harness waits for actual saved definitions; delayed-ack fixture does not wait before speaking."
+}

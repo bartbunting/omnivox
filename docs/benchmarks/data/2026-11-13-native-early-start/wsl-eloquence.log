@@ -1,0 +1,22 @@
+Emacsvox byte-code is current.
+Private profile: /mnt/c/Users/bart/AppData/Local/Temp/omnivox-listening-performance-20261110/270ca861-6e91-4cfe-9f69-21575f889b6a
+Loading /home/bart/src/emacsvox-lightweight-reload/lisp/emacsvox-setup.el (source)...
+Loading voice-defs...
+
+Loading voice-defs...
+
+Omnivox control error on Speaker<1>, request 45: Omnivox speech connection closed
+Loading voice-defs...
+
+Loading voice-defs...
+
+Loading voice-defs...
+Speech source completed using eloquence.
+Speech source completed using eloquence.
+Speech source completed using eloquence.
+Speech source completed using eloquence.
+Speech source completed using espeak.
+Speech source completed using eloquence.
+PASS reload, restart, retained recovery, emergency and return to saved settings.
+Client: /home/bart/src/emacsvox-lightweight-reload/lisp/speech/tts-speak.elc
+Profile: /mnt/c/Users/bart/AppData/Local/Temp/omnivox-listening-performance-20261110/270ca861-6e91-4cfe-9f69-21575f889b6a/

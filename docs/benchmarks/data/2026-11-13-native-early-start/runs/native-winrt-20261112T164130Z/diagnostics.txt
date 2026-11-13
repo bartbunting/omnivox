@@ -1,0 +1,79 @@
+
+*Messages*
+Loading c:/Users/bart/AppData/Local/Emacsvox/NativeLightweight/native-early-20261113/client/lisp/emacsvox-setup.el (source)...
+
+*Omnivox voice library diagnostics*
+
+Process Omnivox voice library stderr finished
+
+ *Speaker diagnostics*
+2026-11-12T16:41:41.923096Z  INFO Omnivox v1.18.0 starting
+2026-11-12T16:41:41.923272Z  INFO Initializing Windows WinRT TTS engine
+2026-11-12T16:41:42.331279Z  INFO Windows WinRT TTS engine initialized
+2026-11-12T16:41:42.344581Z  INFO Registered native engine engine_id="winrt"
+2026-11-12T16:41:42.344780Z  INFO Initializing espeak-ng TTS engine
+2026-11-12T16:41:42.416325Z  INFO espeak-ng initialized with sample rate: 22050Hz
+2026-11-12T16:41:44.359049Z  INFO Registered native engine engine_id="espeak"
+2026-11-12T16:41:44.380031Z  INFO Installing fresh TTS helper connection engine_id="eloquence"
+2026-11-12T16:41:44.380032Z  INFO Installing fresh TTS helper connection engine_id="dectalk"
+2026-11-12T16:41:44.380090Z  INFO Installing fresh TTS helper connection engine_id="rhvoice"
+2026-11-12T16:41:44.380050Z  INFO Installing fresh TTS helper connection engine_id="flite"
+2026-11-12T16:41:44.380108Z  INFO Starting TTS helper process engine_id="dectalk"
+2026-11-12T16:41:44.380119Z  INFO Starting TTS helper process engine_id="flite"
+2026-11-12T16:41:44.380085Z  INFO Starting TTS helper process engine_id="eloquence"
+2026-11-12T16:41:44.380135Z  INFO Installing fresh TTS helper connection engine_id="rutts"
+2026-11-12T16:41:44.380154Z  INFO Starting TTS helper process engine_id="rutts"
+2026-11-12T16:41:44.380112Z  INFO Starting TTS helper process engine_id="rhvoice"
+2026-11-12T16:41:44.380255Z  INFO Installing fresh TTS helper connection engine_id="tgspeechbox"
+2026-11-12T16:41:44.380281Z  INFO Starting TTS helper process engine_id="tgspeechbox"
+2026-11-12T16:41:44.392122Z  INFO Selected startup engine engine_id="winrt"
+2026-11-12T16:41:44.392179Z  INFO TTS engines initialized
+2026-11-12T16:41:44.392256Z  INFO Found 152 voices
+2026-11-12T16:41:44.392258Z  INFO Initializing audio output audio_backend=Null
+2026-11-12T16:41:44.404837Z  INFO Ready to accept commands from stdin
+2026-11-12T16:41:44.990295Z  INFO TTS helper process started engine_id="dectalk" child_id=18164
+2026-11-12T16:41:45.1885041Z helper_event=process_started pid=18164 thread=1 engine=dectalk engine_version=v4.99 Github NORMAL ACCESS32  helper="Omnivox DECtalk x86 helper" runtime=available
+2026-11-12T16:41:45.1895318Z helper_event=protocol_loop_started pid=18164 thread=1
+2026-11-12T16:41:45.232472Z  INFO TTS helper connection ready engine_id="dectalk" protocol_version=6 elapsed_ms=852
+2026-11-12T16:41:45.415386Z  INFO Speech lifecycle admitted request lifecycle_stage="protocol_admitted" request_kind="timeline" request_identifier=Some(1) stop_epoch=1 protocol_generation=Some(1)
+2026-11-12T16:41:45.415525Z  INFO speech_request{request_kind="timeline" request_identifier=Some(1) stop_epoch=1 protocol_generation=Some(1)}: Speech lifecycle started synthesis worker lifecycle_stage="worker_started" queue_wait_us=Some(31)
+2026-11-12T16:41:45.464804Z  INFO speech_request{request_kind="timeline" request_identifier=Some(1) stop_epoch=1 protocol_generation=Some(1)}: Starting routed synthesis lifecycle_stage="synthesis_started" logical_voice="default" engine_id="winrt" voice_id="winrt:HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech_OneCore\\Voices\\Tokens\\MSTTS_V110_enUS_MarkM" attempt=1 progressive=false text_bytes=62 recovery_probe=false
+2026-11-12T16:41:45.600133Z  INFO speech_request{request_kind="timeline" request_identifier=Some(1) stop_epoch=1 protocol_generation=Some(1)}: Routed buffered fallback synthesis completed lifecycle_stage="synthesis_completed" logical_voice="default" engine_id="winrt" voice_id="winrt:HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech_OneCore\\Voices\\Tokens\\MSTTS_V110_enUS_MarkM" attempt=1 frames=100708 synthesis_elapsed_us=135336 recovered=false
+2026-11-12T16:41:45.622124Z  INFO speech_request{request_kind="timeline" request_identifier=Some(1) stop_epoch=1 protocol_generation=Some(1)}: Speech lifecycle finished synthesis worker lifecycle_stage="worker_finished" worker_elapsed_us=206722 admission_elapsed_us=Some(206753) admission_to_audio_queued_us=Some(206329)
+2026-11-12T16:41:45.622923Z  INFO Speech lifecycle reached terminal playback lifecycle_stage="playback_terminal" request_identifier=1 status="completed" admission_to_audio_queued_us=Some(206329) admission_to_mixer_source_us=Some(206434) admission_to_terminal_us=Some(207427)
+2026-11-12T16:41:45.900440Z  WARN Invalid structured Emacsvox admission for dispatch 3: invalid presentation timeline: timeline registry generation is not current
+
+ *Native guard diagnostics*
+
+ *Notify diagnostics*
+2026-11-12T16:41:44.968704Z  INFO Omnivox v1.18.0 starting
+2026-11-12T16:41:44.968870Z  INFO Initializing Windows WinRT TTS engine
+2026-11-12T16:41:45.070792Z  INFO Windows WinRT TTS engine initialized
+2026-11-12T16:41:45.084460Z  INFO Registered native engine engine_id="winrt"
+2026-11-12T16:41:45.084631Z  INFO Initializing espeak-ng TTS engine
+2026-11-12T16:41:45.100975Z  INFO espeak-ng initialized with sample rate: 22050Hz
+2026-11-12T16:41:45.267774Z  INFO Registered native engine engine_id="espeak"
+2026-11-12T16:41:45.299021Z  INFO Installing fresh TTS helper connection engine_id="dectalk"
+2026-11-12T16:41:45.299042Z  INFO Installing fresh TTS helper connection engine_id="flite"
+2026-11-12T16:41:45.299080Z  INFO Starting TTS helper process engine_id="flite"
+2026-11-12T16:41:45.299075Z  INFO Installing fresh TTS helper connection engine_id="eloquence"
+2026-11-12T16:41:45.299066Z  INFO Starting TTS helper process engine_id="dectalk"
+2026-11-12T16:41:45.299106Z  INFO Installing fresh TTS helper connection engine_id="rutts"
+2026-11-12T16:41:45.299125Z  INFO Starting TTS helper process engine_id="rutts"
+2026-11-12T16:41:45.299092Z  INFO Starting TTS helper process engine_id="eloquence"
+2026-11-12T16:41:45.299198Z  INFO Installing fresh TTS helper connection engine_id="tgspeechbox"
+2026-11-12T16:41:45.299208Z  INFO Starting TTS helper process engine_id="tgspeechbox"
+2026-11-12T16:41:45.299286Z  INFO Installing fresh TTS helper connection engine_id="rhvoice"
+2026-11-12T16:41:45.299310Z  INFO Starting TTS helper process engine_id="rhvoice"
+2026-11-12T16:41:45.310984Z  INFO Selected startup engine engine_id="winrt"
+2026-11-12T16:41:45.311046Z  INFO TTS engines initialized
+2026-11-12T16:41:45.311138Z  INFO Found 152 voices
+2026-11-12T16:41:45.311141Z  INFO Initializing audio output audio_backend=Null
+2026-11-12T16:41:45.311292Z  INFO Setting audio target from env: both
+2026-11-12T16:41:45.329528Z  INFO Ready to accept commands from stdin
+2026-11-12T16:41:45.662684Z  INFO Speech lifecycle admitted request lifecycle_stage="protocol_admitted" request_kind="timeline" request_identifier=Some(2) stop_epoch=1 protocol_generation=Some(2)
+2026-11-12T16:41:45.662773Z  INFO speech_request{request_kind="timeline" request_identifier=Some(2) stop_epoch=1 protocol_generation=Some(2)}: Speech lifecycle started synthesis worker lifecycle_stage="worker_started" queue_wait_us=Some(28)
+2026-11-12T16:41:45.686665Z  INFO speech_request{request_kind="timeline" request_identifier=Some(2) stop_epoch=1 protocol_generation=Some(2)}: Starting routed synthesis lifecycle_stage="synthesis_started" logical_voice="default" engine_id="winrt" voice_id="winrt:HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech_OneCore\\Voices\\Tokens\\MSTTS_V110_enUS_MarkM" attempt=1 progressive=false text_bytes=62 recovery_probe=false
+2026-11-12T16:41:45.746618Z  INFO speech_request{request_kind="timeline" request_identifier=Some(2) stop_epoch=1 protocol_generation=Some(2)}: Routed buffered fallback synthesis completed lifecycle_stage="synthesis_completed" logical_voice="default" engine_id="winrt" voice_id="winrt:HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Speech_OneCore\\Voices\\Tokens\\MSTTS_V110_enUS_MarkM" attempt=1 frames=100708 synthesis_elapsed_us=59962 recovered=false
+2026-11-12T16:41:45.751460Z  INFO speech_request{request_kind="timeline" request_identifier=Some(2) stop_epoch=1 protocol_generation=Some(2)}: Speech lifecycle finished synthesis worker lifecycle_stage="worker_finished" worker_elapsed_us=88755 admission_elapsed_us=Some(88783) admission_to_audio_queued_us=Some(88490)
+2026-11-12T16:41:45.752474Z  INFO Speech lifecycle reached terminal playback lifecycle_stage="playback_terminal" request_identifier=2 status="completed" admission_to_audio_queued_us=Some(88490) admission_to_mixer_source_us=Some(88701) admission_to_terminal_us=Some(89795)

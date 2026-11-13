@@ -1,0 +1,5 @@
+(require 'cl-lib)
+(require 'ert)
+(cl-letf (((symbol-function 'ert-run-tests-batch-and-exit) #'ignore))
+ (load "/home/bart/src/emacsvox/test/run-tests.el" nil t))
+(ert-run-tests-batch-and-exit '(member emacsvox-aural-audit-current-tree-is-clean))

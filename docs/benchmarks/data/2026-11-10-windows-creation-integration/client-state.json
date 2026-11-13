@@ -1,0 +1,16 @@
+{
+  "commit": "b83c43aada0883d8f6d1338b5e560268442fbe52",
+  "status": "",
+  "files": {
+    "/home/bart/src/emacsvox-lightweight-reload/lisp/speech/tts-speak.el": "177e873cf2185c6a135a14810016d34783ae3001d4c1104ea640af4aee78f750",
+    "/home/bart/src/emacsvox-lightweight-reload/lisp/speech/tts-speak.elc": "36076a6dc17c4bacc9d041e656940c77cbbc05b93ddd2c3f3c8a26d24b8c9ee8",
+    "/home/bart/src/emacsvox-lightweight-reload/lisp/speech/tts-lifecycle.el": "cd8c54cbff54d3001e64d2db3e5dabb8ae3c58c09dbafeff27e4814d28fcf140",
+    "/home/bart/src/emacsvox-lightweight-reload/lisp/speech/tts-lifecycle.elc": "23df6a5677f88bbaea7ace81b44300105b5b1988fe9363722526e49e2d59627e",
+    "/home/bart/src/emacsvox-lightweight-reload/lisp/speech/omnivox-native-guard.el": "a8c8eac9e4a6ea8bc00ddcd5ce0804919aa9bdcebb16af91f8381f5994a6d10b",
+    "/home/bart/src/emacsvox-lightweight-reload/lisp/speech/omnivox-native-guard.elc": "28d8693d952cf72aa6618d8dc4cc3ff71112e2eaf95f4f9f30bffe8506de3b32",
+    "/home/bart/src/emacsvox-lightweight-reload/lisp/speech/omnivox-library-runtime.el": "69bdb1cc79871baaebac45d8ff17004f869d6484771c27f3a3094ab7afe3ee69",
+    "/home/bart/src/emacsvox-lightweight-reload/lisp/speech/omnivox-library-runtime.elc": "a50cbf4c4bc22866ef5f585705b4529e7c520f180ecdb98510242fbc50a8b740",
+    "/home/bart/src/emacsvox-lightweight-reload/lisp/speech/omnivox-preferences.el": "2e57e3ceaaf9c878b245959b43606d645d735bde87d63c5d3b5c914f8188b4be",
+    "/home/bart/src/emacsvox-lightweight-reload/lisp/speech/omnivox-preferences.elc": "b9b4fb09b4622f2d0c65291239715fd276a7d0be0c595248983587e7297e0f44"
+  }
+}

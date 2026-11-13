@@ -1,0 +1,128 @@
+{
+  "eloquence": {
+    "raw": [
+      {
+        "operation_ms": 3189.1186237335205,
+        "requests": 286,
+        "main_gap_ms": 99.16162490844727,
+        "main_first_ms": 1886.7969512939453,
+        "notification_gap_ms": 75.42252540588379,
+        "notification_first_ms": 3263.546943664551
+      },
+      {
+        "operation_ms": 3483.5140705108643,
+        "requests": 306,
+        "main_gap_ms": 76.22218132019043,
+        "main_first_ms": 2038.2606983184814,
+        "notification_gap_ms": 104.15101051330566,
+        "notification_first_ms": 3566.00022315979
+      },
+      {
+        "operation_ms": 4200.977325439453,
+        "requests": 361,
+        "main_gap_ms": 55.00674247741699,
+        "main_first_ms": 2585.8168601989746,
+        "notification_gap_ms": 117.3863410949707,
+        "notification_first_ms": 4307.952880859375
+      },
+      {
+        "operation_ms": 5766.7059898376465,
+        "requests": 418,
+        "main_gap_ms": 63.24124336242676,
+        "main_first_ms": 3066.408395767212,
+        "notification_gap_ms": 123.3370304107666,
+        "notification_first_ms": 5876.793384552002
+      }
+    ],
+    "summary": {
+      "operation_ms": {
+        "median": 3842.2456979751587,
+        "minimum": 3189.1186237335205,
+        "maximum": 5766.7059898376465
+      },
+      "main_gap_ms": {
+        "median": 69.7317123413086,
+        "minimum": 55.00674247741699,
+        "maximum": 99.16162490844727
+      },
+      "main_first_ms": {
+        "median": 2312.038779258728,
+        "minimum": 1886.7969512939453,
+        "maximum": 3066.408395767212
+      },
+      "notification_gap_ms": {
+        "median": 110.76867580413818,
+        "minimum": 75.42252540588379,
+        "maximum": 123.3370304107666
+      },
+      "notification_first_ms": {
+        "median": 3936.9765520095825,
+        "minimum": 3263.546943664551,
+        "maximum": 5876.793384552002
+      }
+    }
+  },
+  "dectalk": {
+    "raw": [
+      {
+        "operation_ms": 4414.8664474487305,
+        "requests": 191,
+        "main_gap_ms": 138.444185256958,
+        "main_first_ms": 2677.1254539489746,
+        "notification_gap_ms": 127.1371841430664,
+        "notification_first_ms": 4517.86470413208
+      },
+      {
+        "operation_ms": 3728.720188140869,
+        "requests": 173,
+        "main_gap_ms": 129.44555282592773,
+        "main_first_ms": 2364.1140460968018,
+        "notification_gap_ms": 133.4977149963379,
+        "notification_first_ms": 3824.511766433716
+      },
+      {
+        "operation_ms": 4337.074041366577,
+        "requests": 196,
+        "main_gap_ms": 138.05890083312988,
+        "main_first_ms": 2635.075092315674,
+        "notification_gap_ms": 146.64959907531738,
+        "notification_first_ms": 4445.259809494019
+      },
+      {
+        "operation_ms": 4968.620777130127,
+        "requests": 216,
+        "main_gap_ms": 102.38265991210938,
+        "main_first_ms": 3167.515993118286,
+        "notification_gap_ms": 125.75292587280273,
+        "notification_first_ms": 5070.29128074646
+      }
+    ],
+    "summary": {
+      "operation_ms": {
+        "median": 4375.970244407654,
+        "minimum": 3728.720188140869,
+        "maximum": 4968.620777130127
+      },
+      "main_gap_ms": {
+        "median": 133.7522268295288,
+        "minimum": 102.38265991210938,
+        "maximum": 138.444185256958
+      },
+      "main_first_ms": {
+        "median": 2656.100273132324,
+        "minimum": 2364.1140460968018,
+        "maximum": 3167.515993118286
+      },
+      "notification_gap_ms": {
+        "median": 130.31744956970215,
+        "minimum": 125.75292587280273,
+        "maximum": 146.64959907531738
+      },
+      "notification_first_ms": {
+        "median": 4481.562256813049,
+        "minimum": 3824.511766433716,
+        "maximum": 5070.29128074646
+      }
+    }
+  }
+}

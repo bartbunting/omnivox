@@ -1,0 +1,8 @@
+Speech failed __EMACSVOX_TRACKED__ 112 cancelled
+At \\wsl.localhost\Ubuntu-26.04\home\bart\src\omnivox-lightweight-reload\target\guard-rust\fixtures\native.ps1:140 
+char:129
++ ... MACSVOX_TRACKED__ $id completed"){throw "Speech failed $line"};return ...
++                                       ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : OperationStopped: (Speech failed _..._ 112 cancelled:String) [], RuntimeException
+    + FullyQualifiedErrorId : Speech failed __EMACSVOX_TRACKED__ 112 cancelled
+ 

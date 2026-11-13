@@ -20,6 +20,17 @@ const TRANSIENT_ENGINE_WAIT: Duration = Duration::from_millis(350);
 const ISOLATED_STREAM_EVENT_CAPACITY: usize = 4;
 pub const MAX_ISOLATED_CALLS: usize = 2;
 
+fn soft_supersession_grace(engine_id: &str) -> Duration {
+    // Flite observes cancellation in its streaming callbacks without resetting
+    // the loaded voice. Ask it to stop promptly; retained ownership still keeps
+    // the next call out until the old native operation actually finishes.
+    if engine_id == "flite" {
+        Duration::ZERO
+    } else {
+        SOFT_SUPERSESSION_GRACE
+    }
+}
+
 enum IsolatedStreamEvent {
     Application(NativeApplication),
     Start(SynthesisStreamStart),
@@ -272,6 +283,7 @@ impl IsolatedTtsEngine {
         run: impl FnOnce(Arc<dyn TtsEngine>, SynthesisRequest) -> Result<T, TtsError> + Send + 'static,
     ) -> Result<T, TtsError> {
         let engine_id = self.engine.descriptor().id;
+        let soft_grace = soft_supersession_grace(&engine_id);
         let generation = self.generation.load(Ordering::Acquire);
         let stop_epoch = self.stop_epoch.load(Ordering::Acquire);
         let cancellation = request.cancellation.as_ref();
@@ -326,7 +338,7 @@ impl IsolatedTtsEngine {
                     let hard_stop = self.stop_epoch.load(Ordering::Acquire) != stop_epoch;
                     if !hard_stop {
                         let started = superseded_at.get_or_insert_with(Instant::now);
-                        if started.elapsed() < SOFT_SUPERSESSION_GRACE {
+                        if started.elapsed() < soft_grace {
                             continue;
                         }
                     }
@@ -336,11 +348,7 @@ impl IsolatedTtsEngine {
                         engine_id,
                         generation,
                         hard_stop,
-                        grace_ms = if hard_stop {
-                            0
-                        } else {
-                            SOFT_SUPERSESSION_GRACE.as_millis()
-                        },
+                        grace_ms = if hard_stop { 0 } else { soft_grace.as_millis() },
                         global_limit = MAX_ISOLATED_CALLS,
                         "Quarantined superseded native synthesis"
                     );
@@ -366,6 +374,7 @@ impl IsolatedTtsEngine {
             native_synthesis::validate_request(parameters)?;
         }
         let engine_id = self.engine.descriptor().id;
+        let soft_grace = soft_supersession_grace(&engine_id);
         let generation = self.generation.load(Ordering::Acquire);
         let stop_epoch = self.stop_epoch.load(Ordering::Acquire);
         let cancellation = request.cancellation.as_ref();
@@ -424,8 +433,7 @@ impl IsolatedTtsEngine {
             if cancelled {
                 let hard_stop = self.stop_epoch.load(Ordering::Acquire) != stop_epoch;
                 let grace_expired = hard_stop
-                    || superseded_at.get_or_insert_with(Instant::now).elapsed()
-                        >= SOFT_SUPERSESSION_GRACE;
+                    || superseded_at.get_or_insert_with(Instant::now).elapsed() >= soft_grace;
                 if grace_expired {
                     self.engine.stop();
                     lease.mark_quarantined();
@@ -1005,9 +1013,18 @@ mod tests {
 
     #[test]
     fn cancelling_a_progressive_call_releases_its_bounded_relay() {
+        check_progressive_cancellation("progressive-cancel");
+    }
+
+    #[test]
+    fn prompt_flite_cancellation_retains_native_owner_after_closing_relay() {
+        check_progressive_cancellation("flite");
+    }
+
+    fn check_progressive_cancellation(engine_id: &str) {
         let generation = Arc::new(AtomicU64::new(1));
         let budget = Arc::new(IsolationBudget::new());
-        let native = Arc::new(BlockingEngine::new("progressive-cancel"));
+        let native = Arc::new(BlockingEngine::new(engine_id));
         let engine = isolated(Arc::clone(&native), generation, Arc::clone(&budget));
         let cancellation = SynthesisCancellationToken::new();
         let cancellable = request().with_cancellation(cancellation.clone());
@@ -1037,6 +1054,7 @@ mod tests {
         ));
         assert_eq!(native.stops.load(Ordering::Acquire), 1);
         assert_eq!(budget.quarantined(), 1);
+        assert!(budget.try_acquire(&engine.engine_active).is_err());
 
         native.release();
         native.wait_for_completed(1);
@@ -1079,9 +1097,18 @@ mod tests {
 
     #[test]
     fn request_token_cancels_one_isolated_call_without_advancing_global_generation() {
+        check_request_token_cancellation("keyed");
+    }
+
+    #[test]
+    fn prompt_flite_cancellation_retains_native_owner_until_buffered_call_finishes() {
+        check_request_token_cancellation("flite");
+    }
+
+    fn check_request_token_cancellation(engine_id: &str) {
         let generation = Arc::new(AtomicU64::new(9));
         let budget = Arc::new(IsolationBudget::new());
-        let native = Arc::new(BlockingEngine::new("keyed"));
+        let native = Arc::new(BlockingEngine::new(engine_id));
         let engine = isolated(
             Arc::clone(&native),
             Arc::clone(&generation),
@@ -1106,6 +1133,7 @@ mod tests {
         assert_eq!(generation.load(Ordering::Acquire), 9);
         assert_eq!(native.stops.load(Ordering::Acquire), 1);
         assert_eq!(budget.quarantined(), 1);
+        assert!(budget.try_acquire(&engine.engine_active).is_err());
 
         native.release();
         native.wait_for_completed(1);

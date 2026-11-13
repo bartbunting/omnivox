@@ -1,0 +1,14 @@
+{
+  "omnivox_base": "6d117c965d44361a3d7d6e81e0fea08de5e592f3",
+  "emacsvox_base": "4479ed37cabb4c95ce7f4aa5ee3b6513cb4d9f98",
+  "linux_payload": "/home/bart/src/omnivox-lightweight-reload/target/retirement-receipts/payload",
+  "linux_executable_sha256": "d7b2b28c9ecbcff96945466270a768a40665890a97c08e80c458b635830294d9",
+  "windows_runtime": "b5f4a748c232ba16",
+  "windows_executable_sha256": "cf085ab8574c81e5ba1262aeb304bf98a42c1a668fa409ed16df3552da78bd99",
+  "rust": "1.97.1",
+  "emacs": "/home/bart/opt/emacs-31/bin/emacs",
+  "workspace_environment": {
+    "CARGO_TARGET_DIR": "/home/bart/tmp/ovlw-check",
+    "OMNIVOX_PIPER_INPUTS_DIR": "/home/bart/src/omnivox/target/piper-inputs/1.7.0/x86_64-unknown-linux-gnu"
+  }
+}

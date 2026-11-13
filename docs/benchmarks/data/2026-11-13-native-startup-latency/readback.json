@@ -1,0 +1,23 @@
+﻿{
+    "files":  [
+                  {
+                      "Path":  "C:\\Users\\bart\\AppData\\Local\\Emacsvox\\NativeLightweight\\native-early-20261113\\evox-windows.ps1",
+                      "Hash":  "6EA2949EF84ED9F3255FBFAA3CE134ECB13A8389FC02A312E6EDDA1634688123"
+                  },
+                  {
+                      "Path":  "C:\\Users\\bart\\bin\\evox-windows.ps1",
+                      "Hash":  "4C2B421DE49B6B6D01EC4C979E5B5E967D1172791F7D75BE6530568E2CEB54B9"
+                  },
+                  {
+                      "Path":  "C:\\Users\\bart\\AppData\\Local\\Emacsvox\\NativeLightweight\\native-early-20261113\\startup-timing-20261113\\maintained-launcher.ps1",
+                      "Hash":  "359396E1E376FE053B844A90FCED87C52914C7BD2E10005D2673BCA0FF8564E2"
+                  }
+              ],
+    "working_directory":  "C:\\Users\\bart\\AppData\\Local\\Emacsvox\\NativeLightweight\\native-early-20261113",
+    "arguments":  "",
+    "remaining_candidate_runtime_processes":  [
+
+                                              ],
+    "syntax":  "passed",
+    "target":  "C:\\Users\\bart\\AppData\\Local\\Emacsvox\\NativeLightweight\\native-early-20261113\\evox-windows-launcher.exe"
+}

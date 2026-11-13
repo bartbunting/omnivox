@@ -19,6 +19,12 @@ Speech connections advertise `voice_library_v1` when status is available.
 
 ## Local provider
 
+If management storage prevents ordinary speech startup, the explicit
+[minimal emergency route](../reference/engine-startup-snapshot.md#explicit-minimal-emergency-startup)
+can use bundled eSpeak after verified native retirement. It preserves old claims
+and does not repair management history. Return to ordinary speech before managed
+Apply; a missing native cleanup authority remains a separate recovery problem.
+
 The bundled Emacsvox launcher uses `--voice-library-owner` when the selected
 binary's ordinary help advertises it. Each invocation owns one speech worker
 and all its helpers. The native child waits behind START until Windows job or

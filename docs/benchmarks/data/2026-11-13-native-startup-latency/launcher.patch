@@ -1,0 +1,63 @@
+diff --git a/docs/native-emacsvox.org b/docs/native-emacsvox.org
+index e91de9a..efb3b65 100644
+--- a/docs/native-emacsvox.org
++++ b/docs/native-emacsvox.org
+@@ -10,7 +10,11 @@ has its own Emacs process, packages, generated configuration, and server named
+ The native wrapper reads the tested installation's =native-install.json= under
+ =%LOCALAPPDATA%\Emacsvox\Windows Install Test\checkout-5f5825f7c=.
+ A different prepared checkout can be selected with =-NativeCheckout C:\path\to\checkout=.
+-The launcher runs native byte-code preflight before opening a window.
++Normal startup launches one Emacs process. The personal bootstrap checks that
++it is native Windows Emacs 30.2 or newer. The complete byte-code audit runs
++with =-Check= and when preparing a deployment, instead of starting two extra
++Emacs processes on every launch. Run =-Check= after updating the prepared
++client or its Emacs installation.
+ 
+ The native launcher defaults to Eloquence, matching the WSL Development
+ shortcut. An explicit =OMNIVOX_ENGINE= environment value still overrides that
+diff --git a/windows/emacs/evox-windows-init.el b/windows/emacs/evox-windows-init.el
+index aceb127..26cd88d 100644
+--- a/windows/emacs/evox-windows-init.el
++++ b/windows/emacs/evox-windows-init.el
+@@ -1,5 +1,8 @@
+ ;;; evox-windows-init.el --- Bart's native Windows profile -*- lexical-binding: t; -*-
+ 
++(unless (and (eq system-type 'windows-nt) (version<= "30.2" emacs-version))
++  (error "Native Windows Emacs 30.2+ required"))
++
+ (defun bb-native-personal-check ()
+   "Check personal configuration and both native speech lanes in a fresh GUI."
+   (condition-case problem
+diff --git a/windows/emacs/evox-windows.ps1 b/windows/emacs/evox-windows.ps1
+index ba997be..4782a4e 100644
+--- a/windows/emacs/evox-windows.ps1
++++ b/windows/emacs/evox-windows.ps1
+@@ -11,7 +11,9 @@ Assert-NativeWindows
+ Assert-WindowsLocalPath $NativeCheckout
+ $config = [IO.File]::ReadAllText((Join-Path $NativeCheckout 'native-install.json')) | ConvertFrom-Json
+ if ($config.Schema -ne 1 -or $config.Role -ne 'Desktop') { throw 'Unsupported native installation configuration.' }
+-$selected = Get-EmacsvoxNativeEmacs $config.Emacs
++$command = Get-Command $config.Emacs -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
++if (-not $command) { throw "Selected Emacs does not exist: $($config.Emacs)" }
++$selected = @{ Program = $command.Source }
+ if (-not (Test-Path -LiteralPath $config.Omnivox)) { throw 'Installed Omnivox is missing.' }
+ $personal = Join-Path $env:LOCALAPPDATA 'Emacsvox\Personal'
+ $agentTools = @((Join-Path $personal 'tools\node-v24.20.0-win-x64'),
+@@ -35,9 +37,14 @@ $environment = @{
+     XDG_STATE_HOME = (Join-Path $personal 'state'); BB_EVOX_CHECK = $null
+ }
+ if ($env:OMNIVOX_ENGINE) { $environment.OMNIVOX_ENGINE = $env:OMNIVOX_ENGINE }
+-Invoke-EmacsvoxNative $selected.Program @('-Q', '--batch', '--eval',
+-    (Get-EmacsvoxLoadExpression (Join-Path $NativeCheckout 'utils\emacsvox-native-bytecode.el')),
+-    '--funcall', 'emacsvox-native-bytecode-main') $environment | Out-Null
++# Deployment and explicit checks validate the complete build. Ordinary startup
++# opens only the personal Emacs; its bootstrap checks the running Emacs version.
++if ($Check) {
++    $selected = Get-EmacsvoxNativeEmacs $config.Emacs
++    Invoke-EmacsvoxNative $selected.Program @('-Q', '--batch', '--eval',
++        (Get-EmacsvoxLoadExpression (Join-Path $NativeCheckout 'utils\emacsvox-native-bytecode.el')),
++        '--funcall', 'emacsvox-native-bytecode-main') $environment | Out-Null
++}
+ $arguments = @('-Q', '--no-splash', '--name', 'evox-windows', '--eval',
+     (Get-EmacsvoxLoadExpression $startup))
+ if ($Check) {

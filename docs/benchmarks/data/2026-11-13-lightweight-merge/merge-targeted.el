@@ -1,0 +1,5 @@
+(require 'cl-lib)
+(require 'ert)
+(cl-letf (((symbol-function 'ert-run-tests-batch-and-exit) #'ignore))
+ (load "/home/bart/src/.worktrees/emacsvox/merge-lightweight-reload/test/run-tests.el" nil t))
+(ert-run-tests-batch-and-exit '(member emacsvox-native-windows-guide-is-bounded-and-complete emacsvox-launcher-rotates-omnivox-stderr-by-size))

@@ -1,0 +1,17 @@
+
+Traceback (most recent call last):
+  File "/home/bart/src/omnivox-lightweight-reload/target/guard-handoff/fixtures/client.py", line 59, in <module>
+    assert process.returncode == 0, process.stderr.decode()[-4500:]
+           ^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 
+Loading voice-defs...
+
+Speech server Speaker retired with cleanup error in stop command: Process Speaker not running: stopped (signal)
+
+Loading voice-defs...
+
+Emacsvox speech server Emergency preparation exited: killed
+Loading voice-defs...
+
+Loading voice-defs...
+

@@ -17,6 +17,31 @@ acceptance on every platform.
 
 | Concern | Retained comparison / reproduction source | Measurement boundary |
 | --- | --- | --- |
+| Early selected speech | [Optional discovery prototype](2026-11-10-early-speech.md), [automatic client observation](2026-11-10-early-speech-refresh.md) | Controlled delayed-helper availability, fallback, active cancellation, native retirement, compiled client late selection and matched warm startup. |
+| Speech during discovery acknowledgement | [Native early-start correction](2026-11-13-native-early-start.md) | Reproduced generation mismatch, source and native delayed-reply regressions, four-engine lifecycle checks, Windows personal profile and WSL checks; no acoustic timing claim. |
+| Native desktop launch delay | [Personal launcher timing](2026-11-13-native-startup-latency.md) | Matched first-source timing after removing two launch-time Emacs validation processes; Eloquence and DECtalk checks, unchanged package loading and explicit build audit. |
+| Personal Development profile | [Normal configuration handoff](2026-11-11-personal-development-launch.md) | Qualified early speech with the normal Emacsvox profile; launcher and guarded source checks, plus user-reported daily use without issues on 2026-11-13. |
+| Native Windows client reload | [Native Emacs ownership and personal shortcut](2026-11-13-native-windows-client-reload.md) | Compiled native WinRT/Flite/Eloquence/DECtalk reload and guarded recovery, graphical personal-profile checks, and separate failed early-discovery observations; functional checks only. |
+| Slow initial startup | [Selected speech versus complete discovery](2026-11-10-startup-investigation.md) | Real slow-launch events and 36 matched warm ordinary/guarded startup controls; no acoustic or cold-start causality claim. |
+| Windows startup contention | [Independent helper queue deadline](2026-11-10-helper-queue.md) | Observed Eloquence/Flite exclusion, bounded queue regression, native ownership checks and isolated GUI source completion. |
+| Foreground settings timeout | [Delayed registration acknowledgement](2026-11-10-foreground-registration.md) | Functional startup failure reproduction, bounded client repair and isolated desktop profile; source completion only. |
+| Replacement and foreground handover | [Prompt Flite cancellation and prepared foreground](2026-11-10-replacement-and-handover.md) | Phase-controlled replacement, eight-engine reload response, continuous source gaps, slow notification startup and fresh compiled recovery profiles. |
+| Windows multiple engines and startup | [Eight-engine ownership and client preparation](2026-11-10-windows-multi-engine.md) | Six retained helpers, independent recovery, matched speech during reload, compiled client startup and continuous source handover probes. |
+| Windows creation integration | [Opt-in eSpeak/Flite prototype](2026-11-10-windows-creation-integration.md) | Native failures, helper fallback/recovery, compiled client, pipe correction and matched reload/interaction timing. |
+| Windows native creation | [Rust guard creation components](2026-11-10-windows-owned-creation.md) | Actual process handles, interrupted handoffs and pending creation; product entry remains gated pending integration. |
+| Lightweight preference reload | [Independent punctuation investigation](2026-11-10-lightweight-reload.md) | Release/maintenance/candidate source-start comparisons, active reload overlap, native helpers, source Emacs, failure checks and platform limits. Private prototype; no acoustic or public-release claim. |
+| Resident preference delivery | [Owned-worker punctuation reload](2026-11-10-resident-reload.md) | Negotiated stdio control, resident preparation, independent Emacsvox results and matched release/native qualification. |
+| Complete host preference reload | [Capital pitch, chunking and saved defaults](2026-11-10-host-preferences.md) | Same bounded path, coherent requests, preserved client choices and 8,192 matched requests. |
+| Ordinary retained recovery | [Client owner-failure fix and retained restart](2026-11-10-retained-recovery.md) | Real Flite/Piper, broken saved configuration, exact worker crash and healthy peer; source timings, not acoustic or emergency qualification. |
+| Minimal emergency speech | [Storage-independent owned eSpeak](2026-11-10-emergency-speech.md) | Corrupt preferences/host state, failed receipt writes, transient native proof, repeated minimal recovery and healthy peer; owner-loss and acoustic limits remain explicit. |
+| Owner failure boundary | [Blocked forwarding and lost authority](2026-11-10-owner-authority.md) | Bounded Linux faults with actual retained pidfds and exact durable status; establishes the need for independent lifecycle authority, not successful product recovery. |
+| Prepared emergency startup | [Launch cost and deferred native release](2026-11-10-deferred-start.md) | Matched compiled clients on Linux and WSL-to-Windows; lower recovery time and source-gap bound, cancellation/retry and older-runtime checks. |
+| Independent guard extraction | [Real Linux worker/helper failure matrix](2026-11-10-independent-guard.md) | Rust native cleanup independent of speech and status backpressure; prototype only, with production integration and Windows/macOS qualification outstanding. |
+| Guarded owner/client integration | [Linux local IPC and native fault checks](2026-11-10-guard-integration.md) | Opt-in actual Rust owner/guard and compiled Emacs client; matched speech during reload, separate startup cost, Windows/macOS still pending. |
+| Guard readiness and recovery | [Event waiting and interrupted startup](2026-11-10-guard-readiness.md) | Repeated matched reload timing, real status backpressure, partial bootstrap/START and compiled-client reconnection; Linux only. |
+| Windows guard qualification | [Local pipes, WSL timing and descendant completion](2026-11-10-windows-guard-qualification.md) | Native component successes, matched real-engine reload/interaction timing, and a retained-helper counterexample that keeps Windows guarded startup unavailable. |
+| Native creation and preparation | [Retained-handle Flite handoff and concurrent bridge startup](2026-11-10-guard-handoff-and-preparation.md) | Bounded Windows ownership experiment; implemented client startup overlap, matched timings and speech during preparation. Windows product qualification remains blocked. |
+| Lost retirement replies | [Existing native receipt verification](2026-11-10-retirement-receipts.md) | Linux Flite/Piper and WSL-to-Windows restoration, damaged-proof rejection and notifications completed inside foreground recovery. |
 | Warm/cold synthesis and resampling | [Progressive resampler reuse](2026-09-20-progressive-resampler-reuse.md) | Windows GNU, null output; matched compiler control, raw timing and workload plans. |
 | Legacy letter navigation | [Letter playback reserve](2026-09-20-letter-playback-reserve.md), [initial investigation](2026-09-20-dectalk-letter-navigation.md) | Muted Windows device runs; first/final mixer-source consumption, stalls and rapid replacement. |
 | Native control overhead | [Parameter timing](2026-09-20-dectalk-parameter-timing.md), [batched parameters](2026-09-20-dectalk-batched-parameters.md), [reset placement experiment](2026-09-20-dectalk-reset-latency.md) | DECtalk runtime-specific measurements; distinguish private prototypes from shipped behavior. |
@@ -52,6 +77,10 @@ Earlier baselines remain available:
   mixed queues, hard stops, fallback, and repeated helper recovery.
 
 ## Functional acceptance and additional reports
+
+- [2026-11-13 lightweight reload source integration](2026-11-13-lightweight-merge.md)
+  records paired main/master merge checks, regenerated manuals, native Windows
+  Eloquence/DECtalk coverage and reproduced pre-existing source-test failures.
 
 ### Omnivox 1.18.0 release evidence
 

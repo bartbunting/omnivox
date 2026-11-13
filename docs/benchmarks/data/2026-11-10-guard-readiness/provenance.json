@@ -1,0 +1,18 @@
+{
+  "omnivox_source": "7c508e3",
+  "omnivox_base": "2ce1a78",
+  "emacsvox_base": "dba63511f",
+  "emacsvox_changes": "emacsvox.patch.gz",
+  "rust": "1.97.1",
+  "emacs": "31.0.90",
+  "event_sha256": "86346921b4c08af7cb224b7a3ddf50909dfbf70f0ed4e90b363c505e8709d7c8",
+  "poll_sha256": "24feec5c1ef5c1b56df444063cec67471b49e9230759a079fc36436d6d340227",
+  "native_engine": "Flite real helper",
+  "output": "null",
+  "platform": "Linux URSYS-8M3WMB4 6.18.54.1-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Tue Oct  6 19:13:07 UTC 2026 x86_64 GNU/Linux",
+  "notes": [
+    "latency blocks ran without builds; build/test activity overlapped later interaction and client-2 checks; those establish functionality, not performance equivalence",
+    "initial fixture failures retained; exact intermediate fault fixture revisions were not snapshotted",
+    "raw archive preserves all observations and injected-fault library; new report does not alter historical evidence"
+  ]
+}

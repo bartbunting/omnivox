@@ -1,0 +1,44 @@
+[
+  {
+    "case": "owner-killed",
+    "proof_ms": 39.91195200069342,
+    "passed": true
+  },
+  {
+    "case": "owner-paused",
+    "proof_ms": 39.09506800118834,
+    "passed": true
+  },
+  {
+    "case": "blocked-input",
+    "written": 761564,
+    "waits": [
+      "anon_pipe_write",
+      "anon_pipe_read",
+      "futex_do_wait"
+    ],
+    "proof_ms": 40.48175900243223,
+    "passed": true
+  },
+  {
+    "case": "blocked-output",
+    "written": 75438,
+    "waits": [
+      "anon_pipe_write",
+      "anon_pipe_read",
+      "futex_do_wait"
+    ],
+    "proof_ms": 41.60706799302716,
+    "passed": true
+  },
+  {
+    "case": "helper-survives-worker",
+    "proof_ms": 38.25295499700587,
+    "passed": true
+  },
+  {
+    "case": "guard-lost",
+    "replacement_blocked": true,
+    "passed": true
+  }
+]

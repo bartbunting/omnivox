@@ -1,0 +1,26 @@
+{
+  "timestamp_utc": "20261112T171945Z",
+  "changed": [
+    {
+      "destination": "/mnt/c/Users/bart/bin/evox-windows-init.el",
+      "backup": "/mnt/c/Users/bart/AppData/Local/Emacsvox/NativeLightweight/native-early-20261113/backups/startup-20261112T171945Z/evox-windows-init.el",
+      "before_sha256": "3ec4c7d7e381fb959cf9e7d71f3fd0ba9aef7e7523fca7128d3113289425704d",
+      "after_sha256": "68a9351ddb31e0238973afe01a0cda549ed9de54cbe757401ebba2c5d7e53cf0"
+    },
+    {
+      "destination": "/mnt/c/Users/bart/AppData/Local/Emacsvox/NativeLightweight/native-early-20261113/evox-windows.ps1",
+      "backup": "/mnt/c/Users/bart/AppData/Local/Emacsvox/NativeLightweight/native-early-20261113/backups/startup-20261112T171945Z/desktop-evox-windows.ps1",
+      "before_sha256": "4833f344be93ca3079835a953eb6f535ae814b318394b853da974f711cc98a30",
+      "after_sha256": "6ea2949ef84ed9f3255fbfaa3ce134ecb13a8389fc02a312e6edda1634688123"
+    },
+    {
+      "destination": "/mnt/c/Users/bart/bin/evox-windows.ps1",
+      "backup": "/mnt/c/Users/bart/AppData/Local/Emacsvox/NativeLightweight/native-early-20261113/backups/startup-20261112T171945Z/bin-evox-windows.ps1",
+      "before_sha256": "27957c543e2cb0393e92ff640e8e5b3042a5b1e87abb24bb4d7cbb1f46a46a70",
+      "after_sha256": "4c2b421de49b6b6d01ec4c979e5b5e967d1172791f7d75be6530568e2ceb54b9"
+    }
+  ],
+  "runtime_sha256": "529499252023e106b0329e670b13f85fb9cb3a6b729acddabe394b92208dee28",
+  "launcher_sha256": "09729ccc8bc076404e09c6b5a88c1f009c3a9ce8aaf1dc44a9ecb56539ab0a43",
+  "client_commit": "0acf2deae811a920b49db325eaaa3f9b31a7e8ce"
+}

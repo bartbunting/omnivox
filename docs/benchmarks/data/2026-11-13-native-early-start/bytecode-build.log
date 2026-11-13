@@ -1,0 +1,494 @@
+Native byte-code build: 377 modules, Emacs 31.1
+  INFO     Scraping 389 files for loaddefs...
+  INFO     Scraping 389 files for loaddefs...20%
+  INFO     Scraping 389 files for loaddefs...34%
+  INFO     Scraping 389 files for loaddefs...51%
+  INFO     Scraping 389 files for loaddefs...76%
+  INFO     Scraping 389 files for loaddefs...done
+  GEN      emacsvox-loaddefs.el
+
+In omnivox-library--wait-for-recovered-speech:
+omnivox-library-runtime.el:348:2: Warning: docstring wider than 80 characters
+omnivox-library-runtime.el:354:42: Warning: reference to free variable `omnivox--control-pending-property'
+
+In end of data:
+omnivox-library-runtime.el:368:38: Warning: the function `omnivox--choice-current-registration' is not known to be defined.
+omnivox-library-runtime.el:367:23: Warning: the function `omnivox--choice-tuning-supported-p' is not known to be defined.
+omnivox-library-runtime.el:359:33: Warning: the function `omnivox--control-request-type' is not known to be defined.
+omnivox-library-runtime.el:358:25: Warning: the function `omnivox--control-request-p' is not known to be defined.
+
+In emacsvox-aural-voice-data--put-choices:
+../voices/emacsvox-aural-voice-data.el:175:2: Warning: docstring wider than 80 characters
+
+In emacsvox-aural-migrate-user-data:
+../aural/emacsvox-aural-schemes.el:1518:2: Warning: docstring wider than 80 characters
+
+In emacsvox-aural-voice-runtime--validate-selection:
+../voices/emacsvox-aural-voice-runtime.el:146:2: Warning: docstring wider than 80 characters
+
+In omnivox-apply-voice-configuration:
+omnivox-voices.el:1808:2: Warning: docstring wider than 80 characters
+
+In toplevel form:
+../ui/emacsvox-indentation.el:490:8: Warning: docstring wider than 80 characters
+../ui/emacsvox-indentation.el:492:8: Warning: docstring wider than 80 characters
+
+In emacsvox-aural-menu--save-navigation:
+../ui/emacsvox-aural-menu.el:234:2: Warning: docstring wider than 80 characters
+
+In emacsvox-aural-voice-drafts--prepare:
+../voices/emacsvox-aural-voice-drafts.el:127:2: Warning: docstring wider than 80 characters
+
+In emacsvox-aural-voice-palettes--check-voice-rename:
+../ui/emacsvox-aural-voice-palettes.el:1411:2: Warning: docstring wider than 80 characters
+
+In end of data:
+../ui/emacsvox-aural-voice-palettes.el:1912:14: Warning: the function `emacsvox-aural-current-profile-id' is not known to be defined.
+
+In emacsvox-tone-editor--save:
+../ui/emacsvox-tone-editor.el:321:2: Warning: docstring wider than 80 characters
+
+In emacsvox-tone-editor--duration:
+../ui/emacsvox-tone-editor.el:400:2: Warning: docstring wider than 80 characters
+
+In emacsvox-tone-editor--exponential:
+../ui/emacsvox-tone-editor.el:533:2: Warning: docstring wider than 80 characters
+
+In emacsvox-spelling--edit-tone:
+../ui/emacsvox-spelling.el:236:2: Warning: docstring wider than 80 characters
+
+In emacsvox-settings-workflows--dictionary-save:
+../ui/emacsvox-settings-workflows.el:651:2: Warning: docstring wider than 80 characters
+
+In emacsvox-settings-workflows--chunk-edit:
+../ui/emacsvox-settings-workflows.el:1274:2: Warning: docstring wider than 80 characters
+
+In end of data:
+../ui/emacsvox-settings-workflows.el:1338:37: Warning: the function `emacsvox-settings--custom-quit' is not known to be defined.
+../ui/emacsvox-settings-workflows.el:99:6: Warning: the function `emacsvox-aural-change-feedback--tune-at-point' is not known to be defined.
+
+In emacsvox-settings-integrations--agent-input-feedback:
+../ui/emacsvox-settings-integrations.el:905:2: Warning: docstring wider than 80 characters
+
+In emacsvox-prepare-emacs:
+../emacsvox.el:346:26: Warning: reference to free variable `Info-file-list-for-emacs'
+../emacsvox.el:346:26: Warning: assignment to free variable `Info-file-list-for-emacs'
+
+In emacsvox-setup-programming-modes:
+../emacsvox.el:375:6: Warning: reference to free variable `generic-extras-enable-list'
+
+In emacsvox:
+../emacsvox.el:690:39: Warning: reference to free variable `Info-directory-list'
+../emacsvox.el:690:39: Warning: assignment to free variable `Info-directory-list'
+
+In end of data:
+../emacsvox.el:689:6: Warning: the function `info-initialize' is not known to be defined.
+
+In end of data:
+../integrations/emacsvox-2048.el:146:7: Warning: the function `2048-init-tile' is not known to be defined.
+../integrations/emacsvox-2048.el:85:8: Warning: the function `2048-print-board' is not known to be defined.
+
+In emacsvox-agent-shell--prompt-property-location-in-direction:
+../integrations/emacsvox-agent-shell-navigation.el:1074:49: Warning: reference to free variable `comint-last-prompt'
+
+In end of data:
+../integrations/emacsvox-agent-shell-motion.el:276:25: Warning: the function `shell-maker-busy' is not known to be defined.
+
+In end of data:
+../integrations/emacsvox-agent-shell.el:1033:20: Warning: the function `agent-shell-list-edit--at-item' is not known to be defined.
+
+In end of data:
+../integrations/emacsvox-bbdb.el:82:34: Warning: the function `bbdb-dwim-mail' is not known to be defined.
+
+In emacsvox-bookshare-page-rest-endpoint:
+../integrations/emacsvox-bookshare.el:207:11: Warning: reference to free variable `emacsvox-bookshare-last-action-uri'
+
+In emacsvox-bookshare-toc-at-point:
+../integrations/emacsvox-bookshare.el:1144:18: Warning: assignment to free variable `emacsvox-we-url-executor'
+
+In emacsvox-bookshare-extract-xml:
+../integrations/emacsvox-bookshare.el:1165:6: Warning: reference to free variable `emacsvox-we-xsl-filter'
+
+In emacsvox-bookshare-toc:
+../integrations/emacsvox-bookshare.el:1235:16: Warning: assignment to free variable `emacsvox-we-url-executor'
+
+In emacsvox-calibredb-setup:
+../integrations/emacsvox-calibredb.el:262:15: Warning: reference to free variable `calibredb-search-mode-map'
+
+In emacsvox-chess-goto-target:
+../integrations/emacsvox-chess.el:206:5: Warning: reference to free variable `emacsvox-chess-last-target'
+
+In emacsvox-chess-north:
+../integrations/emacsvox-chess.el:233:24: Warning: reference to free variable `chess-direction-north'
+
+In emacsvox-chess-south:
+../integrations/emacsvox-chess.el:239:24: Warning: reference to free variable `chess-direction-south'
+
+In emacsvox-chess-west:
+../integrations/emacsvox-chess.el:245:24: Warning: reference to free variable `chess-direction-west'
+
+In emacsvox-chess-east:
+../integrations/emacsvox-chess.el:251:24: Warning: reference to free variable `chess-direction-east'
+
+In emacsvox-chess-northwest:
+../integrations/emacsvox-chess.el:257:24: Warning: reference to free variable `chess-direction-northwest'
+
+In emacsvox-chess-southwest:
+../integrations/emacsvox-chess.el:263:24: Warning: reference to free variable `chess-direction-southwest'
+
+In emacsvox-chess-northeast:
+../integrations/emacsvox-chess.el:269:24: Warning: reference to free variable `chess-direction-northeast'
+
+In emacsvox-chess-southeast:
+../integrations/emacsvox-chess.el:275:24: Warning: reference to free variable `chess-direction-southeast'
+
+In emacsvox-chess-look-north:
+../integrations/emacsvox-chess.el:324:36: Warning: reference to free variable `chess-direction-north'
+
+In emacsvox-chess-look-south:
+../integrations/emacsvox-chess.el:333:36: Warning: reference to free variable `chess-direction-south'
+
+In emacsvox-chess-look-west:
+../integrations/emacsvox-chess.el:342:36: Warning: reference to free variable `chess-direction-west'
+
+In emacsvox-chess-look-east:
+../integrations/emacsvox-chess.el:351:36: Warning: reference to free variable `chess-direction-east'
+
+In emacsvox-chess-look-northwest:
+../integrations/emacsvox-chess.el:360:36: Warning: reference to free variable `chess-direction-northwest'
+
+In emacsvox-chess-look-southwest:
+../integrations/emacsvox-chess.el:369:36: Warning: reference to free variable `chess-direction-southwest'
+
+In emacsvox-chess-look-northeast:
+../integrations/emacsvox-chess.el:378:36: Warning: reference to free variable `chess-direction-northeast'
+
+In emacsvox-chess-look-southeast:
+../integrations/emacsvox-chess.el:387:36: Warning: reference to free variable `chess-direction-southeast'
+
+In emacsvox-chess-collect-knight-squares:
+../integrations/emacsvox-chess.el:428:11: Warning: reference to free variable `chess-direction-north-northeast'
+../integrations/emacsvox-chess.el:428:43: Warning: reference to free variable `chess-direction-east-northeast'
+../integrations/emacsvox-chess.el:429:11: Warning: reference to free variable `chess-direction-east-southeast'
+../integrations/emacsvox-chess.el:429:42: Warning: reference to free variable `chess-direction-south-southeast'
+../integrations/emacsvox-chess.el:430:11: Warning: reference to free variable `chess-direction-south-southwest'
+../integrations/emacsvox-chess.el:430:43: Warning: reference to free variable `chess-direction-west-southwest'
+../integrations/emacsvox-chess.el:431:11: Warning: reference to free variable `chess-direction-west-northwest'
+../integrations/emacsvox-chess.el:431:42: Warning: reference to free variable `chess-direction-north-northwest'
+
+In emacsvox-chess-collect-king-squares:
+../integrations/emacsvox-chess.el:462:11: Warning: reference to free variable `chess-direction-northwest'
+../integrations/emacsvox-chess.el:462:37: Warning: reference to free variable `chess-direction-north'
+../integrations/emacsvox-chess.el:463:11: Warning: reference to free variable `chess-direction-northeast'
+../integrations/emacsvox-chess.el:463:37: Warning: reference to free variable `chess-direction-east'
+../integrations/emacsvox-chess.el:464:11: Warning: reference to free variable `chess-direction-southeast'
+../integrations/emacsvox-chess.el:464:37: Warning: reference to free variable `chess-direction-south'
+../integrations/emacsvox-chess.el:465:11: Warning: reference to free variable `chess-direction-southwest'
+../integrations/emacsvox-chess.el:465:37: Warning: reference to free variable `chess-direction-west'
+
+In emacsvox--advice-chess-display-select-piece-around:
+../integrations/emacsvox-chess.el:762:30: Warning: reference to free variable `chess-display-last-selected'
+
+In emacsvox-chess-setup:
+../integrations/emacsvox-chess.el:849:28: Warning: reference to free variable `chess-display-mode-map'
+
+In end of data:
+../integrations/emacsvox-chess.el:633:20: Warning: the function `chess-ply-keyword' is not known to be defined.
+../integrations/emacsvox-chess.el:629:17: Warning: the function `chess-ply-target' is not known to be defined.
+../integrations/emacsvox-chess.el:628:17: Warning: the function `chess-ply-source' is not known to be defined.
+../integrations/emacsvox-chess.el:626:14: Warning: the function `chess-ply-pos' is not known to be defined.
+../integrations/emacsvox-chess.el:625:30: Warning: the function `chess-game-index' is not known to be defined.
+../integrations/emacsvox-chess.el:623:10: Warning: the function `chess-game-ply' is not known to be defined.
+../integrations/emacsvox-chess.el:570:12: Warning: the function `chess-search-position' is not known to be defined.
+../integrations/emacsvox-chess.el:527:12: Warning: the function `chess-pos-search' is not known to be defined.
+../integrations/emacsvox-chess.el:223:19: Warning: the function `chess-next-index' is not known to be defined.
+../integrations/emacsvox-chess.el:204:5: Warning: the function `chess-display-index-pos' is not known to be defined.
+../integrations/emacsvox-chess.el:191:17: Warning: the function `chess-coord-to-index' is not known to be defined.
+../integrations/emacsvox-chess.el:163:17: Warning: the function `chess-index-file' is not known to be defined.
+../integrations/emacsvox-chess.el:162:17: Warning: the function `chess-index-rank' is not known to be defined.
+../integrations/emacsvox-chess.el:161:18: Warning: the function `chess-pos-piece' is not known to be defined.
+../integrations/emacsvox-chess.el:160:18: Warning: the function `chess-index-to-coord' is not known to be defined.
+../integrations/emacsvox-chess.el:152:20: Warning: the function `chess-game-pos' is not known to be defined.
+
+In emacsvox-dbus-nm-connected:
+../integrations/emacsvox-dbus.el:110:9: Warning: assignment to free variable `emacsvox-speak-network-interfaces-list'
+
+In emacsvox-dbus-nm-disconnected:
+../integrations/emacsvox-dbus.el:119:9: Warning: assignment to free variable `emacsvox-speak-network-interfaces-list'
+../integrations/emacsvox-dbus.el:122:34: Warning: reference to free variable `emacsvox-speak-network-interfaces-list'
+
+In end of data:
+../integrations/emacsvox-eat-core.el: Warning: the function `(setf eat-term-parameter)' is not known to be defined.
+
+In emacsvox--advice-ebuku-toggle-results-limit-after:
+../integrations/emacsvox-ebuku.el:89:34: Warning: reference to free variable `ebuku-results-limit'
+
+In emacsvox-ein--toggle-output-feedback:
+../integrations/emacsvox-ein.el:355:33: Warning: Unknown slot `collapsed'
+
+In emacsvox-elfeed-entry-at-point:
+../integrations/emacsvox-elfeed.el:142:49: Warning: reference to free variable `elfeed-search--offset'
+../integrations/emacsvox-elfeed.el:144:31: Warning: reference to free variable `elfeed-search-entries'
+
+In emacsvox--advice-elfeed-search-mode-after:
+../integrations/emacsvox-elfeed.el:226:15: Warning: reference to free variable `elfeed-search-mode-map'
+
+In end of data:
+../integrations/emacsvox-elfeed.el:186:14: Warning: the function `elfeed-untag' is not known to be defined.
+../integrations/emacsvox-elfeed.el:182:16: Warning: the function `elfeed-entry-link' is not known to be defined.
+../integrations/emacsvox-elfeed.el:161:8: Warning: the function `elfeed-tag' is not known to be defined.
+../integrations/emacsvox-elfeed.el:152:24: Warning: the function `elfeed-entry-tags' is not known to be defined.
+../integrations/emacsvox-elfeed.el:151:25: Warning: the function `elfeed-entry-title' is not known to be defined.
+
+In end of data:
+../integrations/emacsvox-elpy.el:87:5: Warning: the function `emacsvox-python--buffer-summary' is not known to be defined.
+
+In emacsvox-empv-play-file:
+../integrations/emacsvox-empv.el:252:18: Warning: reference to free variable `empv--process'
+
+In emacsvox-empv-time-pos:
+../integrations/emacsvox-empv.el:294:57: Warning: reference to free variable `.time-pos'
+../integrations/emacsvox-empv.el:295:38: Warning: reference to free variable `.percent-pos'
+
+In end of data:
+../integrations/emacsvox-empv.el:492:4: Warning: the function `empv--send-command' is not known to be defined.
+../integrations/emacsvox-empv.el:400:13: Warning: the function `empv--yt-search-query' is not known to be defined.
+../integrations/emacsvox-empv.el:382:31: Warning: the function `empv-youtube-results--current-item' is not known to be defined.
+../integrations/emacsvox-empv.el:306:4: Warning: the function `empv-seek' is not known to be defined.
+../integrations/emacsvox-empv.el:292:4: Warning: the function `empv--let-properties' is not known to be defined.
+../integrations/emacsvox-empv.el:266:28: Warning: the function `empv-youtube' is not known to be defined.
+../integrations/emacsvox-empv.el:221:4: Warning: the function `empv-play' is not known to be defined.
+
+In emacsvox-eshell-prompt-function:
+../integrations/emacsvox-eshell.el:56:10: Warning: reference to free variable `eshell-last-command-status'
+
+In emacsvox-evil-state-change-hook:
+../integrations/emacsvox-evil.el:315:14: Warning: reference to free variable `evil-previous-state'
+../integrations/emacsvox-evil.el:315:34: Warning: reference to free variable `evil-next-state'
+
+In emacsvox-evil-toggle-evil:
+../integrations/emacsvox-evil.el:361:18: Warning: reference to free variable `evil-mode'
+
+In emacsvox-eww-add-mark:
+../integrations/emacsvox-eww.el:2166:50: Warning: reference to free variable `org-stored-links'
+../integrations/emacsvox-eww.el:2166:50: Warning: assignment to free variable `org-stored-links'
+
+In emacsvox-eww-jump-to-mark:
+../integrations/emacsvox-eww.el:2201:45: Warning: reference to free variable `emacsvox-bookshare-this-book'
+
+In emacsvox--advice-exwm-floating-toggle-floating-after:
+../integrations/emacsvox-exwm.el:59:39: Warning: reference to free variable `exwm--floating-frame'
+
+In emacsvox--advice-exwm-input-toggle-keyboard-after:
+../integrations/emacsvox-exwm.el:75:14: Warning: reference to free variable `exwm--input-mode'
+
+In emacsvox-exwm-workspace-cycle:
+../integrations/emacsvox-exwm.el:158:25: Warning: reference to free variable `exwm-workspace--list'
+../integrations/emacsvox-exwm.el:159:42: Warning: reference to free variable `exwm-workspace--current'
+
+In emacsvox-exwm-mode-hook:
+../integrations/emacsvox-exwm.el:173:15: Warning: reference to free variable `exwm-mode-map'
+
+In end of data:
+../integrations/emacsvox-exwm.el:161:6: Warning: the function `exwm-workspace-switch' is not known to be defined.
+../integrations/emacsvox-exwm.el:159:17: Warning: the function `exwm-workspace--position' is not known to be defined.
+../integrations/emacsvox-exwm.el:99:19: Warning: the function `exwm-layout--fullscreen-p' is not known to be defined.
+
+In emacsvox-feeds-render:
+../integrations/emacsvox-feeds.el:221:18: Warning: assignment to free variable `eww-current-url'
+
+In end of data:
+../integrations/emacsvox-folding.el:182:4: Warning: the function `diminish' is not known to be defined.
+
+In emacsvox--advice-gmaps-set-current-radius-after:
+../integrations/emacsvox-google.el:564:35: Warning: reference to free variable `gmaps-current-radius'
+
+In end of data:
+../integrations/emacsvox-haskell.el:242:7: Warning: the function `haskell-indentation-mode' is not known to be defined.
+
+In emacsvox--advice-helm-mode-after:
+../integrations/emacsvox-helm.el:48:24: Warning: reference to free variable `helm-mode'
+
+In end of data:
+../integrations/emacsvox-helm.el:100:27: Warning: the function `helm-buffer-get' is not known to be defined.
+
+In emacsvox-hydra-toggle-talkative:
+../integrations/emacsvox-hydra.el:55:31: Warning: reference to free variable `hydra-is-helpful'
+../integrations/emacsvox-hydra.el:55:9: Warning: assignment to free variable `hydra-is-helpful'
+../integrations/emacsvox-hydra.el:78:4: Warning: assignment to free variable `hydra-head-format'
+../integrations/emacsvox-hydra.el:79:4: Warning: assignment to free variable `hydra-hint-display-type'
+
+In end of data:
+../integrations/emacsvox-hydra.el:94:40: Warning: the function `lv-window' is not known to be defined.
+
+In emacsvox--advice-iedit-mode-after:
+../integrations/emacsvox-iedit.el:70:24: Warning: reference to free variable `iedit-mode'
+
+In emacsvox--advice-iedit-show/hide-lines-after:
+../integrations/emacsvox-iedit.el:128:24: Warning: reference to free variable `iedit-hiding'
+
+In emacsvox-ivy-speak-selection:
+../integrations/emacsvox-ivy.el:96:5: Warning: reference to free variable `ivy--length'
+../integrations/emacsvox-ivy.el:97:10: Warning: reference to free variable `ivy--old-cands'
+../integrations/emacsvox-ivy.el:97:25: Warning: reference to free variable `ivy--index'
+
+In emacsvox-js2-hook:
+../integrations/emacsvox-js2.el:168:15: Warning: reference to free variable `js2-mode-map'
+
+In end of data:
+../integrations/emacsvox-js2.el:172:6: Warning: the function `js2-imenu-extras-setup' is not known to be defined.
+
+In emacsvox-m-player-store-link:
+../integrations/emacsvox-m-player.el:1529:6: Warning: reference to free variable `org-stored-links'
+../integrations/emacsvox-m-player.el:1529:6: Warning: assignment to free variable `org-stored-links'
+(file-missing "Searching for program" "No such file or directory" "man")
+
+In emacsvox--advice-marginalia-mode-after:
+../integrations/emacsvox-marginalia.el:78:24: Warning: reference to free variable `marginalia-mode'
+
+In emacsvox-maths-guess-tex:
+../integrations/emacsvox-maths.el:410:27: Warning: reference to free variable `texmathp-why'
+
+In end of data:
+../integrations/emacsvox-maths.el:409:10: Warning: the function `texmathp' is not known to be defined.
+../integrations/emacsvox-maths.el:100:8: Warning: the function `nvm-use' is not known to be defined.
+../integrations/emacsvox-maths.el:98:11: Warning: the function `nvm--installed-versions' is not known to be defined.
+
+In emacsvox-mines-speak-uncovered-count:
+../integrations/emacsvox-mines.el:79:12: Warning: reference to free variable `mines-number-mines'
+../integrations/emacsvox-mines.el:79:51: Warning: reference to free variable `mines-state'
+
+In emacsvox-mines-speak-mark-count:
+../integrations/emacsvox-mines.el:104:25: Warning: reference to free variable `mines-flagged-cell-char'
+
+In emacsvox-mines-speak-board:
+../integrations/emacsvox-mines.el:117:42: Warning: reference to free variable `mines-state'
+../integrations/emacsvox-mines.el:121:31: Warning: reference to free variable `mines-grid'
+../integrations/emacsvox-mines.el:129:27: Warning: reference to free variable `mines-number-cols'
+
+In emacsvox-mines-init:
+../integrations/emacsvox-mines.el:134:9: Warning: assignment to free variable `mines-flagged-cell-char'
+../integrations/emacsvox-mines.el:147:16: Warning: reference to free variable `mines-mode-map'
+
+In emacsvox-mines-speak-neighbors:
+../integrations/emacsvox-mines.el:167:46: Warning: reference to free variable `mines-state'
+../integrations/emacsvox-mines.el:168:47: Warning: reference to free variable `mines-grid'
+
+In emacsvox-mines-beginning-of-row:
+../integrations/emacsvox-mines.el:201:24: Warning: reference to free variable `mines-number-cols'
+
+In emacsvox-mines-end-of-row:
+../integrations/emacsvox-mines.el:208:24: Warning: reference to free variable `mines-number-cols'
+
+In emacsvox--advice-mines-dig-after:
+../integrations/emacsvox-mines.el:239:13: Warning: reference to free variable `mines-game-over'
+
+In emacsvox--advice-mines-flag-cell-after:
+../integrations/emacsvox-mines.el:247:21: Warning: reference to free variable `mines-grid'
+
+In end of data:
+../integrations/emacsvox-mines.el:163:24: Warning: the function `mines-get-neighbours' is not known to be defined.
+../integrations/emacsvox-mines.el:85:25: Warning: the function `mines-goto' is not known to be defined.
+../integrations/emacsvox-mines.el:63:38: Warning: the function `mines-current-pos' is not known to be defined.
+../integrations/emacsvox-mines.el:63:16: Warning: the function `mines-index-2-matrix' is not known to be defined.
+
+In toplevel form:
+../integrations/emacsvox-popup.el:136:16: Warning: reference to free variable `popup-menu-keymap'
+
+In end of data:
+../integrations/emacsvox-popup.el:101:15: Warning: the function `popup-menu-documentation' is not known to be defined.
+../integrations/emacsvox-popup.el:57:39: Warning: the function `popup-cursor' is not known to be defined.
+../integrations/emacsvox-popup.el:57:20: Warning: the function `popup-list' is not known to be defined.
+
+In emacsvox-proced-update-fields:
+../integrations/emacsvox-proced.el:57:17: Warning: reference to free variable `proced-header-line'
+
+In emacsvox-proced-speak-field:
+../integrations/emacsvox-proced.el:210:22: Warning: reference to free variable `proced-process-alist'
+
+In emacsvox-proced-add-keys:
+../integrations/emacsvox-proced.el:224:15: Warning: reference to free variable `proced-mode-map'
+
+In end of data:
+../integrations/emacsvox-py.el:285:35: Warning: the function `py-beginning-of-block' is not known to be defined.
+
+In emacsvox--advice-reftex-toc-toggle-follow-after:
+../integrations/emacsvox-reftex.el:135:24: Warning: reference to free variable `reftex-toc-follow-mode'
+
+In emacsvox--advice-reftex-toc-toggle-labels-after:
+../integrations/emacsvox-reftex.el:145:24: Warning: reference to free variable `reftex-toc-include-labels'
+
+In emacsvox--advice-reftex-toc-toggle-file-boundary-after:
+../integrations/emacsvox-reftex.el:155:24: Warning: reference to free variable `reftex-toc-include-file-boundaries'
+
+In emacsvox--advice-reftex-toc-toggle-context-after:
+../integrations/emacsvox-reftex.el:165:24: Warning: reference to free variable `reftex-toc-include-context'
+
+In emacsvox--advice-reftex-index-toggle-follow-after:
+../integrations/emacsvox-reftex.el:219:24: Warning: reference to free variable `reftex-index-follow-mode'
+
+In emacsvox--advice-reftex-index-toggle-context-after:
+../integrations/emacsvox-reftex.el:229:24: Warning: reference to free variable `reftex-index-include-context'
+
+In end of data:
+../integrations/emacsvox-reftex.el:84:32: Warning: the function `emacsvox-outline-speak-this-heading' is not known to be defined.
+
+In emacsvox--advice-rust-format-buffer-after:
+../integrations/emacsvox-rust-mode.el:75:32: Warning: reference to free variable `rust-rustfmt-buffername'
+
+In emacsvox-rust-mode-setup:
+../integrations/emacsvox-rust-mode.el:115:17: Warning: reference to free variable `rust-mode-map'
+
+In emacsvox-sdcv-update-dictionary-list:
+../integrations/emacsvox-sdcv.el:108:11: Warning: assignment to free variable `sdcv-dictionary-simple-list'
+
+In emacsvox-sdcv-setup:
+../integrations/emacsvox-sdcv.el:123:28: Warning: reference to free variable `sdcv-mode-map'
+
+In emacsvox-ses-current-cell-value:
+../integrations/emacsvox-ses.el:53:5: Warning: reference to free variable `ses--cells'
+../integrations/emacsvox-ses.el:53:26: Warning: reference to free variable `ses--named-cell-hashmap'
+
+In emacsvox-ses-get-cell-value-by-name:
+../integrations/emacsvox-ses.el:61:5: Warning: reference to free variable `ses--cells'
+../integrations/emacsvox-ses.el:61:25: Warning: reference to free variable `ses--named-cell-hashmap'
+
+In end of data:
+../integrations/emacsvox-slime.el:263:25: Warning: the function `slime-buffer-name' is not known to be defined.
+
+In emacsvox-table-synchronize-display:
+../core/emacsvox-table-ui.el:286:8: Warning: reference to free variable `ems--positions'
+
+In toplevel form:
+../integrations/emacsvox-vdiff.el:200:18: Warning: reference to free variable `vdiff-mode-prefix-map'
+../integrations/emacsvox-vdiff.el:201:18: Warning: reference to free variable `vdiff-mode-map'
+
+In end of data:
+../integrations/emacsvox-vdiff.el:86:8: Warning: the function `vdiff-switch-buffer' is not known to be defined.
+../integrations/emacsvox-vdiff.el:68:15: Warning: the function `vdiff--overlay-at-pos' is not known to be defined.
+
+In end of data:
+../integrations/emacsvox-vertico.el:200:17: Warning: the function `vertico--match-p' is not known to be defined.
+../integrations/emacsvox-vertico.el:164:8: Warning: the function `vertico--candidate' is not known to be defined.
+
+In emacsvox-widget-create-voice-selector:
+../integrations/emacsvox-widget.el:689:57: Warning: reference to free variable `dectalk-voice-table'
+
+In end of data:
+../core/emacsvox-wizards.el:1983:4: Warning: the function `ntc-shade-this-color' is not known to be defined.
+../core/emacsvox-wizards.el:1975:4: Warning: the function `ntc-name-this-color' is not known to be defined.
+../core/emacsvox-wizards.el:1906:20: Warning: the function `ntc--struct-shade' is not known to be defined.
+../core/emacsvox-wizards.el:1905:19: Warning: the function `ntc--struct-name' is not known to be defined.
+../core/emacsvox-wizards.el:1904:24: Warning: the function `ntc--get-closest-color' is not known to be defined.
+
+In emacsvox-xkcd-get-current-transcript:
+../integrations/emacsvox-xkcd.el:64:65: Warning: reference to free variable `xkcd-cur'
+
+In emacsvox--advice-xkcd-get-after:
+../integrations/emacsvox-xkcd.el:70:13: Warning: reference to free variable `xkcd-alt'
+
+In emacsvox-xkcd-open-explanation-browser:
+../integrations/emacsvox-xkcd.el:114:41: Warning: reference to free variable `xkcd-cur'
+
+In end of data:
+../integrations/emacsvox-xkcd.el:64:48: Warning: the function `xkcd-get-json' is not known to be defined.

@@ -1,0 +1,14 @@
+{
+  "omnivox_base": "f3d6eda597e6f84cc15724d63bb7dd833afdfa82",
+  "emacsvox_base": "fb916e4f3327f4aa97ff1d2cfe30d48b16174ca6",
+  "rust_toolchain": "[toolchain]\nchannel = \"1.97.1\"\nprofile = \"minimal\"\ncomponents = [\"clippy\", \"rustfmt\"]\n",
+  "host": "Linux URSYS-8M3WMB4 6.18.54.1-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Tue Oct  6 19:13:07 UTC 2026 x86_64 GNU/Linux",
+  "linux_payload": "/home/bart/src/omnivox-lightweight-reload/target/resident-reload/payload-final",
+  "windows_runtime": "/home/bart/src/emacsvox-lightweight-reload/servers/omnivox-bin/versions/b7c1018ba58a7b73",
+  "measurement": "client monotonic send to receipt of utterance_started source event, null output",
+  "limitations": [
+    "No acoustic measurement",
+    "No native macOS",
+    "Shared workstation, rotated blocks with load averages recorded"
+  ]
+}

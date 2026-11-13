@@ -1,0 +1,31 @@
+{
+  "date": "2026-11-13",
+  "scope": "Local source merge; no release or desktop deployment",
+  "omnivox_parents": [
+    "f025849c3c273bd00de16feada2131b1bd87e70e",
+    "7ac4f5d7c4d0d0f48bb0a0736b4ec580690835ec"
+  ],
+  "emacsvox_parents": [
+    "89acd0601ba768a0ac767ebb021959be81cf0f1d",
+    "0acf2deae811a920b49db325eaaa3f9b31a7e8ce"
+  ],
+  "emacsvox_candidate_tree": "d4388e9065c639dccae79f5eabbf8d0195af2ef9",
+  "rust_toolchain": "1.97.1",
+  "linux_emacs": "31.0.90",
+  "windows_emacs": "31.1",
+  "windows_runtime_build": "4e1c1561f51908a6",
+  "windows_runtime_sha256": "529499252023e106b0329e670b13f85fb9cb3a6b729acddabe394b92208dee28",
+  "windows_runtime_reused": true,
+  "runtime_rust_source_identical_to_feature": true,
+  "native_client_matched_tracked_files": 1044,
+  "native_install_metadata": "Borrowed only for installed runtime and Emacs locations; SourceCommit there is not candidate provenance.",
+  "rust_input_directories": {
+    "flite": "/home/bart/src/omnivox-lightweight-reload/target/flite-inputs/2.2/source",
+    "rutts": "/home/bart/src/omnivox-lightweight-reload/target/rutts-inputs/6.3.3/source",
+    "tgspeechbox": "/home/bart/src/omnivox-lightweight-reload/target/tgspeechbox-inputs/v-310@25b0e1a/source",
+    "piper": "/home/bart/src/omnivox/target/piper-inputs/1.7.0/x86_64-unknown-linux-gnu"
+  },
+  "cargo_target_dir": "/home/bart/.cache/ov-merge",
+  "parallel_build_jobs": 6,
+  "emacsvox_merge_commit": "13bb6b7764d8954c15fcd21485909ee198490717"
+}

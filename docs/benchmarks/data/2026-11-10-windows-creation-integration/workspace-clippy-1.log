@@ -1,0 +1,11 @@
+   Compiling omnivox-tts v1.18.0 (/home/bart/src/omnivox-lightweight-reload/omnivox-tts)
+   Compiling omnivox-cli v1.18.0 (/home/bart/src/omnivox-lightweight-reload/omnivox-cli)
+   Compiling omnivox-piper-sys v1.18.0 (/home/bart/src/omnivox-lightweight-reload/omnivox-piper-sys)
+    Checking omnivox-helper-host v1.18.0 (/home/bart/src/omnivox-lightweight-reload/omnivox-helper-host)
+    Checking omnivox-linux-helpers v1.18.0 (/home/bart/src/omnivox-lightweight-reload/linux-helpers)
+    Checking omnivox-flite-helper v1.18.0 (/home/bart/src/omnivox-lightweight-reload/omnivox-flite-helper)
+    Checking omnivox-rutts-helper v1.18.0 (/home/bart/src/omnivox-lightweight-reload/omnivox-rutts-helper)
+    Checking omnivox-rhvoice-helper v1.18.0 (/home/bart/src/omnivox-lightweight-reload/omnivox-rhvoice-helper)
+    Checking omnivox-tgspeechbox-helper v1.18.0 (/home/bart/src/omnivox-lightweight-reload/omnivox-tgspeechbox-helper)
+    Checking omnivox-mbrola-helper v1.18.0 (/home/bart/src/omnivox-lightweight-reload/omnivox-mbrola-helper)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 22.63s

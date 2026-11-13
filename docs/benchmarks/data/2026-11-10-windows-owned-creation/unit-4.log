@@ -1,0 +1,27 @@
+native_guard::windows_owned::tests 101 
+running 5 tests
+test native_guard::windows_owned::tests::changed_identity_and_duplicate_creation_fail_without_unbounded_children ... ok
+test native_guard::windows_owned::tests::lost_offer_or_ack_retires_the_receiver_and_actual_helper ... ok
+test native_guard::windows_owned::tests::pending_creation_keeps_retirement_unconfirmed_and_control_responsive ... ok
+test native_guard::windows_owned::tests::unaccounted_job_member_never_becomes_a_retirement_receipt ... ok
+test native_guard::windows_owned::tests::worker_loss_during_creation_cannot_release_a_late_helper ... FAILED
+
+failures:
+
+failures:
+    native_guard::windows_owned::tests::worker_loss_during_creation_cannot_release_a_late_helper
+
+test result: FAILED. 4 passed; 1 failed; 0 ignored; 0 measured; 378 filtered out; finished in 18.86s
+
+ 
+thread 'native_guard::windows_owned::tests::worker_loss_during_creation_cannot_release_a_late_helper' (36096) panicked at omnivox-cli/src/native_guard/windows/owned_tests.rs:36:9:
+native test deadline: Some("Access is denied. (os error 5)")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+native_guard::os::native::creation 0 
+running 1 test
+test native_guard::os::native::creation::tests::quoted_native_arguments_keep_empty_quotes_and_trailing_slashes ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 382 filtered out; finished in 0.00s
+
+ 

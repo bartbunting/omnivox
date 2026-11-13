@@ -255,16 +255,51 @@ choices retain priority and reset restores each worker's startup channel.
 
 The remaining configuration work is:
 
-- **Session configuration and reload:** [proposed ADR 0011](adr/0011-session-configuration-and-reload.md)
-  records the selected direction for Omnivox to coordinate configuration while
-  clients request changes and present results. Define controller lifetime,
-  negotiated operations, revision persistence, the shared admission boundary and
-  failure recovery before implementation. Start with speech-preference reload
-  across existing independent workers, then extend configuration Apply to helper
-  changes. Verify partial activation, client/worker/controller loss, stale retries,
-  retained reset defaults and recovery, and older-client compatibility. Process
-  consolidation, shared engine instances and remote management remain separate
-  choices. The proposal does not replace current accepted contracts.
+- **Lightweight preference reload:** [ADR 0017](adr/0017-independent-host-preference-reload.md)
+  accepts independent per-worker installation while retaining coherent requests
+  and native ownership. The [resident punctuation delivery](benchmarks/2026-11-10-resident-reload.md)
+  adds local stdio reload/status and paired client integration; the
+  [wider host preference delivery](benchmarks/2026-11-10-host-preferences.md)
+  adds capital pitch, chunking and saved Reset defaults. Paired
+  [retained recovery](benchmarks/2026-11-10-retained-recovery.md) handles confirmed
+  worker retirement and broken saved settings while preserving the peer.
+  [Native receipt verification](benchmarks/2026-11-10-retirement-receipts.md)
+  closes lost-reply ambiguity without bypassing missing cleanup.
+  [Minimal emergency speech](benchmarks/2026-11-10-emergency-speech.md), accepted
+  under [0018](adr/0018-minimal-emergency-speech.md), separates emergency admission
+  from damaged management state while retaining native proof and old claims.
+  [Prepared emergency startup](benchmarks/2026-11-10-deferred-start.md) reduces
+  recovery time and the measured source gap by preparing before old retirement.
+  The opt-in [Linux native guard](benchmarks/2026-11-10-guard-integration.md)
+  connects independent cleanup to the paired client without TCP or another speech
+  hop. Its startup cost and remaining platform qualification remain explicit.
+  [Windows native testing](benchmarks/2026-11-10-windows-guard-qualification.md)
+  found job-accounting zero can precede helper process-handle completion. The bounded
+  [creation-handoff experiment](benchmarks/2026-11-10-guard-handoff-and-preparation.md)
+  establishes actual-handle completion for Flite and concurrent creation.
+  [ADR 0019](adr/0019-windows-native-creation-ownership.md) accepts the creation
+  boundary; its [Rust components](benchmarks/2026-11-10-windows-owned-creation.md)
+  pass native tests. The [integrated Windows prototype](benchmarks/2026-11-10-windows-creation-integration.md)
+  established explicit guarded eSpeak/Flite, with actual process completion,
+  independent recovery and direct speech pipes. The
+  [multi-engine follow-up](benchmarks/2026-11-10-windows-multi-engine.md) adds
+  WinRT, RuTTS, TGSpeechBox, Eloquence, DECtalk and RHVoice on Windows x64.
+  Qualify the remaining engines and listening before broader adoption;
+  ordinary reload remains independent. Concurrent control-bridge preparation
+  now also applies to ordinary startup; source-gap and operation-time evidence
+  remain distinct. The [replacement and handover follow-up](benchmarks/2026-11-10-replacement-and-handover.md)
+  resolves the measured Flite replacement penalty and foreground
+  handover delay; real-output listening remains before broader adoption.
+  The [plan](plans/lightweight-preference-reload.md) tracks remaining acoustic/platform
+  qualification and recovery hardening.
+- **Retained session work:** preserve the accepted session experiment at
+  `7879419`, including native cleanup guards and managed activation. Its global
+  preference commit is no longer required for ordinary reload. Reuse proven
+  lifetime protections where they improve recovery; measure any new lifecycle
+  manager separately from the speech path. The earlier branch copy of
+  [0011](adr/0011-session-configuration-and-reload.md) is historical proposal text;
+  [0017](adr/0017-independent-host-preference-reload.md) links the accepted session
+  decisions and defines the superseded preference requirements.
 - **Per-helper environment:** extend the existing registration backlog when a
   helper needs separate runtime settings; preserve private values and immutable
   recovery rather than adding another discovery path.

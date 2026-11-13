@@ -1,0 +1,100 @@
+# ADR 0014: One Unix cleanup guard per private session
+
+- Status: Accepted for implementation. Runtime integration and native platform
+  qualification remain separate.
+- Date: 2026-10-24.
+- Accepted: 2026-10-24, including creation of this record and implementation of
+  the guard design.
+- Partially supersedes: [ADR 0013](0013-private-sessions-and-multi-lane-supervision.md#one-supervisor-owns-a-bounded-collection-of-isolated-lanes),
+  specifically placement of Unix native tree ownership in the configuration
+  supervisor. Its private-instance, lane isolation and supervisor-loss rules remain.
+- Related: [Managed native ownership](0007-managed-voice-lifecycle.md#verify-before-native-use-and-retain-cleanup-ownership),
+  [engine isolation](0001-engine-isolation-and-distribution.md) and
+  [session configuration](0011-session-configuration-and-reload.md).
+  [ADR 0015](0015-windows-session-cleanup-guard.md) extends this separation to
+  Windows without changing this record's Unix contract.
+- Managed activation refinement: [ADR 0016](0016-session-managed-voice-activation.md)
+  adds bounded probe, candidate and rollback ownership within the original guard.
+  Configuration decisions remain in the supervisor.
+
+## Context
+
+ADR 0013 centralizes configuration decisions and native ownership. On Unix,
+private process groups provide signalling boundaries but do not automatically
+terminate when their owner dies. A worker-side lifetime watcher disappears if
+that worker crashes first, leaving no owner to terminate its surviving helpers
+after the configuration supervisor also dies. The
+[native investigation](../benchmarks/2026-10-24-supervisor-native-lifetime.md)
+reproduces this failure order on Linux.
+
+Blocking replacement without cleanup proof remains safe, but losing speech until
+manual intervention is a substantial availability cost. Native ownership needs
+to outlive configuration-supervisor failure without restoring per-lane owners or
+distributed configuration decisions.
+
+## Decision
+
+Use one dedicated native cleanup guard process for the whole private Unix
+session, serving its bounded collection of isolated lane workers. The guard owns
+worker creation, native launch gates, live child/process-group identities and
+tree retirement. Establish ownership before any worker initializes engines or
+helpers. Keep the group leader unreaped until the group's termination signal;
+saved numerical PIDs never grant a successor signalling authority.
+
+The configuration supervisor owns membership, prepared startup/recovery records,
+asset retention, immutable Commit/Abort decisions and terminal configuration
+results. The guard neither selects configuration nor votes in reload. Native
+ownership and lifecycle observations use a private bounded channel, separate from
+speech and client output. The guard must continue cleanup when those outputs or
+worker inputs are blocked. Lifetime descriptors must not leak into workers or
+helpers and keep a dead supervisor apparently alive.
+
+Loss of the configuration supervisor closes admission for the entire session
+and causes the guard to retire all owned trees, including gated workers and
+helpers whose worker has already exited. Keep per-lane retirement possible while
+the supervisor survives; a failed lane cannot prevent attempts to retire others.
+Guard shutdown and startup failure retain the same ownership obligations.
+
+Guard failure, unavailable native evidence or incomplete retirement keeps
+recovery blocked. Do not infer cleanup from guard exit, a timeout, a free lock,
+EOF or a PID lookup. Durable cleanup evidence must bind the exact session, guard
+and worker incarnations and become available before a successor releases retained
+assets or starts replacement workers. Native tree cleanup and completion of any
+speech I/O tasks are distinct obligations. Uncertain or damaged records retain
+asset pins and conflicting-management exclusion.
+
+Supervisor loss still ends the session: successors do not attach to surviving
+workers. Reconcile saved decisions and prove cleanup before starting fresh workers
+from the last conclusively committed configuration. Do not reread edited files or
+replay interrupted speech. Before enabling the path, provide explicit unavailable
+status and a documented, tested recovery procedure; repeated restarts must not
+silently discard blocked ownership.
+
+Windows may keep its existing private kill-on-close job boundary, subject to
+native qualification of the new session path. Linux and macOS need their own
+cleanup evidence. This decision does not introduce a shared daemon, engine pool,
+remote management, helper/output Apply, a required external service manager or a
+new distributable helper. The guard can run as a private mode of the selected
+Omnivox executable. Existing standalone, local managed and remote paths retain
+their contracts until an explicitly negotiated replacement is qualified.
+
+## Consequences and alternatives
+
+The extra process retains native authority after configuration-supervisor loss
+and serves every lane. It adds a lifecycle channel, startup ordering and durable
+cleanup accounting, while configuration coordination remains centralized. It
+does not guarantee recovery after simultaneous guard failure or eliminate
+per-lane model memory. Process groups assume qualified helpers remain in their
+owned group; they are not a sandbox for arbitrary hostile executables.
+
+Keeping all ownership in one supervisor avoids the extra process but leaves the
+demonstrated failures blocked. A worker watcher alone cannot cover prior worker
+death. Externally managed kernel containment can strengthen Linux ownership but
+adds deployment requirements and does not supply the macOS solution. Per-lane
+owners retain more processes and coordination than the chosen session-wide guard.
+
+Exact internal contracts, delivery stages and observations belong in the
+[reload reference](../reference/session-configuration-reload.md),
+[delivery plan](../plans/session-configuration-reload.md#native-lifetime-review)
+and [evidence archive](../benchmarks/README.md). Acceptance does not establish
+implementation, platform qualification or release availability.

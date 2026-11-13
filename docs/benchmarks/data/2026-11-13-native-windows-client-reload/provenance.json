@@ -1,0 +1,30 @@
+{
+  "date_local": "2026-11-13",
+  "timezone": "Australia/Sydney",
+  "client_commit": "0c72147cc1e25924c9cf7fc538e8fc0700dc5b1c",
+  "client_patch_sha256": "78b0eaa7f08b7e8d836183f4be9b45a4e6c48f935636fd6badd43e4aeacc703f",
+  "runtime_build": "4e1c1561f51908a6",
+  "runtime_sha256": "529499252023e106b0329e670b13f85fb9cb3a6b729acddabe394b92208dee28",
+  "native_emacs": "31.1",
+  "data_files_verified": 812,
+  "accepted_early_speech": false,
+  "first_four_winrt_runs_early_speech": true,
+  "qualification": "source completion; no human listening or timing claim",
+  "tests": {
+    "ert_expected": 707,
+    "ert_skipped": 9,
+    "ert_unexpected": 0,
+    "native_lifecycle_engines": [
+      "winrt",
+      "flite",
+      "eloquence",
+      "dectalk"
+    ],
+    "native_personal_profile": "passed",
+    "native_personal_engines": [
+      "winrt",
+      "eloquence",
+      "dectalk"
+    ]
+  }
+}

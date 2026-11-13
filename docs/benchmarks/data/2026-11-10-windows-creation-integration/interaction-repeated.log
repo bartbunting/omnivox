@@ -1,0 +1,8 @@
+{"engine": "flite", "guarded": false, "repeat": 0, "passed": true}
+{"engine": "flite", "guarded": true, "repeat": 0, "passed": true}
+{"engine": "flite", "guarded": true, "repeat": 1, "passed": true}
+{"engine": "flite", "guarded": false, "repeat": 1, "passed": true}
+{"engine": "flite", "guarded": false, "repeat": 2, "passed": true}
+{"engine": "flite", "guarded": true, "repeat": 2, "passed": true}
+{"engine": "flite", "guarded": true, "repeat": 3, "passed": true}
+{"engine": "flite", "guarded": false, "repeat": 3, "passed": true}

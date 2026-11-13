@@ -1,0 +1,37 @@
+[
+  {
+    "run": "wrapper-before-1",
+    "first_source_seconds": 11.992532014846802,
+    "profile_seconds": 14.049429416656494,
+    "wrapper_to_script_seconds": 1.1500000953674316,
+    "package_seconds": 2.612302780151367
+  },
+  {
+    "run": "wrapper-after-1",
+    "first_source_seconds": 8.448603630065918,
+    "profile_seconds": 10.523594856262207,
+    "wrapper_to_script_seconds": 0.7369999885559082,
+    "package_seconds": 2.7582056522369385
+  },
+  {
+    "run": "wrapper-before-2",
+    "first_source_seconds": 12.685758829116821,
+    "profile_seconds": 15.064335107803345,
+    "wrapper_to_script_seconds": 0.7579998970031738,
+    "package_seconds": 3.7396178245544434
+  },
+  {
+    "run": "wrapper-after-2",
+    "first_source_seconds": 8.079681873321533,
+    "profile_seconds": 10.089850902557373,
+    "wrapper_to_script_seconds": 0.7579998970031738,
+    "package_seconds": 2.8214375972747803
+  },
+  {
+    "run": "wrapper-dectalk",
+    "first_source_seconds": 8.729674100875854,
+    "profile_seconds": 10.689703464508057,
+    "wrapper_to_script_seconds": 0.7219998836517334,
+    "package_seconds": 3.4243147373199463
+  }
+]

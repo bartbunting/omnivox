@@ -1,0 +1,202 @@
+{
+  "ordered": {
+    "release": {
+      "source_ms": {
+        "n": 1024,
+        "median": 1.5712125000000001,
+        "p95": 2.288601,
+        "maximum": 152.61191
+      },
+      "management_interval_source_ms": {
+        "n": 0
+      },
+      "reload_ms": {
+        "n": 0
+      },
+      "block_medians": [
+        1.545969,
+        1.5617455,
+        1.604199,
+        1.5834605000000002
+      ],
+      "sha256": [
+        "55415b3db325bcab10ea33755738adb45c61f3c05e6c251aec7bd7d0c5eb773c"
+      ]
+    },
+    "punctuation": {
+      "source_ms": {
+        "n": 1024,
+        "median": 1.5859969999999999,
+        "p95": 2.223817,
+        "maximum": 152.584926
+      },
+      "management_interval_source_ms": {
+        "n": 0
+      },
+      "reload_ms": {
+        "n": 0
+      },
+      "block_medians": [
+        1.5849085,
+        1.593888,
+        1.5884334999999998,
+        1.5780925
+      ],
+      "sha256": [
+        "bcb94e5eb895ef7eb74468daa393817febe9fa866db501898d84f3d8bb780190"
+      ]
+    },
+    "host-idle": {
+      "source_ms": {
+        "n": 1024,
+        "median": 1.576002,
+        "p95": 2.318841,
+        "maximum": 152.361139
+      },
+      "management_interval_source_ms": {
+        "n": 0
+      },
+      "reload_ms": {
+        "n": 0
+      },
+      "block_medians": [
+        1.613763,
+        1.5855744999999999,
+        1.5318675000000002,
+        1.5909369999999998
+      ],
+      "sha256": [
+        "6a269638938cfd487f3dba1677c0fec073194f2c4bf0a0face1ba912fb0e4d8d"
+      ]
+    },
+    "host-reload": {
+      "source_ms": {
+        "n": 1024,
+        "median": 2.1683035000000004,
+        "p95": 4.550917,
+        "maximum": 152.953708
+      },
+      "management_interval_source_ms": {
+        "n": 512,
+        "median": 3.3568805,
+        "p95": 5.137379,
+        "maximum": 152.953708
+      },
+      "reload_ms": {
+        "n": 1024,
+        "median": 8.877463500000001,
+        "p95": 11.238934,
+        "maximum": 15.202705
+      },
+      "block_medians": [
+        2.1480115,
+        2.1348985000000003,
+        2.2255645,
+        2.1466250000000002
+      ],
+      "sha256": [
+        "6a269638938cfd487f3dba1677c0fec073194f2c4bf0a0face1ba912fb0e4d8d"
+      ]
+    }
+  },
+  "letter": {
+    "release": {
+      "source_ms": {
+        "n": 1024,
+        "median": 1.4824359999999999,
+        "p95": 2.106339,
+        "maximum": 152.144536
+      },
+      "management_interval_source_ms": {
+        "n": 0
+      },
+      "reload_ms": {
+        "n": 0
+      },
+      "block_medians": [
+        1.435332,
+        1.498663,
+        1.5382635,
+        1.483871
+      ],
+      "sha256": [
+        "55415b3db325bcab10ea33755738adb45c61f3c05e6c251aec7bd7d0c5eb773c"
+      ]
+    },
+    "punctuation": {
+      "source_ms": {
+        "n": 1024,
+        "median": 1.5155020000000001,
+        "p95": 2.227367,
+        "maximum": 152.651984
+      },
+      "management_interval_source_ms": {
+        "n": 0
+      },
+      "reload_ms": {
+        "n": 0
+      },
+      "block_medians": [
+        1.523793,
+        1.5247225000000002,
+        1.5093115,
+        1.5028489999999999
+      ],
+      "sha256": [
+        "bcb94e5eb895ef7eb74468daa393817febe9fa866db501898d84f3d8bb780190"
+      ]
+    },
+    "host-idle": {
+      "source_ms": {
+        "n": 1024,
+        "median": 1.5204325,
+        "p95": 2.172466,
+        "maximum": 152.307576
+      },
+      "management_interval_source_ms": {
+        "n": 0
+      },
+      "reload_ms": {
+        "n": 0
+      },
+      "block_medians": [
+        1.450004,
+        1.5452080000000001,
+        1.509833,
+        1.572628
+      ],
+      "sha256": [
+        "6a269638938cfd487f3dba1677c0fec073194f2c4bf0a0face1ba912fb0e4d8d"
+      ]
+    },
+    "host-reload": {
+      "source_ms": {
+        "n": 1024,
+        "median": 2.1064875,
+        "p95": 4.521319,
+        "maximum": 152.146356
+      },
+      "management_interval_source_ms": {
+        "n": 512,
+        "median": 3.2091070000000004,
+        "p95": 5.040277,
+        "maximum": 152.146356
+      },
+      "reload_ms": {
+        "n": 1024,
+        "median": 8.6583805,
+        "p95": 12.040133,
+        "maximum": 18.506459
+      },
+      "block_medians": [
+        1.987755,
+        2.0978190000000003,
+        2.2897404999999997,
+        2.0659020000000003
+      ],
+      "sha256": [
+        "6a269638938cfd487f3dba1677c0fec073194f2c4bf0a0face1ba912fb0e4d8d"
+      ]
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "base_commit": "a4ac667b0ff3070a11bc453aa4a2730b68cd5825",
+  "client_commit": "b83c43aada0883d8f6d1338b5e560268442fbe52",
+  "debug_dlls": {
+    "libstdc++-6.dll": "38f844a00cb9f8864c5c4967859b4e53f6d9936659a1cdbbbb5f869886150203",
+    "libgcc_s_seh-1.dll": "273073618002c7c3736535b74619a2a84725f349e3d618926b0434657bf156c7"
+  }
+}

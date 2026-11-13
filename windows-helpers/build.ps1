@@ -44,8 +44,10 @@ if (!(Test-Path $Compiler)) {
 
 New-Item -ItemType Directory -Force $Bin | Out-Null
 
+# Keep redirected stdio but avoid console-host creation. The independent guard
+# restricts children and retains every actual native process before execution.
 if ($Engine -eq "all" -or $Engine -eq "eloquence") {
-    & $Compiler @CompilerArguments /target:exe /optimize+ /platform:x86 `
+    & $Compiler @CompilerArguments /target:winexe /optimize+ /platform:x86 `
         "/out:$Bin\OmnivoxEloquenceHelper32.exe" `
         (Join-Path $Root "eloquence\OmnivoxEloquenceCapture.cs") `
         (Join-Path $Root "eloquence\OmnivoxEloquenceHelper.cs") `
@@ -60,7 +62,7 @@ if ($Engine -eq "all" -or $Engine -eq "eloquence") {
 }
 
 if ($Engine -eq "all" -or $Engine -eq "dectalk") {
-    & $Compiler @CompilerArguments /target:exe /optimize+ /platform:x86 `
+    & $Compiler @CompilerArguments /target:winexe /optimize+ /platform:x86 `
         "/out:$Bin\OmnivoxDectalkHelper32.exe" `
         (Join-Path $Root "dectalk\OmnivoxDectalkCapture.cs") `
         (Join-Path $Root "dectalk\OmnivoxDectalkHelper.cs") `

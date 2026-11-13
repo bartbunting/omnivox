@@ -1,0 +1,16 @@
+{
+  "tests_sha256": "1f141a3d25bf3ccd7cf3ff01c2821d48b6b438b867ce7b87b538ab0bf227aa5a",
+  "runtime_sha256": "f5fc9ce3b5f4a9f4723079e2964dbf6e58e180973056d9c1dfbbe308a936b0b8",
+  "runs": [
+    {
+      "command": [
+        "/mnt/c/Users/bart/AppData/Local/Temp/omnivox-helper-queue-tests-20261110/omnivox-tests.exe",
+        "native_guard",
+        "--nocapture",
+        "--test-threads=1",
+        "--include-ignored"
+      ],
+      "exit": 0
+    }
+  ]
+}

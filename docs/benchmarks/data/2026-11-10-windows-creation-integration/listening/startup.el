@@ -1,0 +1,95 @@
+;;; startup.el --- Isolated guarded speech profile -*- lexical-binding: t; -*-
+(defun omnivox-listening--check (expected)
+  "Check source speech and native guard attachment in this private profile."
+  (let ((deadline (+ (float-time) 15)))
+    (while (and (< (float-time) deadline)
+                (not (condition-case nil
+                         (omnivox--choice-current-registration tts-speaker-process)
+                       (error nil))))
+      (accept-process-output nil .01)))
+  (let ((deadline (+ (float-time) 15)) completed actual)
+    (tts-speak-marked
+     "The isolated speech prototype is ready."
+     (lambda (_id record)
+       (when (equal (plist-get record :type) "utterance_started")
+         (setq actual (plist-get record :engine_id))))
+     (lambda (_id status) (setq completed status)))
+    (while (and (not completed) (< (float-time) deadline))
+      (accept-process-output nil .01))
+    (unless (and (eq completed 'completed) (equal actual expected))
+      (error "Speech failed: %S %S" completed actual))
+    (princ (format "Speech source completed using %s.\n" actual)))
+  (dolist (process (list tts-speaker-process tts-notify-process))
+    (unless (and (process-live-p (process-get process 'omnivox-native-guard))
+                 (equal "windows-pipe"
+                        (plist-get (process-get process 'omnivox-native-guard-endpoint)
+                                   :transport)))
+      (error "A speech lane is missing its Windows guard"))))
+
+(let ((source (file-name-as-directory (getenv "EMACSVOX_DIR")))
+      (profile (file-name-as-directory (getenv "OMNIVOX_LISTENING_ROOT"))))
+  (setq user-emacs-directory (expand-file-name "emacs/" profile)
+        custom-file (expand-file-name "custom.el" user-emacs-directory)
+        load-prefer-newer nil
+        omnivox-native-guard--enabled t
+        tts-notification-device "both")
+  (add-to-list 'load-path (expand-file-name "lisp/" source))
+  (require 'emacsvox-preamble)
+  (setq emacsvox-user-directory (expand-file-name "resources/" profile))
+  (load (expand-file-name "lisp/emacsvox-setup.el" source) nil nil t)
+  (unless (and (string-prefix-p source (symbol-file 'tts-initialize 'defun))
+               (string-suffix-p ".elc" (symbol-file 'tts-initialize 'defun)))
+    (error "The isolated client was not loaded"))
+  (when noninteractive
+    (tts-initialize)
+    (let ((expected (getenv "OMNIVOX_LISTENING_ENGINE")))
+      (unwind-protect
+          (progn
+            (omnivox-listening--check expected)
+            (require 'omnivox-preferences)
+            (let* ((file (expand-file-name "config.json" profile))
+                   (config (with-temp-buffer
+                             (insert-file-contents file)
+                             (json-parse-buffer :object-type 'plist :null-object nil
+                                                :false-object :false))))
+              (setq config (plist-put config :speech '(:max_chunk_words 12)))
+              (with-temp-file file (insert (json-serialize config))))
+            (let ((deadline (+ (float-time) 15)) results)
+              (omnivox-reload-preferences (lambda (value) (setq results value)))
+              (while (and (not results) (< (float-time) deadline))
+                (accept-process-output nil .01))
+              (unless (and (= (length results) 2)
+                           (cl-every (lambda (r) (equal (plist-get r :outcome) "applied")) results))
+                (error "Reload failed: %S" results)))
+            (omnivox-listening--check expected)
+            (tts-restart)
+            (omnivox-listening--check expected)
+            (let ((peer tts-notify-process))
+              (tts-recover)
+              (omnivox-listening--check expected)
+              (unless (eq peer tts-notify-process) (error "Recovery replaced notification speech"))
+              (tts-emergency-start "null")
+              (omnivox-listening--check "espeak")
+              (unless (eq peer tts-notify-process) (error "Emergency replaced notification speech")))
+            (tts-restart)
+            (omnivox-listening--check expected)
+            (princ "PASS reload, restart, retained recovery, emergency and return to saved settings.\n"))
+        (dolist (process (delete-dups (append (list tts-speaker-process tts-notify-process)
+                                             omnivox-native-guard--owners)))
+          (when (processp process) (omnivox-library--retire-for-emergency process)))))
+    (princ (format "Client: %s\nProfile: %s\n" (symbol-file 'tts-initialize 'defun) profile)))
+  (unless noninteractive
+    (switch-to-buffer (get-buffer-create "*Omnivox guarded prototype*"))
+    (insert "Omnivox guarded Windows prototype\n\n"
+            "This profile has separate settings and speech processes.\n"
+            "Only eSpeak and Flite are qualified for this initial test.\n\n"
+            "Navigate this text by character and word; interrupt a longer line.\n"
+            "Try the normal speech settings controls.\n"
+            "M-x omnivox-reload-preferences applies saved host preferences.\n"
+            "M-x tts-restart restarts speech with newly saved settings.\n"
+            "M-x tts-recover restores main speech using its retained startup.\n"
+            "M-x tts-emergency-start starts minimal eSpeak after verified cleanup.\n\n"
+            "The quick brown fox jumps over the lazy dog.\n"
+            "Punctuation: alpha, beta; gamma! Capital letters: A B C.\n")
+    (goto-char (point-min))
+    (text-mode)))
