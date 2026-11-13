@@ -8,6 +8,10 @@ Versioning for published releases.
 
 ### Added
 
+- Local Windows output-device discovery and independent live selection by stable
+  backend ID. Apply preserves engines; explicit-device outages never fall back
+  to another output. Host-scoped startup choices and retained owned recovery are
+  separate from engine configuration and preference reload.
 - Independent local preference reload for punctuation, capital pitch, chunking
   and saved Reset defaults, preserving current speech and temporary client choices.
 - Exact native retirement-receipt verification for recovery after a lost owner

@@ -4,6 +4,7 @@
 
 use thiserror::Error;
 
+pub mod audio_devices;
 pub mod contracts;
 pub mod control;
 pub mod engine_configuration;

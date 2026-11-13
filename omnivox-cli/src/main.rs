@@ -18,6 +18,7 @@
 //! Audio is played on three concurrent streams (speech, tones, sounds).
 //! Items within each stream serialize; different streams overlap.
 
+mod audio_devices;
 mod cli;
 mod diagnostics;
 mod emergency;
@@ -123,6 +124,17 @@ fn main() -> Result<()> {
         }
         "version" => {
             cli::print_version();
+            return Ok(());
+        }
+        "list-audio-devices" => {
+            anyhow::ensure!(
+                std::env::var_os("OMNIVOX_REMOTE_WORKER").is_none(),
+                "audio-device discovery is local only"
+            );
+            println!(
+                "{}",
+                serde_json::to_string(&omnivox_audio::output_devices()?)?
+            );
             return Ok(());
         }
         "check" => {
@@ -266,12 +278,13 @@ fn main() -> Result<()> {
     info!("Found {} voices", voice_count);
 
     info!(?audio_backend, "Initializing audio output");
-    let streams = AudioStreams::new_with_backend_and_latency(
+    let streams = AudioStreams::new_with_output_options(
         SPEECH_MAX_DEPTH,
         TONE_MAX_DEPTH,
         SOUND_MAX_DEPTH,
         audio_backend,
         created_engines.audio.pulse_latency_ms,
+        cli::audio_device_selection(&cli)?,
     )
     .map_err(|e| anyhow::anyhow!("Audio streams init failed: {}", e))?;
     let control = streams.control();

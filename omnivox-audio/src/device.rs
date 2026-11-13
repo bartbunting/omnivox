@@ -1,6 +1,7 @@
 //! Replaceable Windows device output. Native calls stay on one owned thread;
 //! admission uses short queue locks and never waits for a device to consume PCM.
 
+mod selection;
 #[cfg(windows)]
 mod windows;
 
@@ -8,6 +9,7 @@ use crate::cancellation::OutputLifetime;
 use crate::output::AudioControl;
 use crate::rodio_output::CanonicalQueue;
 use crate::{AudioError, CancellationToken};
+use omnivox_core::audio_device::{DeviceSelection, DeviceState};
 use rodio::queue::SourcesQueueInput;
 use rodio::{ChannelCount, SampleRate, Source};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -25,6 +27,7 @@ enum Event {
     EndpointChanged(String),
     Rescan,
     Retry,
+    Apply,
     Shutdown,
 }
 
@@ -34,6 +37,7 @@ struct Signals {
     overflow: AtomicBool,
     retry_requested: AtomicBool,
     closed: AtomicBool,
+    routing: Mutex<DeviceState>,
 }
 
 impl Signals {
@@ -187,7 +191,7 @@ impl DeviceSink {
         else {
             self.signals.retry();
             return Err(AudioError::PlaybackError(
-                "Windows default output is unavailable; this audio was discarded".into(),
+                "selected Windows output is unavailable; this audio was discarded".into(),
             ));
         };
         let lifetime = queue.lifetime();
@@ -236,13 +240,20 @@ impl DeviceSink {
 trait Backend {
     type Connection;
     fn default_device(&mut self) -> Result<Option<String>, AudioError>;
-    fn open(&mut self) -> Result<(Self::Connection, [QueueConnection; 3]), AudioError>;
+    fn resolve(&mut self, selection: &DeviceSelection) -> Result<Option<String>, AudioError> {
+        match selection {
+            DeviceSelection::SystemDefault => self.default_device(),
+            DeviceSelection::Device { id } => Ok(Some(id.clone())),
+        }
+    }
+    fn open(&mut self, id: &str) -> Result<(Self::Connection, [QueueConnection; 3]), AudioError>;
 }
 
 struct Owner<B: Backend> {
     backend: B,
     connection: Option<B::Connection>,
     device: Option<String>,
+    selection: DeviceSelection,
     sinks: [Arc<DeviceSink>; 3],
     control: Arc<AudioControl>,
     signals: Arc<Signals>,
@@ -256,24 +267,25 @@ impl<B: Backend> Owner<B> {
             }
         });
         self.device = None;
+        self.signals.routing.lock().unwrap().connected = None;
         // Never hold an admission gate across native teardown.
         self.connection = None;
     }
 
     fn reconcile(&mut self, force: bool) -> Result<bool, AudioError> {
         let revision = self.signals.revision.load(Ordering::Acquire);
-        let target = self.backend.default_device();
+        let target = self.backend.resolve(&self.selection);
         if !force && self.connection.is_some() && target.as_ref().ok() == Some(&self.device) {
             return Ok(true);
         }
         self.retire();
         let target = target?.ok_or_else(|| {
-            AudioError::DeviceNotFound("Windows has no default playback endpoint".into())
+            AudioError::DeviceNotFound("selected Windows playback endpoint is unavailable".into())
         })?;
-        let (connection, queues) = self.backend.open()?;
+        let (connection, queues) = self.backend.open(&target)?;
         if self.signals.closed.load(Ordering::Acquire)
             || self.signals.revision.load(Ordering::Acquire) != revision
-            || self.backend.default_device()?.as_deref() != Some(target.as_str())
+            || self.backend.resolve(&self.selection)?.as_deref() != Some(target.as_str())
         {
             // Queues have never admitted samples, and this candidate cannot
             // overwrite a newer device choice or survive shutdown.
@@ -299,8 +311,9 @@ impl<B: Backend> Owner<B> {
         }
         self.connection = Some(connection);
         self.device = Some(target);
+        self.signals.routing.lock().unwrap().connected = self.device.clone();
         tracing::info!(lifecycle_stage = "output_device_ready", device_id = ?self.device,
-            "Following Windows default audio output");
+            "Selected Windows audio output ready");
         Ok(true)
     }
 
@@ -332,7 +345,7 @@ impl<B: Backend> Owner<B> {
                         force |= self.device.as_ref() == Some(&id);
                         fresh = true;
                     }
-                    Event::Retry => {}
+                    Event::Retry | Event::Apply => {}
                 }
             }
             fresh |= self.signals.retry_requested.swap(false, Ordering::AcqRel);
@@ -343,17 +356,21 @@ impl<B: Backend> Owner<B> {
                 break;
             }
             if Instant::now() < next_attempt {
+                self.apply_pending();
                 continue;
             }
-            match self.reconcile(force) {
-                Ok(true) => retries = 0,
-                Ok(false) => retries = retries.max(1),
-                Err(error) => {
-                    tracing::warn!(lifecycle_stage = "output_device_unavailable", %error,
-                        "Output unavailable; interrupted audio will not be replayed");
-                    retries = retries.saturating_sub(1);
+            if fresh || force || retries > 0 {
+                match self.reconcile(force) {
+                    Ok(true) => retries = 0,
+                    Ok(false) => retries = retries.max(1),
+                    Err(error) => {
+                        tracing::warn!(lifecycle_stage = "output_device_unavailable", %error,
+                            "Output unavailable; interrupted audio will not be replayed");
+                        retries = retries.saturating_sub(1);
+                    }
                 }
             }
+            self.apply_pending();
             force = false;
             next_attempt = Instant::now() + RETRY_DELAY;
         }
@@ -374,11 +391,27 @@ pub(crate) struct DeviceRuntime {
 
 impl DeviceRuntime {
     #[cfg(windows)]
-    pub(crate) fn new(depths: [usize; 3]) -> Result<(Self, Arc<AudioControl>), AudioError> {
-        Self::start(depths, windows::WindowsBackend::new)
+    pub(crate) fn new(
+        depths: [usize; 3],
+        selection: DeviceSelection,
+    ) -> Result<(Self, Arc<AudioControl>), AudioError> {
+        Self::start_with_selection(depths, selection, windows::WindowsBackend::new)
     }
 
+    #[cfg(test)]
     fn start<B, F>(depths: [usize; 3], factory: F) -> Result<(Self, Arc<AudioControl>), AudioError>
+    where
+        B: Backend + 'static,
+        F: FnOnce(Arc<Signals>) -> Result<B, AudioError> + Send + 'static,
+    {
+        Self::start_with_selection(depths, DeviceSelection::SystemDefault, factory)
+    }
+
+    fn start_with_selection<B, F>(
+        depths: [usize; 3],
+        selection: DeviceSelection,
+        factory: F,
+    ) -> Result<(Self, Arc<AudioControl>), AudioError>
     where
         B: Backend + 'static,
         F: FnOnce(Arc<Signals>) -> Result<B, AudioError> + Send + 'static,
@@ -390,6 +423,7 @@ impl DeviceRuntime {
             overflow: AtomicBool::new(false),
             retry_requested: AtomicBool::new(false),
             closed: AtomicBool::new(false),
+            routing: Mutex::new(DeviceState::new(selection.clone())),
         });
         let sinks = std::array::from_fn(|_| {
             Arc::new(DeviceSink {
@@ -415,6 +449,7 @@ impl DeviceRuntime {
                     backend,
                     connection: None,
                     device: None,
+                    selection,
                     sinks,
                     control: owner_control,
                     signals: owner_signals,

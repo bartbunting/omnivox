@@ -74,6 +74,14 @@ the public acknowledgement from the private launch record. Paired client
 orchestration remains an integration requirement; this capability alone does not
 claim that an older client prepared its workers together.
 
+### Local audio-device selection
+
+`audio_device_selection_v1` enables bounded local discovery, status, output-only
+Apply and cancellation. The [audio-device contract](audio-devices.md) defines
+exact identities, records, bounds, independent lane results and retained routing.
+This extension is separate from host-preference reload and is not exposed through
+remote speech. Unsupported peers retain their existing output behavior.
+
 ### Independent local punctuation reload
 
 `host_preferences_v1` is advertised only by a locally owned worker whose

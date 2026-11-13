@@ -2,9 +2,12 @@
 
 - Status: Accepted for implementation on 2026-11-13 under
   [ADR 0020](../adr/0020-audio-output-device-selection.md). Dependency migration is
-  checked at source/audio-component level in the
-  [migration report](../benchmarks/2026-11-13-rodio-upgrade.md); this plan does not
-  advertise an implemented selection capability.
+  checked in the [migration report](../benchmarks/2026-11-13-rodio-upgrade.md).
+  Windows discovery, live Apply, host-scoped startup choices and the paired
+  Emacsvox Apply/Save editor are implemented. The
+  [Windows/client qualification](../benchmarks/2026-11-13-audio-device-selection.md)
+  records full development staging, native and WSL checks, and remaining physical
+  disconnect/listening acceptance. The feature is not a published release.
 - Scope: Local independent main/notification destinations, explicit Apply/Save,
   and recovery that preserves the intended output.
 - Entry: [Roadmap](../ROADMAP.md#feature-backlog).

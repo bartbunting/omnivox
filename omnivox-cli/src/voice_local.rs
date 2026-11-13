@@ -670,6 +670,16 @@ fn owner(
         if let Some(path) = std::env::var_os("OMNIVOX_OWNED_LIBRARY") {
             startup.candidate(Path::new(&path))?;
         }
+        if let Some(device) = std::env::var_os("OMNIVOX_OWNED_AUDIO_DEVICE") {
+            anyhow::ensure!(
+                std::env::var("OMNIVOX_OWNED_AUDIO_DEVICE_HOST")
+                    .ok()
+                    .as_deref()
+                    == Some(omnivox_audio::output_device_host_scope()?.as_str()),
+                "retained audio-device choice belongs to a different or unknown speech host"
+            );
+            startup = startup.with_audio_device(&device)?;
+        }
         crate::emergency::timed("prepare-engine-snapshot", || prepare_engines(&mut startup))?;
         (path, digest) =
             crate::emergency::timed("save-startup", || startup.save(host, &worker_id))?;
@@ -896,7 +906,10 @@ fn shared_startup(path: &Path, digest: &str) -> Result<Startup> {
         startup.engines.is_some(),
         "shared startup lacks a complete engine snapshot"
     );
-    Ok(startup.with_lane_audio(&omnivox_tts::engine_configuration::LaunchEnvironment::capture()))
+    Ok(
+        startup
+            .with_lane_audio(&omnivox_tts::engine_configuration::LaunchEnvironment::capture())?,
+    )
 }
 
 fn cleanup(worker: &mut Option<Worker>) -> Result<()> {

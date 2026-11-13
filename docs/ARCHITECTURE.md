@@ -577,9 +577,12 @@ device. Rodio queues advertise a constant canonical stereo format through idle
 and source transitions, so the mixer's format conversion cannot interpret the
 first stereo samples as mono when playback resumes.
 
-On Windows, one owned output thread observes default-render/console endpoint
-notifications and opens, replaces and closes the device connection, following
-[ADR 0010](adr/0010-windows-default-output-recovery.md). Notifications hand off
+On Windows, one owned output thread observes endpoint notifications and opens,
+replaces and closes the device connection. Follow-default mode uses the
+default-render/console endpoint under
+[ADR 0010](adr/0010-windows-default-output-recovery.md); explicit selection uses
+only the chosen backend-qualified ID under
+[ADR 0020](adr/0020-audio-output-device-selection.md). Notifications hand off
 bounded events without performing device work. Replacement retires all three
 queues, pending overlays and the worker request generation before publishing
 fresh queues; sources waiting for progressive PCM also observe connection
@@ -589,6 +592,17 @@ Initial connection failure remains a startup error. Later failure leaves the
 worker alive but rejects fresh audio until a bounded retry, endpoint event or
 new request recovers output. Duplicate defaults and unrelated endpoint events
 retain a healthy connection.
+
+Negotiated [device selection](protocols/audio-devices.md) enumerates bounded
+native identities and changes one worker's physical destination. The owner
+prepares the exact candidate while the old route remains connected, then checks
+incarnation, selection revision, cancellation and native notifications before
+publishing fresh queues. Failed preparation keeps a healthy old connection.
+Explicit selections ignore system-default changes and never fall back to another
+device. The client separately saves host-scoped choices and retains confirmed
+session choices for owned replacement before speech starts. These output
+overrides preserve immutable engine snapshots; unresolved Apply outcomes block
+assumed recovery. Main and notification workers remain independent.
 
 An explicit null backend instead drains the same rodio source wrappers
 as quickly as possible without opening a device. It therefore preserves queue,

@@ -1861,6 +1861,7 @@ pub(crate) fn run_server(
 ) -> Result<()> {
     let parameter_queries =
         crate::parameter_queries::ParameterQueries::new().with_native_plans(native_plans);
+    let device_management = crate::audio_devices::Runtime::start(control.clone())?;
     let mut pending = PendingBatch::default();
     let mut current_gen: u64 = 0;
     let mut logical_voices = LogicalVoiceRegistry::with_engine_permissions(
@@ -1941,6 +1942,13 @@ pub(crate) fn run_server(
             {
                 continue;
             }
+        }
+        if command.id == CommandId::OmnivoxControl
+            && device_management
+                .as_ref()
+                .is_some_and(|runtime| runtime.try_handle(command.args.as_deref().unwrap_or("")))
+        {
+            continue;
         }
         if command.id == CommandId::OmnivoxControl
             && parameter_queries.try_handle(
@@ -3793,6 +3801,13 @@ fn handle_command(
                         {
                             features.push(omnivox_tts::host_preferences::FEATURE.into());
                             features.push(omnivox_tts::host_preferences::RELOAD_FEATURE.into());
+                        }
+                    }
+                    if crate::audio_devices::available(control) {
+                        if let ControlResponse::Capabilities { features, .. } =
+                            &mut response.response
+                        {
+                            features.push(omnivox_core::audio_device::FEATURE.into());
                         }
                     }
                     write_control_response(&response);

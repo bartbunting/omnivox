@@ -24,9 +24,14 @@ Outstanding items are listed without a priority ranking:
   physical latency/cancellation acceptance of the implemented callback streaming.
 - **Voice selection and installation assistance:** extend native and fresh-client
   acceptance, interrupted-operation recovery and operating-system voice setup.
-- **Audio-device selection and recovery:** named devices, separate
-  foreground/notification destinations, and follow-default recovery on other
-  platforms. Windows follow-default recovery is implemented under
+- **Audio-device selection and recovery:** extend physical-device qualification
+  and implement selection/follow-default recovery on other platforms.
+  Windows discovery, exact-ID selection and independent live Apply are implemented
+  under [ADR 0020](adr/0020-audio-output-device-selection.md), with a paired
+  Emacsvox editor, separate Save and retained worker recovery.
+  [Native/WSL evidence](benchmarks/2026-11-13-audio-device-selection.md) covers
+  the full development payload; physical unplugging and listening remain open.
+  Windows follow-default recovery is implemented under
   [ADR 0010](adr/0010-windows-default-output-recovery.md), with a successful
   [physical headphone-switching check](benchmarks/2026-09-28-1.14-candidate.md#manual-headphone-follow-up).
   The [delivery plan](plans/audio-device-selection.md) tracks the approved Rodio

@@ -3,6 +3,7 @@
 //! Core types and functionality for the Omnivox speech server.
 //! This includes command parsing, queue management, and state handling.
 
+pub mod audio_device;
 pub mod command;
 pub mod punctuation;
 pub mod queue;

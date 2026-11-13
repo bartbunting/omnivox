@@ -164,8 +164,16 @@ settings conflict with `OMNIVOX_OWNED_STARTUP` or `OMNIVOX_OWNED_LIBRARY`; ambig
 selection fails. Shared preparation preserves all engine inputs and overlays
 only the existing per-lane process audio settings: `ALSA_DEFAULT`,
 `SWIFTMAC_AUDIO_TARGET`, `SHARPWIN_AUDIO_TARGET`, `PULSE_SINK` and
-`OMNIVOX_AUDIO_TARGET`. Helpers keep the common frozen environment. Each owner
+`OMNIVOX_AUDIO_TARGET`, plus the optional explicit `OMNIVOX_AUDIO_DEVICE` choice.
+Helpers keep the common frozen environment. Each owner
 saves its resulting complete startup separately for its own retirement/rollback.
+
+For retained recovery, a client that negotiated `audio_device_selection_v1` can
+provide `OMNIVOX_OWNED_AUDIO_DEVICE` with the confirmed lane choice. The owner
+validates and replaces only the audio-device argument/environment override before
+saving its new owner record. The engine snapshot and activation identity remain
+unchanged. The [device contract](../protocols/audio-devices.md#retained-recovery)
+requires explicit uncertainty handling when Apply has no confirmed outcome.
 
 The managed `snapshot` request can additionally carry `startup` and
 `startup_sha256` from the first lane's prepared candidate. It reuses that engine

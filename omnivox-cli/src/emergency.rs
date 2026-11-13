@@ -59,6 +59,7 @@ mod tests {
     fn emergency_removes_preference_and_engine_overrides_but_keeps_host_io() {
         for key in [
             "OMNIVOX_CONFIG_DIR",
+            "OMNIVOX_AUDIO_DEVICE",
             "omnivox_piper_helper",
             "OMNIVOX_VOICE_ROOT",
             "ESPEAK_NG_DATA",

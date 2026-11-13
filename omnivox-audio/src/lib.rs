@@ -8,6 +8,7 @@ pub mod buffer;
 pub mod cancellation;
 #[cfg(any(windows, test))]
 mod device;
+mod device_catalogue;
 pub mod effects;
 pub mod loader;
 pub mod output;
@@ -22,6 +23,7 @@ pub mod tone;
 
 pub use buffer::AudioBuffer;
 pub use cancellation::CancellationToken;
+pub use device_catalogue::{output_device_host_scope, output_devices};
 pub use effects::{
     ChannelRouter, ProgressiveSilenceTrimmer, SilenceTrimReport, SilenceTrimmer, VolumeAdjust,
 };

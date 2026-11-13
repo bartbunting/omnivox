@@ -1,0 +1,12 @@
+{
+  "OmnivoxDectalkHelper32.exe": "fa19e09f591d1551e2d74ae5e34e78b9413c0aba1a4282a663e1b12806ca98b3",
+  "OmnivoxEloquenceHelper32.exe": "325c3876f21459c473c5d40f95c9c705fa2d6b312742583da5eac8fcd42de1c3",
+  "PROVENANCE": "e897d352e938543de535afb38b71b8be0a464b4aecc74d71a8024d574b5b894d",
+  "flite/omnivox-flite-helper.exe": "b3c08b692d29af383cd6c0643182cd4fd08ea6643d7577d8c4c910e830310b76",
+  "libgcc_s_seh-1.dll": "273073618002c7c3736535b74619a2a84725f349e3d618926b0434657bf156c7",
+  "libstdc++-6.dll": "38f844a00cb9f8864c5c4967859b4e53f6d9936659a1cdbbbb5f869886150203",
+  "omnivox.exe": "3580adc38e1df96ea5f7c2dc477e8c10d810ac50674505b8d1e064944f6ae3c9",
+  "rhvoice/omnivox-rhvoice-helper.exe": "68f8ccfd4b9aa83e78adfdefb972f91d5e377ff08bea6e9e59ba1848cb098677",
+  "rutts/omnivox-rutts-helper.exe": "b304b0fc6327ff4bc9bc0bd0c3001c625147077f6a0efe3c7ab4ff0f8b758b7c",
+  "tgspeechbox/omnivox-tgspeechbox-helper.exe": "2944f864f9841db735081220b329803a793f64764cda6f31ef50fbf8a6411f47"
+}

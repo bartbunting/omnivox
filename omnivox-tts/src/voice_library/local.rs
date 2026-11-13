@@ -376,6 +376,8 @@ impl Startup {
             "OMNIVOX_OWNED_LIBRARY",
             "OMNIVOX_OWNED_ENGINE_STARTUP",
             "OMNIVOX_OWNED_ENGINE_STARTUP_SHA256",
+            "OMNIVOX_OWNED_AUDIO_DEVICE",
+            "OMNIVOX_OWNED_AUDIO_DEVICE_HOST",
         ] {
             environment = environment.with_variable(name, None);
         }
@@ -448,19 +450,67 @@ impl Startup {
 
     /// Preserve the shared engine record while projecting the existing
     /// notification audio settings onto this independently owned worker.
-    pub fn with_lane_audio(mut self, environment: &LaunchEnvironment) -> Self {
+    pub fn with_lane_audio(
+        mut self,
+        environment: &LaunchEnvironment,
+    ) -> Result<Self, LibraryError> {
         for name in [
             "ALSA_DEFAULT",
             "SWIFTMAC_AUDIO_TARGET",
             "SHARPWIN_AUDIO_TARGET",
             "PULSE_SINK",
             "OMNIVOX_AUDIO_TARGET",
+            "OMNIVOX_AUDIO_DEVICE",
+            "OMNIVOX_AUDIO_DEVICE_PREFERENCES",
         ] {
             self.environment = self
                 .environment
                 .with_variable(name, environment.get(name).map(std::ffi::OsStr::to_owned));
         }
-        self
+        // A shared engine record may originate from the other lane. Never
+        // inherit its explicit physical destination into this lane.
+        let mut index = 0;
+        while index < self.arguments.len() {
+            if self.arguments[index] == "--audio-device" {
+                if index + 1 == self.arguments.len() {
+                    return Err(LibraryError::Invalid("incomplete audio-device argument"));
+                }
+                self.arguments.drain(index..index + 2);
+            } else {
+                index += 1;
+            }
+        }
+        if let Some(value) = environment.get("OMNIVOX_AUDIO_DEVICE") {
+            self = self.with_audio_device(value)?;
+        }
+        Ok(self)
+    }
+
+    /// Retain a confirmed per-lane route without replacing engine/native inputs.
+    /// The CLI override also supersedes an older explicit startup argument.
+    pub fn with_audio_device(mut self, value: &std::ffi::OsStr) -> Result<Self, LibraryError> {
+        let value = value
+            .to_str()
+            .ok_or(LibraryError::Invalid("audio device is not UTF-8"))?;
+        omnivox_core::audio_device::DeviceSelection::parse(value).map_err(LibraryError::Invalid)?;
+        if let Some(index) = self
+            .arguments
+            .iter()
+            .rposition(|arg| arg == "--audio-device")
+        {
+            let argument = self
+                .arguments
+                .get_mut(index + 1)
+                .ok_or(LibraryError::Invalid("incomplete audio-device argument"))?;
+            *argument = value.into();
+        } else {
+            self.arguments
+                .extend(["--audio-device".into(), value.into()]);
+        }
+        self.environment = self
+            .environment
+            .with_variable("OMNIVOX_AUDIO_DEVICE", Some(value.into()));
+        Ok(self)
     }
     pub fn read(path: &Path, expected: &str) -> Result<Self, LibraryError> {
         sha256(expected)?;
@@ -688,5 +738,61 @@ mod tests {
         bytes.push(b' ');
         fs::write(&path, bytes).unwrap();
         assert!(Startup::read(&path, &hash).is_err());
+    }
+
+    #[test]
+    fn retained_device_override_preserves_engine_snapshot_and_stays_bounded() {
+        use std::ffi::OsStr;
+        let startup = Startup::emergency(LaunchEnvironment::from_variables([]), "null").unwrap();
+        let original = startup.engines.as_ref().unwrap().to_bytes().unwrap();
+        let startup = startup
+            .with_audio_device(OsStr::new("wasapi:headphones"))
+            .unwrap();
+        assert_eq!(
+            startup.engines.as_ref().unwrap().to_bytes().unwrap(),
+            original
+        );
+        assert_eq!(
+            startup.environment.get("OMNIVOX_AUDIO_DEVICE"),
+            Some(OsStr::new("wasapi:headphones"))
+        );
+        let count = startup.arguments.len();
+        let lane =
+            LaunchEnvironment::from_variables([("OMNIVOX_AUDIO_DEVICE".into(), "default".into())]);
+        let startup = startup.with_lane_audio(&lane).unwrap();
+        assert_eq!(startup.arguments.len(), count);
+        assert_eq!(
+            startup.arguments.last().map(String::as_str),
+            Some("default")
+        );
+        assert_eq!(
+            startup.engines.as_ref().unwrap().to_bytes().unwrap(),
+            original
+        );
+        let other_lane = startup
+            .clone()
+            .with_lane_audio(&LaunchEnvironment::from_variables([(
+                "OMNIVOX_AUDIO_DEVICE_PREFERENCES".into(),
+                "[]".into(),
+            )]))
+            .unwrap();
+        assert!(!other_lane
+            .arguments
+            .iter()
+            .any(|arg| arg == "--audio-device"));
+        assert!(other_lane.environment.get("OMNIVOX_AUDIO_DEVICE").is_none());
+        assert_eq!(
+            other_lane
+                .environment
+                .get("OMNIVOX_AUDIO_DEVICE_PREFERENCES"),
+            Some(OsStr::new("[]"))
+        );
+        assert_eq!(
+            other_lane.engines.as_ref().unwrap().to_bytes().unwrap(),
+            original
+        );
+        assert!(startup
+            .with_audio_device(OsStr::new("friendly label"))
+            .is_err());
     }
 }

@@ -1,0 +1,23 @@
+[
+  {
+    "kind": "integration",
+    "path": "/mnt/c/Users/bart/AppData/Local/Emacsvox/AudioDeviceTests/selection-20261113-ym74aki9/integration_tests-2d23bef208bbfab0.exe",
+    "sha256": "12f8353e4c1ea65c2bc3d16604c31ac21834a3c570024dbf32e36141ac984446",
+    "exit": 0,
+    "log": "/tmp/omnivox-device-selection-windows-integration.log"
+  },
+  {
+    "kind": "unit",
+    "path": "/mnt/c/Users/bart/AppData/Local/Emacsvox/AudioDeviceTests/selection-20261113-ym74aki9/omnivox_audio-2d64670fe90eb784.exe",
+    "sha256": "e8f8692740287acfe50a562e9a3766da2ede349c12dbf11f3198c8bc348a70a6",
+    "exit": 0,
+    "log": "/tmp/omnivox-device-selection-windows-unit.log"
+  },
+  {
+    "kind": "native",
+    "path": "/mnt/c/Users/bart/AppData/Local/Emacsvox/AudioDeviceTests/selection-20261113-ym74aki9/omnivox_audio-2d64670fe90eb784.exe",
+    "sha256": "e8f8692740287acfe50a562e9a3766da2ede349c12dbf11f3198c8bc348a70a6",
+    "exit": 0,
+    "log": "/tmp/omnivox-device-selection-windows-native.log"
+  }
+]

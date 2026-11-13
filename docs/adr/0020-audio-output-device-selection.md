@@ -124,7 +124,7 @@ Users can keep speech on a selected headset and route notifications independentl
 Explicit-device outages can leave speech unavailable; an accessible way to choose
 follow-default and the existing explicit emergency path are therefore essential.
 Silent default fallback improves availability but can disclose speech on an
-unintended output, so it is not the proposed policy.
+unintended output, so the accepted policy rejects that fallback.
 
 Restart-only selection is simpler but rebuilds engines for an output change.
 Output-only Apply preserves working engines at the cost of revision, publication

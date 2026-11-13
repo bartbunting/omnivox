@@ -67,6 +67,10 @@ pub enum ControlRequest {
     VoiceLibraryStatusV1,
     EngineConfigurationStatusV1,
     HostPreferencesStatusV1,
+    AudioDevicesV1,
+    AudioDeviceStatusV1,
+    ApplyAudioDeviceV1(crate::audio_devices::ApplyDevice),
+    CancelAudioDeviceV1(crate::audio_devices::CancelDevice),
     ReloadPunctuationV1(crate::host_preferences::ReloadPunctuation),
     ReloadHostPreferencesV1(crate::host_preferences::ReloadPunctuation),
     GetPunctuationProfilesV1,
@@ -223,6 +227,9 @@ pub enum ControlResponse {
     VoiceLibraryStatusV1(crate::voice_library::VoiceLibraryStatus),
     EngineConfigurationStatusV1(crate::engine_configuration::EngineConfigurationStatus),
     HostPreferencesStatusV1(crate::host_preferences::Status),
+    AudioDevicesV1(omnivox_core::audio_device::DeviceCatalogue),
+    AudioDeviceStatusV1(crate::audio_devices::DeviceStatus),
+    AudioDeviceResultV1(crate::audio_devices::DeviceResult),
     ReloadPunctuationV1(crate::host_preferences::ReloadResult),
     ReloadHostPreferencesV1(crate::host_preferences::ReloadResult),
     VoiceParametersExplainedV1(crate::voice_explanation::ExplanationResponse),
@@ -381,6 +388,10 @@ pub fn decode_request(payload: &str) -> Result<ControlRequestEnvelope, ControlCo
             | ControlRequest::VoiceLibraryStatusV1
             | ControlRequest::EngineConfigurationStatusV1
             | ControlRequest::HostPreferencesStatusV1
+            | ControlRequest::AudioDevicesV1
+            | ControlRequest::AudioDeviceStatusV1
+            | ControlRequest::ApplyAudioDeviceV1(_)
+            | ControlRequest::CancelAudioDeviceV1(_)
             | ControlRequest::ReloadPunctuationV1(_)
             | ControlRequest::ReloadHostPreferencesV1(_)
             | ControlRequest::GetPunctuationProfilesV1
@@ -397,6 +408,10 @@ pub fn decode_request(payload: &str) -> Result<ControlRequestEnvelope, ControlCo
         request.request,
         ControlRequest::EngineConfigurationStatusV1
             | ControlRequest::HostPreferencesStatusV1
+            | ControlRequest::AudioDevicesV1
+            | ControlRequest::AudioDeviceStatusV1
+            | ControlRequest::ApplyAudioDeviceV1(_)
+            | ControlRequest::CancelAudioDeviceV1(_)
             | ControlRequest::ReloadPunctuationV1(_)
             | ControlRequest::ReloadHostPreferencesV1(_)
             | ControlRequest::GetPunctuationProfilesV1
@@ -405,6 +420,7 @@ pub fn decode_request(payload: &str) -> Result<ControlRequestEnvelope, ControlCo
         let value: serde_json::Value =
             serde_json::from_slice(&bytes).map_err(ControlCodecError::InvalidJson)?;
         let count = match request.request {
+            ControlRequest::ApplyAudioDeviceV1(_) | ControlRequest::CancelAudioDeviceV1(_) => 5,
             ControlRequest::SetPunctuationProfileV1 { .. } => 4,
             ControlRequest::ReloadPunctuationV1(_) | ControlRequest::ReloadHostPreferencesV1(_) => {
                 6
@@ -416,6 +432,13 @@ pub fn decode_request(payload: &str) -> Result<ControlRequestEnvelope, ControlCo
                 "unexpected fields in configuration request",
             )));
         }
+    }
+    if let ControlRequest::ApplyAudioDeviceV1(operation) = &request.request {
+        operation
+            .change
+            .selection
+            .validate()
+            .map_err(|reason| ControlCodecError::InvalidJson(serde::de::Error::custom(reason)))?;
     }
     Ok(request)
 }
@@ -559,6 +582,14 @@ pub fn process_control_request_with_configuration(
             ),
         ),
         Ok(request) => match request.request {
+            ControlRequest::AudioDevicesV1
+            | ControlRequest::AudioDeviceStatusV1
+            | ControlRequest::ApplyAudioDeviceV1(_)
+            | ControlRequest::CancelAudioDeviceV1(_) => error_response(
+                Some(request.request_id),
+                ControlErrorCode::UnsupportedOperation,
+                "audio-device selection requires a supporting local worker".into(),
+            ),
             ControlRequest::GetPunctuationProfilesV1
             | ControlRequest::SetPunctuationProfileV1 { .. }
             | ControlRequest::HostPreferencesStatusV1

@@ -13,6 +13,7 @@
 
 use crate::buffer::{AudioBuffer, CHANNELS, SAMPLE_RATE};
 use crate::{AudioError, CancellationToken};
+use omnivox_core::audio_device::{DeviceChange, DeviceOutcome, DeviceSelection, DeviceState};
 use rodio::{ChannelCount, DeviceSinkBuilder, MixerDeviceSink, Player, SampleRate, Source};
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
@@ -677,9 +678,21 @@ impl AudioControl {
     /// gates. REPLACE only changes local queues; native work happens outside.
     #[cfg(any(windows, test))]
     pub(crate) fn interrupt_output(&self, replace: impl FnOnce()) {
+        self.interrupt_output_if(|| true, replace);
+    }
+
+    #[cfg(any(windows, test))]
+    pub(crate) fn interrupt_output_if(
+        &self,
+        ready: impl FnOnce() -> bool,
+        replace: impl FnOnce(),
+    ) -> bool {
         let _speech = self.stream_gates[0].lock().unwrap();
         let _tone = self.stream_gates[1].lock().unwrap();
         let _sound = self.stream_gates[2].lock().unwrap();
+        if !ready() {
+            return false;
+        }
         if let Some(generation) = self.output_generation.lock().unwrap().as_ref() {
             generation.fetch_add(1, Ordering::AcqRel);
         }
@@ -690,6 +703,35 @@ impl AudioControl {
             std::mem::replace(&mut *token.lock().unwrap(), CancellationToken::new()).cancel();
         }
         replace();
+        true
+    }
+
+    /// Snapshot of the selected route; no native calls or speech-engine work.
+    pub fn audio_device_state(&self) -> Option<DeviceState> {
+        #[cfg(any(windows, test))]
+        if let ManagedSink::FollowingDevice(sink) = &self.speech_sink {
+            return Some(sink.device_state());
+        }
+        None
+    }
+
+    /// Begin a bounded, asynchronous output-only change on the native owner.
+    pub fn begin_audio_device_change(&self, change: DeviceChange) -> Option<DeviceOutcome> {
+        #[cfg(any(windows, test))]
+        if let ManagedSink::FollowingDevice(sink) = &self.speech_sink {
+            return Some(sink.begin_device_change(change));
+        }
+        let _ = change;
+        None
+    }
+
+    pub fn cancel_audio_device_change(&self, sequence: u64) -> Option<DeviceOutcome> {
+        #[cfg(any(windows, test))]
+        if let ManagedSink::FollowingDevice(sink) = &self.speech_sink {
+            return Some(sink.cancel_device_change(sequence));
+        }
+        let _ = sequence;
+        None
     }
 
     fn sink_and_max(&self, stream: StreamType) -> (&ManagedSink, usize) {
@@ -1346,9 +1388,39 @@ impl AudioStreams {
         backend: AudioBackend,
         pulse_latency_ms: PulseLatencyMs,
     ) -> Result<Self, AudioError> {
+        Self::new_with_output_options(
+            speech_max_depth,
+            tone_max_depth,
+            sound_max_depth,
+            backend,
+            pulse_latency_ms,
+            DeviceSelection::SystemDefault,
+        )
+    }
+
+    /// Select a physical output independently of channel routing. Explicit IDs
+    /// currently require the Windows device backend; unsupported choices fail.
+    pub fn new_with_output_options(
+        speech_max_depth: usize,
+        tone_max_depth: usize,
+        sound_max_depth: usize,
+        backend: AudioBackend,
+        pulse_latency_ms: PulseLatencyMs,
+        selection: DeviceSelection,
+    ) -> Result<Self, AudioError> {
+        selection
+            .validate()
+            .map_err(|error| AudioError::InvalidFormat(error.into()))?;
+        if selection != DeviceSelection::SystemDefault
+            && (!cfg!(windows) || backend != AudioBackend::Device)
+        {
+            return Err(AudioError::InvalidFormat(
+                "explicit audio devices require the Windows device backend".into(),
+            ));
+        }
         match backend {
             AudioBackend::Device => {
-                Self::new_device(speech_max_depth, tone_max_depth, sound_max_depth)
+                Self::new_device(speech_max_depth, tone_max_depth, sound_max_depth, selection)
             }
             AudioBackend::Pulse => Self::new_pulse(
                 speech_max_depth,
@@ -1364,14 +1436,14 @@ impl AudioStreams {
         speech_max_depth: usize,
         tone_max_depth: usize,
         sound_max_depth: usize,
+        selection: DeviceSelection,
     ) -> Result<Self, AudioError> {
         #[cfg(windows)]
         {
-            let (runtime, control) = crate::device::DeviceRuntime::new([
-                speech_max_depth,
-                tone_max_depth,
-                sound_max_depth,
-            ])?;
+            let (runtime, control) = crate::device::DeviceRuntime::new(
+                [speech_max_depth, tone_max_depth, sound_max_depth],
+                selection,
+            )?;
             Ok(Self {
                 runtime: AudioStreamRuntime::FollowingDevice { _runtime: runtime },
                 control,
@@ -1379,6 +1451,7 @@ impl AudioStreams {
         }
         #[cfg(not(windows))]
         {
+            debug_assert_eq!(selection, DeviceSelection::SystemDefault);
             let mut stream = DeviceSinkBuilder::open_default_sink()
                 .map_err(|e| AudioError::DeviceNotFound(format!("default device: {}", e)))?;
             stream.log_on_drop(false);

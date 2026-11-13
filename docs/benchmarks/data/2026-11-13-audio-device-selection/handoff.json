@@ -1,0 +1,14 @@
+{
+  "created_utc": "2026-11-13T02:18:45.0163284Z",
+  "shortcut": "C:\\Users\\bart\\OneDrive - Ursys Pty Ltd\\Desktop\\Emacsvox Audio Devices.lnk",
+  "target": "C:\\Users\\bart\\AppData\\Local\\Emacsvox\\AudioDeviceTests\\client-20261113\\evox-windows-launcher.exe",
+  "runtime": "C:\\Users\\bart\\AppData\\Local\\Emacsvox\\Omnivox\\runtime\\9481974fc10b5ace\\omnivox.exe",
+  "normal_shortcut_sha256": "e9e32eb1567d608d6249f580ef26c22da140db256819da5f1386269d3e075f65",
+  "normal_shortcut_unchanged": true,
+  "candidate_test_processes": 0,
+  "default_engine": "eloquence",
+  "early_speech": true,
+  "personal_configuration": "Existing shared personal configuration; no saved output choices changed by handoff",
+  "launcher_sha256": "09729ccc8bc076404e09c6b5a88c1f009c3a9ce8aaf1dc44a9ecb56539ab0a43",
+  "script_sha256": "a533deb4aa6d4696de56d6adc278cdca66029a949f4aab801ad591c15dd52f51"
+}

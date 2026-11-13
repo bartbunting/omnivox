@@ -5,6 +5,7 @@ use omnivox_audio::{
     AudioBackend, AudioEffect, AudioFileLoader, AudioStreams, ChannelRouter, StreamType,
     ToneGenerator,
 };
+use omnivox_core::audio_device::DeviceSelection;
 use omnivox_core::command::parse_finite_float;
 use omnivox_core::settings::AudioOutputSettings;
 use omnivox_core::state::ChannelMode;
@@ -35,6 +36,7 @@ pub struct CliArgs {
     pub sound_volume: Option<f32>,
     pub audio_target: Option<String>,
     pub audio_output: Option<String>,
+    pub audio_device: Option<String>,
     /// Path to a piper `.onnx` model file (overrides `OMNIVOX_PIPER_MODEL`).
     pub piper_model: Option<String>,
     /// Immutable runtime generation (overrides `OMNIVOX_VOICE_LIBRARY`).
@@ -78,6 +80,7 @@ pub fn parse_args(args: &[String]) -> CliArgs {
         sound_volume: None,
         audio_target: None,
         audio_output: None,
+        audio_device: None,
         piper_model: None,
         voice_library: None,
         config_dir: None,
@@ -89,6 +92,7 @@ pub fn parse_args(args: &[String]) -> CliArgs {
             "--help" | "-h" => cli.action = String::from("help"),
             "--version" | "-V" => cli.action = String::from("version"),
             "--check" => cli.action = String::from("check"),
+            "--list-audio-devices" => cli.action = String::from("list-audio-devices"),
             "--list-voices" => cli.action = String::from("list-voices"),
             "--list-espeak-variants" => cli.action = String::from("list-espeak-variants"),
             "--list-voices-alist" => cli.action = String::from("list-voices-alist"),
@@ -112,6 +116,9 @@ pub fn parse_args(args: &[String]) -> CliArgs {
             }
             "--audio-output" => {
                 cli.audio_output = Some(parse_string_flag("--audio-output", args, &mut i))
+            }
+            "--audio-device" => {
+                cli.audio_device = Some(parse_string_flag("--audio-device", args, &mut i))
             }
             "--piper-model" => {
                 cli.piper_model = Some(parse_string_flag("--piper-model", args, &mut i))
@@ -153,6 +160,39 @@ pub fn audio_backend_override(cli: &CliArgs) -> Result<Option<AudioBackend>> {
         cli.audio_output.as_deref(),
         std::env::var_os("OMNIVOX_AUDIO_OUTPUT").as_deref(),
     )
+}
+
+pub fn audio_device_selection(cli: &CliArgs) -> Result<DeviceSelection> {
+    let environment = std::env::var_os("OMNIVOX_AUDIO_DEVICE");
+    if cli.audio_device.is_some() || environment.is_some() {
+        return resolve_audio_device(cli.audio_device.as_deref(), environment.as_deref());
+    }
+    match std::env::var_os("OMNIVOX_AUDIO_DEVICE_PREFERENCES") {
+        Some(json) => omnivox_tts::audio_devices::saved_selection(
+            json.to_str()
+                .context("OMNIVOX_AUDIO_DEVICE_PREFERENCES is not UTF-8")?,
+            &omnivox_audio::output_device_host_scope()?,
+        )
+        .map_err(anyhow::Error::msg),
+        None => Ok(DeviceSelection::SystemDefault),
+    }
+}
+
+fn resolve_audio_device(
+    cli: Option<&str>,
+    environment: Option<&std::ffi::OsStr>,
+) -> Result<DeviceSelection> {
+    let value = match cli {
+        Some(value) => value,
+        None => match environment {
+            Some(value) => value
+                .to_str()
+                .context("OMNIVOX_AUDIO_DEVICE is not valid UTF-8")?,
+            None => return Ok(DeviceSelection::SystemDefault),
+        },
+    };
+    DeviceSelection::parse(value)
+        .map_err(|reason| anyhow::anyhow!("Invalid audio device: {reason}"))
 }
 
 fn resolve_audio_backend_override(
@@ -232,6 +272,7 @@ pub fn print_help() {
     println!("    --help           Show this help message");
     println!("    --version        Show version number");
     println!("    --check          Run diagnostic self-test (nonzero exit on failure)");
+    println!("    --list-audio-devices  List local device identities as JSON; no engines started");
     println!("    --list-voices    List available TTS voices");
     println!("    --list-espeak-variants  List native base voices and bundled variants as JSON");
     println!("    --list-voices-alist  List voices as Emacs-readable alist");
@@ -243,6 +284,7 @@ pub fn print_help() {
     println!("    --tone-volume F  Tone volume 0.0-1.0");
     println!("    --sound-volume F Sound/icon volume 0.0-1.0");
     println!("    --audio-target T Channel routing (left, right, both)");
+    println!("    --audio-device D Physical output: default or a Windows device ID from discovery");
     println!(
         "    --audio-output M Output backend (device, pulse (Linux), or null; default device)"
     );
@@ -299,6 +341,7 @@ pub fn print_help() {
     }
     println!("    OMNIVOX_AUDIO_TARGET   Same as --audio-target (process-wide routing)");
     println!("    OMNIVOX_AUDIO_OUTPUT   Same as --audio-output (device, pulse (Linux), or null)");
+    println!("    OMNIVOX_AUDIO_DEVICE   Same as --audio-device; explicit CLI selection wins");
     println!(
         "    OMNIVOX_PULSE_LATENCY_MS  Native PulseAudio latency request, 10-200 ms (default 20)"
     );
@@ -475,12 +518,13 @@ pub fn cmd_check(cli: &CliArgs) -> Result<()> {
             return Err(error);
         }
     };
-    match AudioStreams::new_with_backend_and_latency(
+    match AudioStreams::new_with_output_options(
         crate::SPEECH_MAX_DEPTH,
         crate::TONE_MAX_DEPTH,
         crate::SOUND_MAX_DEPTH,
         audio_backend,
         audio.pulse_latency_ms,
+        audio_device_selection(cli)?,
     ) {
         Ok(streams) => {
             match audio_backend {
@@ -746,12 +790,13 @@ pub fn cmd_play_wav(cli: &CliArgs, path: &str) -> Result<()> {
         warn!("{diagnostic}");
     }
     let audio = loaded.configuration.audio;
-    let streams = AudioStreams::new_with_backend_and_latency(
+    let streams = AudioStreams::new_with_output_options(
         crate::SPEECH_MAX_DEPTH,
         crate::TONE_MAX_DEPTH,
         crate::SOUND_MAX_DEPTH,
         audio_backend_override(cli)?.unwrap_or(audio.backend),
         audio.pulse_latency_ms,
+        audio_device_selection(cli)?,
     )
     .context("Audio init failed")?;
     let mut state = TtsState::default();
@@ -823,6 +868,7 @@ mod tests {
             sound_volume: None,
             audio_target: Some("left".to_owned()),
             audio_output: None,
+            audio_device: None,
             piper_model: None,
             voice_library: None,
             config_dir: None,
@@ -849,6 +895,7 @@ mod tests {
             sound_volume: None,
             audio_target: None,
             audio_output: None,
+            audio_device: None,
             piper_model: None,
             voice_library: None,
             config_dir: None,
@@ -883,6 +930,7 @@ mod tests {
             sound_volume: None,
             audio_target: None,
             audio_output: None,
+            audio_device: None,
             piper_model: None,
             voice_library: None,
             config_dir: None,
@@ -914,6 +962,7 @@ mod tests {
             sound_volume: None,
             audio_target: None,
             audio_output: None,
+            audio_device: None,
             piper_model: None,
             voice_library: None,
             config_dir: None,
@@ -1001,6 +1050,33 @@ mod tests {
             AudioBackend::Pulse
         );
         assert!(parse_audio_backend("silent", "test").is_err());
+    }
+
+    #[test]
+    fn device_selection_preserves_default_and_explicit_override_precedence() {
+        use std::ffi::OsStr;
+        assert_eq!(
+            resolve_audio_device(None, None).unwrap(),
+            DeviceSelection::SystemDefault
+        );
+        assert_eq!(
+            resolve_audio_device(Some("default"), Some(OsStr::new("invalid"))).unwrap(),
+            DeviceSelection::SystemDefault
+        );
+        assert_eq!(
+            resolve_audio_device(None, Some(OsStr::new("wasapi:headphones"))).unwrap(),
+            DeviceSelection::Device {
+                id: "wasapi:headphones".into()
+            }
+        );
+        assert!(resolve_audio_device(None, Some(OsStr::new("headphones"))).is_err());
+        let cli = parse_args(&[
+            "--list-audio-devices".into(),
+            "--audio-device".into(),
+            "default".into(),
+        ]);
+        assert_eq!(cli.action, "list-audio-devices");
+        assert_eq!(cli.audio_device.as_deref(), Some("default"));
     }
     #[test]
     fn backend_precedence_is_cli_then_environment_then_saved() {

@@ -1,0 +1,105 @@
+{
+  "kind": "functional qualification; no acoustic timing or performance comparison",
+  "date": "2026-11-13",
+  "omnivox_base": "601895daee414ecd32a26d2733759deb7c2e565b",
+  "emacsvox_base": "13bb6b7764d8954c15fcd21485909ee198490717",
+  "source_patch_sha256": "d98b99b7cdb6bc11fc72c4002429904d7f073b970c3c69f8db3ee10143c9d004",
+  "client_patch_sha256": "50bff814c6904a1e8d2c716d95f02a4a9d374ff219727442b8a850ed4ddaad72",
+  "windows_build_patch_sha256": "ee6630b27be7497f5a0fdac862a2660b075c2e45b94d2e7573a9a003fd19d131",
+  "build_id": "9481974fc10b5ace",
+  "rust": "1.97.1",
+  "linux_emacs": "31.0.90",
+  "windows_emacs": "31.1",
+  "linux": "Linux-6.18.58.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+  "native_client_source_comparison": [
+    {
+      "path": "lisp/Makefile",
+      "source_sha256": "d1a7670ae0a46d3e9b97dab0333407cb4690cf5d2ed0ba98dc6d38e6bbe1b5a6",
+      "native_sha256": "d1a7670ae0a46d3e9b97dab0333407cb4690cf5d2ed0ba98dc6d38e6bbe1b5a6"
+    },
+    {
+      "path": "lisp/emacsvox-setup.el",
+      "source_sha256": "7597ed738986de181fb888d645f7de40508dbe0ff7d4c18c09227b9628ef7059",
+      "native_sha256": "7597ed738986de181fb888d645f7de40508dbe0ff7d4c18c09227b9628ef7059"
+    },
+    {
+      "path": "lisp/speech/omnivox-audio-devices.el",
+      "source_sha256": "7119179ff4a869d1cb38e4891568eb45a0bfa46415a464b29d83e27a1b1de685",
+      "native_sha256": "7119179ff4a869d1cb38e4891568eb45a0bfa46415a464b29d83e27a1b1de685"
+    },
+    {
+      "path": "lisp/speech/omnivox-voices.el",
+      "source_sha256": "74120643ecb6e9d2af53fbb46f7e2b4d10077f59c68a3213576be639bc4e26fa",
+      "native_sha256": "74120643ecb6e9d2af53fbb46f7e2b4d10077f59c68a3213576be639bc4e26fa"
+    },
+    {
+      "path": "lisp/speech/tts-speak.el",
+      "source_sha256": "c11f6bcfeb582b46762df3b218e61b12533c8d295366c353fa0e2616786f1a45",
+      "native_sha256": "c11f6bcfeb582b46762df3b218e61b12533c8d295366c353fa0e2616786f1a45"
+    },
+    {
+      "path": "lisp/ui/emacsvox-output-settings.el",
+      "source_sha256": "2919f382c692048c5822bbd722a945f222a61514181d1a83a0ad1dd548719dd8",
+      "native_sha256": "2919f382c692048c5822bbd722a945f222a61514181d1a83a0ad1dd548719dd8"
+    },
+    {
+      "path": "lisp/ui/omnivox-output-devices.el",
+      "source_sha256": "d1557d5cb3afc636552ec696610ad79b499d2bd39ced65dd1d85b3105aa0bc69",
+      "native_sha256": "d1557d5cb3afc636552ec696610ad79b499d2bd39ced65dd1d85b3105aa0bc69"
+    },
+    {
+      "path": "servers/omnivox",
+      "source_sha256": "c04483b4581717e1218a75f7570ed8ac5559e30379e7f126aaeaeae7cad366a3",
+      "native_sha256": "c04483b4581717e1218a75f7570ed8ac5559e30379e7f126aaeaeae7cad366a3"
+    }
+  ],
+  "runtime_provenance_note": "Full runtime staged before the final Lisp-only recovery refinements. Its Emacsvox worktree hash is the staging-time input, not the final client. Source patches and native-client hashes above identify the clients separately.",
+  "commands": [
+    "cargo +1.97.1 test --locked --workspace",
+    "cargo +1.97.1 clippy --locked --workspace --all-targets -- -D warnings",
+    "cargo +1.97.1 clippy --locked --target x86_64-pc-windows-gnu -p omnivox-cli -p omnivox-tts -p omnivox-audio --all-targets -- -D warnings",
+    "make windows-omnivox-dev OMNIVOX_DIR=/home/bart/src/.worktrees/omnivox/audio-device-selection-build",
+    "make bytecode-rebuild EMACS=/home/bart/opt/emacs-31/bin/emacs; incremental make bytecode and make bytecode-check after final edits",
+    "make unit-test EMACS=/home/bart/opt/emacs-31/bin/emacs",
+    "make graphical-menu-test EMACS=/home/bart/opt/emacs-31/bin/emacs TEST_DEPS_DIR=/home/bart/.cache/emacsvox/test-deps/menu-20261113-emacs-31.0.90 MENU_TEST_LOAD=compiled",
+    "make headers-check version-check docs-release-check EMACS=/home/bart/opt/emacs-31/bin/emacs",
+    "Native scripts in harnesses.tar.gz use isolated configurations and the staged runtime.",
+    "/home/bart/opt/emacs-31/bin/emacs -Q --batch -l device-check-v1.el (WSL environment above, one isolated run per engine)"
+  ],
+  "test_environment": {
+    "OMNIVOX_FLITE_SOURCE_DIR": "/home/bart/src/omnivox-lightweight-reload/target/flite-inputs/2.2/source",
+    "OMNIVOX_RUTTS_SOURCE_DIR": "/home/bart/src/omnivox-lightweight-reload/target/rutts-inputs/6.3.3/source",
+    "OMNIVOX_TGSPEECHBOX_SOURCE_DIR": "/home/bart/src/omnivox-lightweight-reload/target/tgspeechbox-inputs/v-310@25b0e1a/source",
+    "OMNIVOX_PIPER_INPUTS_DIR": "/home/bart/src/omnivox/target/piper-inputs/1.7.0/x86_64-unknown-linux-gnu",
+    "CARGO_TARGET_DIR": "/home/bart/.cache/ov-device",
+    "CARGO_BUILD_JOBS": "6",
+    "CMAKE_BUILD_PARALLEL_LEVEL": "6"
+  },
+  "wsl_run_environment": {
+    "EMACSVOX_DIR": "/home/bart/src/.worktrees/emacsvox/audio-device-selection",
+    "TTS_PROGRAM": "omnivox",
+    "OMNIVOX_PROGRAM": "/mnt/c/Users/bart/AppData/Local/Emacsvox/Omnivox/runtime/9481974fc10b5ace/omnivox.exe",
+    "ESPEAK_NG_DATA": "C:\\Users\\bart\\AppData\\Local\\Emacsvox\\Omnivox\\espeak-data\\9a2e176369cfe0b982737abf6c26037f21d2b9af2a2fabcc08062864d0157718",
+    "OMNIVOX_CONFIG_DIR": "Windows path of the isolated run containing test-config.json renamed config.json",
+    "OMNIVOX_VOICE_ROOT": "Windows run path plus /voices",
+    "XDG_STATE_HOME": "WSL run path plus /state",
+    "OMNIVOX_ENGINE": "eloquence, then dectalk",
+    "OMNIVOX_AUDIO_OUTPUT": "device",
+    "OMNIVOX_DEVICE_TEST_ROOT": "WSL run path",
+    "cleared": [
+      "OMNIVOX_AUDIO_DEVICE",
+      "OMNIVOX_AUDIO_DEVICE_PREFERENCES",
+      "OMNIVOX_OWNED_AUDIO_DEVICE",
+      "OMNIVOX_OWNED_AUDIO_DEVICE_HOST",
+      "OMNIVOX_EXPERIMENTAL_EARLY_SPEECH",
+      "EMACSVOX_PLAY"
+    ]
+  },
+  "full_build_checkout_code_comparison": {
+    "files": 20,
+    "all_identical": true,
+    "checkout": "/home/bart/src/.worktrees/omnivox/audio-device-selection-build"
+  },
+  "metadata_normalization": "handoff.json and native-platform.json are readable JSON derivatives; the .json.gz files preserve the original Windows bytes.",
+  "emacsvox_commit": "c3ca91971c3c31a2bce61956fefaba60550caeac"
+}

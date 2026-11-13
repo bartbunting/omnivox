@@ -485,7 +485,9 @@ invalid channel overrides are diagnosed and skipped. The file is always strict.
 Malformed PulseAudio environment values and `PULSE_LATENCY_MSEC` are rejected
 when opening PulseAudio; other backends do not consume those variables.
 
-`device` uses the existing system default device; `pulse` requires Linux and
+`device` uses the system default unless an explicit
+[device-selection override](../protocols/audio-devices.md#scope-and-startup) is
+supplied on supported Windows workers; `pulse` requires Linux and
 usable native PulseAudio; `null` consumes samples without sound or a device.
 An unsupported selected backend fails rather than falling back. A valid launcher
 override may replace a platform-inapplicable saved backend. The latency is a

@@ -3,7 +3,8 @@
 
 use super::{Backend, Event, QueueConnection, Signals};
 use crate::AudioError;
-use rodio::cpal::traits::HostTrait;
+use omnivox_core::audio_device::DeviceSelection;
+use rodio::cpal::traits::{DeviceTrait, HostTrait};
 use rodio::{DeviceSinkBuilder, MixerDeviceSink};
 use std::sync::Arc;
 use windows::core::{implement, PCWSTR};
@@ -29,7 +30,7 @@ impl Notifications {
         if id.is_null() {
             self.signals.notify(Event::Rescan);
         } else if let Ok(id) = unsafe { id.to_string() } {
-            self.signals.notify(Event::EndpointChanged(id));
+            self.signals.notify(Event::EndpointChanged(device_id(&id)));
         } else {
             self.signals.notify(Event::Rescan);
         }
@@ -139,23 +140,38 @@ impl Backend for WindowsBackend {
         unsafe {
             CoTaskMemFree(Some(id.0.cast()));
         }
-        copied.map(Some).map_err(|error| {
+        copied.map(|id| Some(device_id(&id))).map_err(|error| {
             AudioError::DeviceNotFound(format!("invalid Windows endpoint identity: {error}"))
         })
     }
 
-    fn open(&mut self) -> Result<(Connection, [QueueConnection; 3]), AudioError> {
+    fn resolve(&mut self, selection: &DeviceSelection) -> Result<Option<String>, AudioError> {
+        match selection {
+            DeviceSelection::SystemDefault => self.default_device(),
+            DeviceSelection::Device { id } => {
+                let device = find_device(id)?;
+                if let Some(device) = device {
+                    device
+                        .default_output_config()
+                        .map_err(|error| AudioError::DeviceNotFound(error.to_string()))?;
+                    Ok(Some(id.clone()))
+                } else {
+                    Ok(None)
+                }
+            }
+        }
+    }
+
+    fn open(&mut self, id: &str) -> Result<(Connection, [QueueConnection; 3]), AudioError> {
         // open_default_sink() may silently try non-default devices. Use the selected
         // device directly; the owner verifies identity and notifications again.
-        let device = rodio::cpal::default_host()
-            .default_output_device()
-            .ok_or_else(|| {
-                AudioError::DeviceNotFound("Windows has no default playback device".into())
-            })?;
+        let device = find_device(id)?.ok_or_else(|| {
+            AudioError::DeviceNotFound("selected Windows playback device is unavailable".into())
+        })?;
         let mut stream = DeviceSinkBuilder::from_device(device)
             .and_then(|builder| builder.open_sink_or_fallback())
             .map_err(|error| {
-                AudioError::DeviceNotFound(format!("Windows default output: {error}"))
+                AudioError::DeviceNotFound(format!("selected Windows output: {error}"))
             })?;
         stream.log_on_drop(false);
         let mut queues = Vec::with_capacity(3);
@@ -171,6 +187,22 @@ impl Backend for WindowsBackend {
     }
 }
 
+fn device_id(native: &str) -> String {
+    rodio::cpal::DeviceId::new(rodio::cpal::HostId::Wasapi, native).to_string()
+}
+
+fn find_device(id: &str) -> Result<Option<rodio::cpal::Device>, AudioError> {
+    let parsed = id
+        .parse::<rodio::cpal::DeviceId>()
+        .map_err(|error| AudioError::InvalidFormat(error.to_string()))?;
+    if parsed.host() != rodio::cpal::HostId::Wasapi {
+        return Err(AudioError::InvalidFormat(
+            "device belongs to a different audio backend".into(),
+        ));
+    }
+    Ok(rodio::cpal::default_host().device_by_id(&parsed))
+}
+
 fn native_error(error: windows::core::Error) -> AudioError {
     AudioError::DeviceNotFound(format!("Windows endpoint notification API: {error}"))
 }
@@ -180,8 +212,10 @@ mod tests {
     use super::*;
     use crate::device::{DeviceRuntime, EVENT_CAPACITY};
     use crate::{AudioBuffer, PlaybackCue, PlaybackStatus, StreamType};
+    use omnivox_core::audio_device::DeviceState;
     use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
     use std::sync::mpsc;
+    use std::sync::Mutex;
     use std::time::{Duration, Instant};
     use windows::core::{w, GUID};
     use windows::Win32::Media::Audio::{eCapture, eCommunications};
@@ -195,6 +229,7 @@ mod tests {
             overflow: AtomicBool::new(false),
             retry_requested: AtomicBool::new(false),
             closed: AtomicBool::new(false),
+            routing: Mutex::new(DeviceState::new(DeviceSelection::SystemDefault)),
         });
         let callback: IMMNotificationClient = Notifications {
             signals: signals.clone(),
@@ -231,7 +266,7 @@ mod tests {
             callback.OnDeviceRemoved(w!("speakers")).unwrap();
         }
         assert!(
-            matches!(receiver.try_recv().unwrap(), Event::EndpointChanged(id) if id == "speakers")
+            matches!(receiver.try_recv().unwrap(), Event::EndpointChanged(id) if id == device_id("speakers"))
         );
         unsafe {
             callback
@@ -239,7 +274,7 @@ mod tests {
                 .unwrap();
         }
         assert!(
-            matches!(receiver.try_recv().unwrap(), Event::EndpointChanged(id) if id == "headphones")
+            matches!(receiver.try_recv().unwrap(), Event::EndpointChanged(id) if id == device_id("headphones"))
         );
         signals.closed.store(true, Ordering::Release);
         unsafe {
@@ -321,5 +356,76 @@ mod tests {
             .queue(StreamType::Speech, &AudioBuffer::new(vec![0.0; 2]))
             .is_err());
         eprintln!("Native zero-sample output started, reopened, retired old speech and completed fresh speech on {endpoint}");
+    }
+
+    #[test]
+    #[ignore = "requires a real Windows default output; only opens the current endpoint"]
+    fn native_device_identity_and_live_selection_keep_the_same_physical_output() {
+        use omnivox_core::audio_device::{DeviceChange, DeviceOutcome};
+        let catalogue = crate::output_devices().unwrap();
+        assert!(catalogue.supported);
+        let id = catalogue.default_device.unwrap();
+        assert!(catalogue.devices.iter().any(|device| device.id == id));
+        let (runtime, control) =
+            DeviceRuntime::new([8, 8, 8], DeviceSelection::SystemDefault).unwrap();
+        let generation = Arc::new(AtomicU64::new(10));
+        control.bind_output_generation(generation.clone());
+        let wait = |sequence, outcome| {
+            let deadline = Instant::now() + Duration::from_secs(5);
+            loop {
+                let state = control.audio_device_state().unwrap();
+                if state
+                    .last_operation
+                    .as_ref()
+                    .is_some_and(|op| op.change.sequence == sequence && op.outcome == outcome)
+                {
+                    return state;
+                }
+                assert!(
+                    Instant::now() < deadline,
+                    "output selection did not finish: {state:?}"
+                );
+                std::thread::sleep(Duration::from_millis(10));
+            }
+        };
+        assert_eq!(
+            control.begin_audio_device_change(DeviceChange {
+                sequence: 1,
+                expected_revision: 0,
+                selection: DeviceSelection::Device {
+                    id: "wasapi:missing-omnivox-test-endpoint".into()
+                }
+            }),
+            Some(DeviceOutcome::Preparing)
+        );
+        let state = wait(1, DeviceOutcome::Rejected);
+        assert_eq!(state.connected.as_deref(), Some(id.as_str()));
+        assert_eq!(generation.load(Ordering::Acquire), 10);
+        assert_eq!(
+            control.begin_audio_device_change(DeviceChange {
+                sequence: 2,
+                expected_revision: 0,
+                selection: DeviceSelection::Device { id: id.clone() }
+            }),
+            Some(DeviceOutcome::Preparing)
+        );
+        let state = wait(2, DeviceOutcome::Applied);
+        assert_eq!(state.connected.as_deref(), Some(id.as_str()));
+        let fixed_generation = generation.load(Ordering::Acquire);
+        runtime.signals.notify(Event::DefaultChanged);
+        std::thread::sleep(Duration::from_millis(350));
+        assert_eq!(generation.load(Ordering::Acquire), fixed_generation);
+        assert_eq!(
+            control.begin_audio_device_change(DeviceChange {
+                sequence: 3,
+                expected_revision: 1,
+                selection: DeviceSelection::SystemDefault
+            }),
+            Some(DeviceOutcome::Preparing)
+        );
+        let state = wait(3, DeviceOutcome::Applied);
+        assert_eq!(state.connected.as_deref(), Some(id.as_str()));
+        assert_eq!(state.selection, DeviceSelection::SystemDefault);
+        drop(runtime);
     }
 }
