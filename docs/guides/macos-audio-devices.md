@@ -49,6 +49,8 @@ export EMACSVOX_DIR=/absolute/path/to/emacsvox
 export OMNIVOX_MAC_TEST_DIR="$(mktemp -d /tmp/omnivox-mac-test.XXXXXX)"
 export XDG_STATE_HOME="$OMNIVOX_MAC_TEST_DIR/state"
 export XDG_CONFIG_HOME="$OMNIVOX_MAC_TEST_DIR/config"
+export OMNIVOX_CONFIG_DIR="$OMNIVOX_MAC_TEST_DIR/omnivox-config"
+mkdir -p "$OMNIVOX_CONFIG_DIR"
 export TTS_PROGRAM=omnivox
 emacs -Q --no-splash --eval '
   (progn
@@ -66,9 +68,10 @@ emacs -Q --no-splash --eval '
 Use your selected Emacs executable in place of `emacs` if necessary. Do not rerun
 the `mktemp` assignment for the Save/restart check. If your shell supplies explicit
 `OMNIVOX_AUDIO_DEVICE`, device-preference or engine-configuration overrides,
-record and remove those overrides from this test shell before testing saved
-choices; explicit launch settings take precedence. This does not change the
-normal installation.
+record and remove inherited overrides before running the block; explicit launch
+settings take precedence. The block supplies a private empty Omnivox configuration
+root because macOS does not use `XDG_CONFIG_HOME` for its engine settings. This
+does not change the normal installation.
 
 ## Listening checklist
 
