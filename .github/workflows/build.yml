@@ -13,12 +13,6 @@ on:
   pull_request:
     branches: [main]
 
-# The pinned eSpeak headers use undefined __has_include_next on MSVC.
-# Retain the traditional preprocessing used by the qualified Windows builds.
-# CL is interpreted by MSVC only; GCC and Apple Clang ignore it.
-env:
-  CL: /Zc:preprocessor-
-
 jobs:
   format:
     name: Formatting
@@ -76,6 +70,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+
+      - name: Configure MSVC header compatibility
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $header = (Resolve-Path tools/msvc-compat.h).Path
+          'CL=/FI"' + $header + '"' >> $env:GITHUB_ENV
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@1.97.1
@@ -244,6 +245,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
+      - name: Configure MSVC header compatibility
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $header = (Resolve-Path tools/msvc-compat.h).Path
+          'CL=/FI"' + $header + '"' >> $env:GITHUB_ENV
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@1.97.1
 
@@ -309,6 +317,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+
+      - name: Configure MSVC header compatibility
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $header = (Resolve-Path tools/msvc-compat.h).Path
+          'CL=/FI"' + $header + '"' >> $env:GITHUB_ENV
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@1.97.1
@@ -411,6 +426,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
+      - name: Configure MSVC header compatibility
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $header = (Resolve-Path tools/msvc-compat.h).Path
+          'CL=/FI"' + $header + '"' >> $env:GITHUB_ENV
+
       - name: Install Rust
         uses: dtolnay/rust-toolchain@1.97.1
         with:
@@ -509,6 +531,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+
+      - name: Configure MSVC header compatibility
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $header = (Resolve-Path tools/msvc-compat.h).Path
+          'CL=/FI"' + $header + '"' >> $env:GITHUB_ENV
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@1.97.1
@@ -625,6 +654,13 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+
+      - name: Configure MSVC header compatibility
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $header = (Resolve-Path tools/msvc-compat.h).Path
+          'CL=/FI"' + $header + '"' >> $env:GITHUB_ENV
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@1.97.1

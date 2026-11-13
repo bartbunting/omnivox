@@ -14,10 +14,11 @@ download-artifact v8 and action-gh-release v3. Artifact uploads retain the
 default archived layout; downloads fail if the service digest does not match.
 Native build caches include the hosted runner image version in both exact and
 restore keys. Cached CMake paths must not cross runner-image upgrades.
-Windows builds explicitly retain MSVC traditional preprocessing through
-`CL=/Zc:preprocessor-`: the pinned eSpeak headers call `__has_include_next`,
-which MSVC does not define. This preserves the previously qualified compiler
-mode when a runner update changes the default; no dependency source is patched.
+Windows builds force-include `tools/msvc-compat.h` through MSVC's `CL` option.
+The pinned eSpeak headers call `__has_include_next`, which MSVC does not define.
+The header supplies a false result only on MSVC, selecting the upstream headers'
+existing Windows branches. Other compilers keep their builtins; dependency
+versions and sources remain unchanged.
 
 ## Native macOS voice validation
 

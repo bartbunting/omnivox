@@ -176,6 +176,18 @@ installation above.
 - Platform build tools: Xcode command-line tools on macOS or Visual Studio
   build tools on Windows.
 
+For native MSVC builds, set the compatibility include in the same PowerShell
+session before building or testing:
+
+```powershell
+$header = (Resolve-Path tools/msvc-compat.h).Path
+$env:CL = '/FI"' + $header + '"'
+```
+
+This supplies the missing `__has_include_next` feature probe used by the pinned
+eSpeak headers, selecting their existing Windows fallback. MinGW builds do not
+need this setting. The release CI uses the same header and compiler option.
+
 Normal Cargo entry points are locked because `Cargo.lock` is part of the
 application release contract. Do not substitute an unpinned Rust toolchain or
 unlocked dependency resolution when diagnosing the repository.
