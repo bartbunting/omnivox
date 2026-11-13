@@ -24,6 +24,7 @@ use crate::voice_preview_v2::{VoicePreviewRequestV2, VoicePreviewResponseV2};
 
 /// Current control protocol version.
 pub const CONTROL_PROTOCOL_VERSION: u32 = 1;
+pub const AUDIO_CHANNEL_FEATURE: &str = "audio_channel_selection_v1";
 
 /// Maximum decoded JSON payload accepted from a client.
 pub const MAX_CONTROL_PAYLOAD_BYTES: usize = 256 * 1024;
@@ -69,6 +70,10 @@ pub enum ControlRequest {
     HostPreferencesStatusV1,
     AudioDevicesV1,
     AudioDeviceStatusV1,
+    AudioChannelsV1,
+    SetAudioChannelsV1 {
+        channel: omnivox_core::state::ChannelMode,
+    },
     ApplyAudioDeviceV1(crate::audio_devices::ApplyDevice),
     CancelAudioDeviceV1(crate::audio_devices::CancelDevice),
     ReloadPunctuationV1(crate::host_preferences::ReloadPunctuation),
@@ -218,6 +223,11 @@ pub struct PunctuationProfileDescriptor {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum ControlResponse {
+    AudioChannelsV1 {
+        speech: omnivox_core::state::ChannelMode,
+        tone: omnivox_core::state::ChannelMode,
+        sound: omnivox_core::state::ChannelMode,
+    },
     PunctuationProfilesV1 {
         profiles: Vec<PunctuationProfileDescriptor>,
     },
@@ -390,6 +400,8 @@ pub fn decode_request(payload: &str) -> Result<ControlRequestEnvelope, ControlCo
             | ControlRequest::HostPreferencesStatusV1
             | ControlRequest::AudioDevicesV1
             | ControlRequest::AudioDeviceStatusV1
+            | ControlRequest::AudioChannelsV1
+            | ControlRequest::SetAudioChannelsV1 { .. }
             | ControlRequest::ApplyAudioDeviceV1(_)
             | ControlRequest::CancelAudioDeviceV1(_)
             | ControlRequest::ReloadPunctuationV1(_)
@@ -410,6 +422,8 @@ pub fn decode_request(payload: &str) -> Result<ControlRequestEnvelope, ControlCo
             | ControlRequest::HostPreferencesStatusV1
             | ControlRequest::AudioDevicesV1
             | ControlRequest::AudioDeviceStatusV1
+            | ControlRequest::AudioChannelsV1
+            | ControlRequest::SetAudioChannelsV1 { .. }
             | ControlRequest::ApplyAudioDeviceV1(_)
             | ControlRequest::CancelAudioDeviceV1(_)
             | ControlRequest::ReloadPunctuationV1(_)
@@ -421,7 +435,8 @@ pub fn decode_request(payload: &str) -> Result<ControlRequestEnvelope, ControlCo
             serde_json::from_slice(&bytes).map_err(ControlCodecError::InvalidJson)?;
         let count = match request.request {
             ControlRequest::ApplyAudioDeviceV1(_) | ControlRequest::CancelAudioDeviceV1(_) => 5,
-            ControlRequest::SetPunctuationProfileV1 { .. } => 4,
+            ControlRequest::SetPunctuationProfileV1 { .. }
+            | ControlRequest::SetAudioChannelsV1 { .. } => 4,
             ControlRequest::ReloadPunctuationV1(_) | ControlRequest::ReloadHostPreferencesV1(_) => {
                 6
             }
@@ -582,6 +597,13 @@ pub fn process_control_request_with_configuration(
             ),
         ),
         Ok(request) => match request.request {
+            ControlRequest::AudioChannelsV1 | ControlRequest::SetAudioChannelsV1 { .. } => {
+                error_response(
+                    Some(request.request_id),
+                    ControlErrorCode::UnsupportedOperation,
+                    "audio-channel selection requires a supporting local worker".into(),
+                )
+            }
             ControlRequest::AudioDevicesV1
             | ControlRequest::AudioDeviceStatusV1
             | ControlRequest::ApplyAudioDeviceV1(_)
@@ -1003,6 +1025,33 @@ mod tests {
     };
     use crate::logical_voices::LogicalVoiceBinding;
     use crate::VoiceQuality;
+
+    #[test]
+    fn audio_channel_requests_are_strict_and_do_not_reinterpret_legacy_routing() {
+        let set = r#"{"protocol_version":1,"request_id":1,"type":"set_audio_channels_v1","channel":"left"}"#;
+        assert!(decode_request(&STANDARD.encode(set)).is_ok());
+        for invalid in [
+            set.replace("\"left\"", "\"headphones\""),
+            set.replace(
+                "\"channel\":\"left\"",
+                "\"channel\":\"left\",\"channel\":\"right\"",
+            ),
+            set.replace(
+                "\"channel\":\"left\"",
+                "\"channel\":\"left\",\"device\":\"default\"",
+            ),
+            set.replace(",\"channel\":\"left\"", ""),
+        ] {
+            assert!(decode_request(&STANDARD.encode(invalid)).is_err());
+        }
+        let get = r#"{"protocol_version":1,"request_id":2,"type":"audio_channels_v1"}"#;
+        assert!(decode_request(&STANDARD.encode(get)).is_ok());
+        assert!(decode_request(
+            &STANDARD
+                .encode(get.replace("\"request_id\":2", "\"request_id\":2,\"channel\":\"left\""))
+        )
+        .is_err());
+    }
 
     fn voice_preview_fixture() -> serde_json::Value {
         let fixture: serde_json::Value =

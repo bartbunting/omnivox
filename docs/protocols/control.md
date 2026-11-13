@@ -82,6 +82,43 @@ exact identities, records, bounds, independent lane results and retained routing
 This extension is separate from host-preference reload and is not exposed through
 remote speech. Unsupported peers retain their existing output behavior.
 
+### Local output-channel selection
+
+`audio_channel_selection_v1` enables temporary channel changes on an ordinary
+local worker. Remote and emergency workers omit it and return
+`unsupported_operation`. Negotiate independently on each worker and reconnect.
+This control is independent of physical-device selection and applies to every
+local output backend.
+
+Version-1 requests reject duplicate, unknown and missing fields. Query accepts
+only the envelope; Set additionally requires `channel`, exactly `left`, `right`
+or `both`. Normal control encoding, size bounds and request correlation apply.
+
+```json
+{"protocol_version":1,"request_id":30,"type":"audio_channels_v1"}
+{"protocol_version":1,"request_id":31,"type":"set_audio_channels_v1","channel":"left"}
+```
+
+Both return the same record with the corresponding request ID:
+
+```json
+{"protocol_version":1,"request_id":31,"type":"audio_channels_v1","speech":"left","tone":"left","sound":"left"}
+```
+
+Set changes all three process routing fields together at command admission.
+Previously admitted audio retains its captured route. It neither cancels audio,
+reopens a device, restarts engines nor changes rate, voice or gain. Query reports
+the current fields separately: legacy speech-only controls can make them differ.
+Set is idempotent. After a lost reply, query the same worker; do not treat a
+timeout as rollback or a replacement worker's state as proof of the old result.
+
+These are temporary client settings. Raw `tts_reset` restores the effective
+startup channel under ADR 0009. A client retaining a live override must reapply
+it after Reset and project it at replacement startup. Emacsvox does both for its
+notification worker. Persistence and Main-output versus separate-worker lifetime
+remain client responsibilities. Legacy `tts_set_speech_channel` retains its
+speech-only meaning; deprecated notification-routing commands are unchanged.
+
 ### Independent local punctuation reload
 
 `host_preferences_v1` is advertised only by a locally owned worker whose

@@ -3518,6 +3518,23 @@ fn handle_command(
                 Some(request)
             });
             match live_request.map(|request| (request.request_id, request.request)) {
+                Some((
+                    request_id,
+                    request @ (ControlRequest::AudioChannelsV1
+                    | ControlRequest::SetAudioChannelsV1 { .. }),
+                )) if crate::audio_channels::available() => {
+                    let response = match request {
+                        ControlRequest::SetAudioChannelsV1 { channel } => {
+                            crate::audio_channels::apply(state, channel)
+                        }
+                        _ => crate::audio_channels::status(state),
+                    };
+                    write_control_response(&ControlResponseEnvelope {
+                        protocol_version: CONTROL_PROTOCOL_VERSION,
+                        request_id: Some(request_id),
+                        response,
+                    });
+                }
                 Some((request_id, ControlRequest::GetPunctuationProfilesV1)) => {
                     use sha2::{Digest, Sha256};
                     let profiles = state
@@ -3808,6 +3825,13 @@ fn handle_command(
                             &mut response.response
                         {
                             features.push(omnivox_core::audio_device::FEATURE.into());
+                        }
+                    }
+                    if crate::audio_channels::available() {
+                        if let ControlResponse::Capabilities { features, .. } =
+                            &mut response.response
+                        {
+                            features.push(omnivox_tts::control::AUDIO_CHANNEL_FEATURE.into());
                         }
                     }
                     write_control_response(&response);

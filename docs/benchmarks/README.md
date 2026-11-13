@@ -17,6 +17,7 @@ acceptance on every platform.
 
 | Concern | Retained comparison / reproduction source | Measurement boundary |
 | --- | --- | --- |
+| Live notification channels | [Notification routing qualification](2026-11-13-live-notification-routing.md) | Native Windows and WSL-to-Windows Eloquence/DECtalk route, Reset, recovery and Save checks; compiled menus and worker identity, not acoustic panning acceptance. |
 | Physical output selection | [Windows and client qualification](2026-11-13-audio-device-selection.md) | Full development payload, independent endpoint connections, live Apply, saved startup and retained recovery with Eloquence/DECtalk; source completion, not acoustic acceptance. |
 | Rodio/CPAL upgrade | [Rodio 0.23 migration](2026-11-13-rodio-upgrade.md) | Locked workspace/audio regressions, native Windows audio/zero-sample reconnection and explicit fixture correction; no deployment or acoustic claim. |
 | Early selected speech | [Optional discovery prototype](2026-11-10-early-speech.md), [automatic client observation](2026-11-10-early-speech-refresh.md) | Controlled delayed-helper availability, fallback, active cancellation, native retirement, compiled client late selection and matched warm startup. |

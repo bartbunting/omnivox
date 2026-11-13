@@ -127,6 +127,8 @@ the saved file baseline. Subsequent client commands still take priority. See
 Audio channels restore the process startup destination, including launcher and
 CLI overrides, for speech, tones and sounds. A temporary `tts_set_speech_channel`
 change is cleared; the constructed backend and latency request remain unchanged.
+The negotiated [all-stream channel override](control.md#local-output-channel-selection)
+is also cleared. A client retaining that override reapplies it after Reset.
 See [audio output settings](../reference/engine-configuration.md#audio-output-settings).
 
 Numeric settings, including inline pitch, reject NaN, infinity and numeric

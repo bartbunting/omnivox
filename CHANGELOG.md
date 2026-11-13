@@ -8,6 +8,8 @@ Versioning for published releases.
 
 ### Added
 
+- Live local channel selection for speech, tones and sounds together, without
+  restarting workers or changing their physical output device.
 - Local Windows output-device discovery and independent live selection by stable
   backend ID. Apply preserves engines; explicit-device outages never fall back
   to another output. Host-scoped startup choices and retained owned recovery are

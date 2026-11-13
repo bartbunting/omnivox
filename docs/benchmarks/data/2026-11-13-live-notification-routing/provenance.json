@@ -1,0 +1,41 @@
+{
+  "date": "2026-11-13",
+  "kind": "functional-development-checks",
+  "omnivox_base": "66985e1ccbc9b5308d0383ab7bebad6abf3ec2d0",
+  "emacsvox_base": "c3ca91971c3c31a2bce61956fefaba60550caeac",
+  "runtime": "287fd0119a8f77d0",
+  "rust": "1.97.1",
+  "native_emacs": "31.1",
+  "wsl_emacs": "31.0.90",
+  "native_candidate": "/mnt/c/Users/bart/AppData/Local/Emacsvox/AudioDeviceTests/channels-20261113",
+  "source_patch_scope": "Behavioral source and tests; generated manuals excluded",
+  "windows_build_patch_sha256": "08d3f1e83022e9fcad0d467ca68f80e642361c5bf2f90101936f37e2bbf93472",
+  "commands": [
+    "cargo +1.97.1 test --locked --workspace",
+    "cargo +1.97.1 clippy --locked --workspace --all-targets -- -D warnings",
+    "cargo +1.97.1 clippy --locked --target x86_64-pc-windows-gnu -p omnivox-cli -p omnivox-tts -p omnivox-audio --all-targets -- -D warnings",
+    "make windows-omnivox-dev OMNIVOX_DIR=/home/bart/src/.worktrees/omnivox/audio-device-selection-build",
+    "make bytecode-rebuild EMACS=/home/bart/opt/emacs-31/bin/emacs",
+    "make graphical-menu-test EMACS=/home/bart/opt/emacs-31/bin/emacs TEST_DEPS_DIR=/home/bart/.cache/emacsvox/test-deps/menu-20261113-emacs-31.0.90 MENU_TEST_LOAD=compiled",
+    "make headers-check version-check docs-release-check EMACS=/home/bart/opt/emacs-31/bin/emacs",
+    "run-channel-check.ps1 -Engine eloquence",
+    "run-channel-check.ps1 -Engine dectalk",
+    "run-live-channels-wsl.py eloquence",
+    "run-live-channels-wsl.py dectalk",
+    "run-personal-check.ps1 -Engine eloquence",
+    "run-personal-check.ps1 -Engine dectalk"
+  ],
+  "known_full_ert_failures": [
+    "emacsvox-aural-audit-current-tree-is-clean",
+    "emacsvox-launcher-rotates-omnivox-stderr-by-size",
+    "emacsvox-native-windows-guide-is-bounded-and-complete"
+  ],
+  "limits": [
+    "No new acoustic listening acceptance",
+    "WSL harness does not inspect Windows child PIDs",
+    "Full ERT preceded final menu-helper wiring correction; compiled graphical and native personal checks cover final wiring",
+    "Initial native harness compared per-owner startup paths/hashes instead of acknowledged engine activation; failed results retained",
+    "First graphical run failed menu wiring, fixed and rerun",
+    "Native preflight rejected stale parent byte-code after menu edit; parents rebuilt"
+  ]
+}

@@ -718,7 +718,9 @@ Emacspeak and are intentionally not Emacsvox configuration names.
 ## Implementation details
 
 CLI parsing lives in `omnivox-cli/src/cli.rs`. Process-wide channel selection
-is applied during engine/audio initialization. Runtime state commands are
+is applied during engine/audio initialization; negotiated
+[local channel controls](../protocols/control.md#local-output-channel-selection)
+can change the live route for subsequent speech, tones and sounds. Runtime state commands are
 handled by `omnivox-cli/src/server.rs`. Logical voices and routing policy are
 snapshotted at dispatch so later configuration changes affect later work only.
 

@@ -273,6 +273,10 @@ Saved [audio output choices](adr/0009-local-speech-preferences.md#preserve-per-l
 per-lane launcher overrides still win. Speech reset restores the effective
 startup channel across all process streams. PulseAudio resolves its latency
 request once for those streams and retains it during reconnect.
+Negotiated [local channel selection](protocols/control.md#local-output-channel-selection)
+changes the temporary speech, tone and sound routes together for subsequent
+requests without replacing workers or outputs. Clients retaining such an override
+reapply it after Reset; the server's startup-reset baseline remains unchanged.
 
 Server startup attempts eSpeak NG on all desktops plus WinRT on Windows or
 AVSpeechSynthesizer on macOS. Known companions are discovered from staged paths

@@ -18,6 +18,7 @@
 //! Audio is played on three concurrent streams (speech, tones, sounds).
 //! Items within each stream serialize; different streams overlap.
 
+mod audio_channels;
 mod audio_devices;
 mod cli;
 mod diagnostics;
