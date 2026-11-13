@@ -23,6 +23,7 @@ Proposed records do not override accepted decisions.
 | [0017: Independent host preference reload](0017-independent-host-preference-reload.md) | Accepted for implementation | Independent ordinary-worker preferences, coherent requests and separate native lifetime/asset safety. |
 | [0018: Minimal owned emergency speech](0018-minimal-emergency-speech.md) | Accepted for implementation | Explicit bundled speech independent of management storage, with verified native retirement and retained asset claims. |
 | [0019: Windows native creation ownership](0019-windows-native-creation-ownership.md) | Accepted for implementation | Guard-created workers/helpers, retained process completion and direct helper pipes; starts with explicit eSpeak/Flite qualification. |
+| [0020: Audio output device selection](0020-audio-output-device-selection.md) | Accepted for implementation | Host-scoped device identity, independent lane choices, output-only Apply and explicit-device recovery. |
 
 Development main retains the earlier 0011 text and does not contain
 the session implementation. Accepted session records 0011 and 0013–0016 at

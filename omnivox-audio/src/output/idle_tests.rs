@@ -1,12 +1,15 @@
 use super::*;
 use crate::rodio_output::new_idle_sink;
-use rodio::dynamic_mixer::{mixer, DynamicMixer};
+use rodio::mixer::{mixer, MixerSource};
 
-fn fixture() -> (AudioControl, DynamicMixer<f32>) {
+fn fixture() -> (AudioControl, MixerSource) {
     let (speech, speech_output) = new_idle_sink();
     let (tone, tone_output) = new_idle_sink();
     let (sound, sound_output) = new_idle_sink();
-    let (controller, output) = mixer(CHANNELS, SAMPLE_RATE);
+    let (controller, output) = mixer(
+        ChannelCount::new(CHANNELS).unwrap(),
+        SampleRate::new(SAMPLE_RATE).unwrap(),
+    );
     controller.add(speech_output);
     controller.add(tone_output);
     controller.add(sound_output);
@@ -38,7 +41,7 @@ fn samples(frames: usize) -> AudioBuffer {
     )
 }
 
-fn assert_exact(output: &mut DynamicMixer<f32>, expected: &[f32]) {
+fn assert_exact(output: &mut MixerSource, expected: &[f32]) {
     let mut first = None;
     for offset in 0_usize..2048 {
         let value = output.next().expect("live mixer");
@@ -163,12 +166,15 @@ fn canonical_queue_still_converts_to_the_device_format() {
         let (sink, queue) = new_idle_sink();
         let audio = samples(2048);
         sink.append(BufferSource::new(audio.samples.clone()));
-        let (controller, mut output) = mixer::<f32>(channels, rate);
+        let (controller, mut output) = mixer(
+            ChannelCount::new(channels).unwrap(),
+            SampleRate::new(rate).unwrap(),
+        );
         controller.add(queue);
-        let reference = rodio::source::UniformSourceIterator::<_, f32>::new(
+        let reference = rodio::source::UniformSourceIterator::new(
             BufferSource::new(audio.samples),
-            channels,
-            rate,
+            ChannelCount::new(channels).unwrap(),
+            SampleRate::new(rate).unwrap(),
         );
         // Compare the onset with the same PCM converted without any queue.
         let expected: Vec<_> = reference.take(512 * channels as usize).collect();

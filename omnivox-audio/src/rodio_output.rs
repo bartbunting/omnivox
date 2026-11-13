@@ -1,8 +1,9 @@
 //! Keep canonical PCM metadata stable across Rodio queue boundaries.
 
 use crate::buffer::{CHANNELS, SAMPLE_RATE};
+use rodio::mixer::Mixer;
 use rodio::queue::SourcesQueueOutput;
-use rodio::{OutputStreamHandle, PlayError, Sink, Source};
+use rodio::{ChannelCount, Player, SampleRate, Source};
 use std::time::Duration;
 
 /// A queue containing only Omnivox's 44.1 kHz stereo sources.
@@ -12,10 +13,10 @@ use std::time::Duration;
 /// interpreting the first 512 stereo samples as mono and doubling their length.
 /// Keep the canonical format at the queue boundary, including during silence;
 /// the device mixer can then convert this continuous stream to its own format.
-pub(crate) struct CanonicalQueue(SourcesQueueOutput<f32>);
+pub(crate) struct CanonicalQueue(SourcesQueueOutput);
 
 impl CanonicalQueue {
-    pub(crate) fn new(queue: SourcesQueueOutput<f32>) -> Self {
+    pub(crate) fn new(queue: SourcesQueueOutput) -> Self {
         Self(queue)
     }
 }
@@ -29,17 +30,17 @@ impl Iterator for CanonicalQueue {
 }
 
 impl Source for CanonicalQueue {
-    fn current_frame_len(&self) -> Option<usize> {
+    fn current_span_len(&self) -> Option<usize> {
         // Neither source transitions nor idle silence change the PCM format.
         None
     }
 
-    fn channels(&self) -> u16 {
-        CHANNELS
+    fn channels(&self) -> ChannelCount {
+        ChannelCount::new(CHANNELS).unwrap()
     }
 
-    fn sample_rate(&self) -> u32 {
-        SAMPLE_RATE
+    fn sample_rate(&self) -> SampleRate {
+        SampleRate::new(SAMPLE_RATE).unwrap()
     }
 
     fn total_duration(&self) -> Option<Duration> {
@@ -47,13 +48,13 @@ impl Source for CanonicalQueue {
     }
 }
 
-pub(crate) fn new_idle_sink() -> (Sink, CanonicalQueue) {
-    let (sink, queue) = Sink::new_idle();
+pub(crate) fn new_idle_sink() -> (Player, CanonicalQueue) {
+    let (sink, queue) = Player::new();
     (sink, CanonicalQueue::new(queue))
 }
 
-pub(crate) fn new_sink(handle: &OutputStreamHandle) -> Result<Sink, PlayError> {
+pub(crate) fn new_sink(mixer: &Mixer) -> Player {
     let (sink, queue) = new_idle_sink();
-    handle.play_raw(queue)?;
-    Ok(sink)
+    mixer.add(queue);
+    sink
 }

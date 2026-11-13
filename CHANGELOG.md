@@ -13,6 +13,11 @@ Versioning for published releases.
 - Exact native retirement-receipt verification for recovery after a lost owner
   reply. Missing or damaged cleanup evidence remains blocking.
 
+### Changed
+
+- Upgrade device playback to Rodio 0.23 and CPAL 0.18.2, retaining WAV/Vorbis
+  decoding, canonical stereo mixing and the Windows default-output recovery path.
+
 ### Fixed
 
 - Bound synthesis and cancellation writes when a speech helper stops reading

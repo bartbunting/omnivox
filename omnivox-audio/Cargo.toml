@@ -11,7 +11,7 @@ thiserror.workspace = true
 anyhow.workspace = true
 tracing.workspace = true
 rubato = "0.16"
-rodio = { version = "0.19", default-features = false, features = ["vorbis", "wav"] }
+rodio = { version = "0.23", default-features = false, features = ["playback", "lewton", "hound"] }
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

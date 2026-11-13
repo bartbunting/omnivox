@@ -249,7 +249,7 @@ impl PulseSink {
         &self,
         source: S,
     ) -> Result<(), AudioError> {
-        if source.channels() != CHANNELS || source.sample_rate() != SAMPLE_RATE {
+        if source.channels().get() != CHANNELS || source.sample_rate().get() != SAMPLE_RATE {
             return Err(AudioError::InvalidFormat(
                 "PulseAudio requires canonical PCM".into(),
             ));
@@ -600,10 +600,10 @@ pub(crate) mod tests {
         )
     }
 
-    fn source(value: f32, frames: usize) -> rodio::buffer::SamplesBuffer<f32> {
+    fn source(value: f32, frames: usize) -> rodio::buffer::SamplesBuffer {
         rodio::buffer::SamplesBuffer::new(
-            CHANNELS,
-            SAMPLE_RATE,
+            rodio::ChannelCount::new(CHANNELS).unwrap(),
+            rodio::SampleRate::new(SAMPLE_RATE).unwrap(),
             vec![value; frames * CHANNELS as usize],
         )
     }

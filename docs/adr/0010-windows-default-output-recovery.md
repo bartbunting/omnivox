@@ -5,6 +5,8 @@
   of interrupted speech and recovery without restarting engines.
 - Renumbered: 2026-09-28 from ADR 0013 during the approved consolidation.
 - Extends: [Saved audio output](0009-local-speech-preferences.md#preserve-per-lane-output-choices).
+- Extended by: [0020](0020-audio-output-device-selection.md) for explicit devices,
+  independent destinations and live output selection.
 - Related: [Progressive playback](0003-progressive-audio-and-markers.md),
   [worker ownership](0004-workstation-service-and-worker-ownership.md),
   [PulseAudio recovery](0005-native-pulseaudio-output.md).

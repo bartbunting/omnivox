@@ -1,0 +1,22 @@
+[
+  {
+    "kind": "integration",
+    "executable": "/mnt/c/Users/bart/AppData/Local/Emacsvox/AudioDeviceTests/rodio-023-20261113-1fl91zq1/integration_tests-aeb53692b6fa5f19.exe",
+    "sha256": "fab87290a6a597b093c5fe9dcc3e271140869744f037c2c643e2955447dc9555",
+    "exit": 0,
+    "log": "/tmp/omnivox-device-native-integration-20261113.log"
+  },
+  {
+    "kind": "unit",
+    "executable": "/mnt/c/Users/bart/AppData/Local/Emacsvox/AudioDeviceTests/rodio-023-20261113-1fl91zq1/omnivox_audio-9491c6b5b0e167eb.exe",
+    "sha256": "bcbc1694b50025ffce6ead4156ffe907bfee364ec52af37973c0bcf8d4549b06",
+    "exit": 101,
+    "log": "/tmp/omnivox-device-native-unit-20261113.log"
+  },
+  {
+    "kind": "native-reopen",
+    "executable": "/mnt/c/Users/bart/AppData/Local/Emacsvox/AudioDeviceTests/rodio-023-20261113-1fl91zq1/omnivox_audio-9491c6b5b0e167eb.exe",
+    "exit": 0,
+    "log": "/tmp/omnivox-device-native-reopen-20261113.log"
+  }
+]

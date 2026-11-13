@@ -4,7 +4,7 @@
 use super::{Backend, Event, QueueConnection, Signals};
 use crate::AudioError;
 use rodio::cpal::traits::HostTrait;
-use rodio::{OutputStream, OutputStreamHandle};
+use rodio::{DeviceSinkBuilder, MixerDeviceSink};
 use std::sync::Arc;
 use windows::core::{implement, PCWSTR};
 use windows::Win32::Media::Audio::{
@@ -122,8 +122,7 @@ impl Drop for WindowsBackend {
 }
 
 pub(super) struct Connection {
-    _stream: OutputStream,
-    _handle: OutputStreamHandle,
+    _stream: MixerDeviceSink,
 }
 
 impl Backend for WindowsBackend {
@@ -146,29 +145,27 @@ impl Backend for WindowsBackend {
     }
 
     fn open(&mut self) -> Result<(Connection, [QueueConnection; 3]), AudioError> {
-        // try_default() may silently try non-default devices. Use the selected
+        // open_default_sink() may silently try non-default devices. Use the selected
         // device directly; the owner verifies identity and notifications again.
         let device = rodio::cpal::default_host()
             .default_output_device()
             .ok_or_else(|| {
                 AudioError::DeviceNotFound("Windows has no default playback device".into())
             })?;
-        let (stream, handle) = OutputStream::try_from_device(&device).map_err(|error| {
-            AudioError::DeviceNotFound(format!("Windows default output: {error}"))
-        })?;
+        let mut stream = DeviceSinkBuilder::from_device(device)
+            .and_then(|builder| builder.open_sink_or_fallback())
+            .map_err(|error| {
+                AudioError::DeviceNotFound(format!("Windows default output: {error}"))
+            })?;
+        stream.log_on_drop(false);
         let mut queues = Vec::with_capacity(3);
         for _ in 0..3 {
             let (queue, source) = QueueConnection::new();
-            handle
-                .play_raw(source)
-                .map_err(|error| AudioError::PlaybackError(error.to_string()))?;
+            stream.mixer().add(source);
             queues.push(queue);
         }
         Ok((
-            Connection {
-                _stream: stream,
-                _handle: handle,
-            },
+            Connection { _stream: stream },
             queues.try_into().ok().expect("three output queues"),
         ))
     }

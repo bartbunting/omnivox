@@ -218,8 +218,8 @@ impl AudioFileLoader {
         let decoder = rodio::Decoder::new(reader)
             .map_err(|e| AudioError::DecodeError(format!("{}: {}", path.to_string_lossy(), e)))?;
 
-        let source_channels = decoder.channels();
-        let source_sample_rate = decoder.sample_rate();
+        let source_channels = decoder.channels().get();
+        let source_sample_rate = decoder.sample_rate().get();
         if source_channels == 0 || source_sample_rate == 0 {
             return Err(AudioError::DecodeError(format!(
                 "{} reports an invalid audio format",
@@ -236,10 +236,7 @@ impl AudioFileLoader {
                     path.to_string_lossy()
                 ))
             })?;
-        let raw_samples: Vec<f32> = decoder
-            .convert_samples::<f32>()
-            .take(max_raw_samples.saturating_add(1))
-            .collect();
+        let raw_samples: Vec<f32> = decoder.take(max_raw_samples.saturating_add(1)).collect();
         if raw_samples.len() > max_raw_samples {
             return Err(AudioError::DecodeError(format!(
                 "{} exceeds the {MAX_AUDIO_DURATION_SECS}-second decoded duration limit",

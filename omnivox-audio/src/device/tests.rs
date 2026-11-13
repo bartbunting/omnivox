@@ -112,7 +112,10 @@ fn replacement_queues_preserve_stereo_onsets_after_idle() {
         *state.device.lock().unwrap() = Some(endpoint.into());
         assert!(owner.reconcile(false).unwrap());
         let outputs = state.outputs.lock().unwrap().clone().unwrap();
-        let (controller, mut mixer) = rodio::dynamic_mixer::mixer::<f32>(2, 44_100);
+        let (controller, mut mixer) = rodio::mixer::mixer(
+            ChannelCount::new(2).unwrap(),
+            SampleRate::new(44_100).unwrap(),
+        );
         for output in outputs.lock().unwrap().drain(..) {
             controller.add(output);
         }

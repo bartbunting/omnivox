@@ -29,6 +29,8 @@ Outstanding items are listed without a priority ranking:
   platforms. Windows follow-default recovery is implemented under
   [ADR 0010](adr/0010-windows-default-output-recovery.md), with a successful
   [physical headphone-switching check](benchmarks/2026-09-28-1.14-candidate.md#manual-headphone-follow-up).
+  The [delivery plan](plans/audio-device-selection.md) tracks the approved Rodio
+  upgrade and [accepted selection policy](adr/0020-audio-output-device-selection.md).
   Broader device and listening coverage remains separate work.
 - **Speech and audio doctor:** explain the selected executable, backend, device,
   engine, voice, fallback reason, buffer settings, and recovery action.
@@ -139,10 +141,10 @@ completed scope.
 ### Audio-output scope
 
 Evaluate Windows shared-mode WASAPI latency/device recovery, native PulseAudio
-under WSLg, and PipeWire/PulseAudio/ALSA on ordinary Linux. The pinned Rodio
-0.19.0/CPAL 0.15.3 stack does not gain newer backends merely through a feature
-flag; any dependency migration requires its own compatibility and packaging
-review. Preserve canonical PCM, host mixing, bounded buffering and truthful
+under WSLg, and PipeWire/PulseAudio/ALSA on ordinary Linux. The
+[Rodio 0.23/CPAL 0.18.2 migration](plans/audio-device-selection.md) retains existing
+backend features; new backends still need compatibility and packaging review.
+Preserve canonical PCM, host mixing, bounded buffering and truthful
 markers. Measure physical output, underruns, device changes and competing load.
 
 ## Latency and lifecycle evidence

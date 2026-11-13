@@ -5,7 +5,7 @@
 //!
 //! The key type for multi-threaded use is `AudioControl` -- a `Send + Sync`
 //! handle to the three audio sinks. In device mode, `AudioStreams` owns the
-//! `OutputStream` drop guard (which is `!Send` on some platforms) and should
+//! `MixerDeviceSink` drop guard (which is `!Send` on some platforms) and should
 //! stay on the thread where it was created. In null mode, it owns the source
 //! consumer workers. `AudioControl` can be cloned via `AudioStreams::control()`
 //! and sent to other threads (e.g. a synthesis worker) to queue or stop audio
@@ -13,7 +13,7 @@
 
 use crate::buffer::{AudioBuffer, CHANNELS, SAMPLE_RATE};
 use crate::{AudioError, CancellationToken};
-use rodio::{OutputStream, OutputStreamHandle, Sink, Source};
+use rodio::{ChannelCount, DeviceSinkBuilder, MixerDeviceSink, Player, SampleRate, Source};
 use std::collections::VecDeque;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::mpsc::{self, Receiver, Sender, SyncSender, TrySendError};
@@ -465,7 +465,7 @@ impl NullSink {
 #[derive(Clone)]
 enum ManagedSink {
     #[cfg(any(not(windows), test))]
-    Device(Arc<Sink>),
+    Device(Arc<Player>),
     #[cfg(any(windows, test))]
     FollowingDevice(Arc<crate::device::DeviceSink>),
     #[cfg(target_os = "linux")]
@@ -1267,7 +1267,7 @@ impl AudioControl {
     /// Block until all three streams have finished playing.
     ///
     /// Call this after all synthesis is done (worker thread joined) to ensure
-    /// all queued audio plays out before the `OutputStream` is dropped.
+    /// all queued audio plays out before the `MixerDeviceSink` is dropped.
     pub fn drain(&self) {
         self.scheduled_playback.wait();
         self.speech_sink.sleep_until_end();
@@ -1292,10 +1292,7 @@ enum AudioStreamRuntime {
         sinks: [Arc<crate::pulse::PulseSink>; 3],
     },
     #[cfg(not(windows))]
-    Device {
-        _stream: OutputStream,
-        _stream_handle: OutputStreamHandle,
-    },
+    Device { _stream: MixerDeviceSink },
     #[cfg(windows)]
     FollowingDevice {
         _runtime: crate::device::DeviceRuntime,
@@ -1382,21 +1379,16 @@ impl AudioStreams {
         }
         #[cfg(not(windows))]
         {
-            let (stream, stream_handle) = OutputStream::try_default()
+            let mut stream = DeviceSinkBuilder::open_default_sink()
                 .map_err(|e| AudioError::DeviceNotFound(format!("default device: {}", e)))?;
+            stream.log_on_drop(false);
 
-            let speech_sink = ManagedSink::Device(Arc::new(
-                crate::rodio_output::new_sink(&stream_handle)
-                    .map_err(|e| AudioError::PlaybackError(format!("speech sink: {}", e)))?,
-            ));
-            let tone_sink = ManagedSink::Device(Arc::new(
-                crate::rodio_output::new_sink(&stream_handle)
-                    .map_err(|e| AudioError::PlaybackError(format!("tone sink: {}", e)))?,
-            ));
-            let sound_sink = ManagedSink::Device(Arc::new(
-                crate::rodio_output::new_sink(&stream_handle)
-                    .map_err(|e| AudioError::PlaybackError(format!("sound sink: {}", e)))?,
-            ));
+            let speech_sink =
+                ManagedSink::Device(Arc::new(crate::rodio_output::new_sink(stream.mixer())));
+            let tone_sink =
+                ManagedSink::Device(Arc::new(crate::rodio_output::new_sink(stream.mixer())));
+            let sound_sink =
+                ManagedSink::Device(Arc::new(crate::rodio_output::new_sink(stream.mixer())));
 
             let control = Arc::new(AudioControl::new(
                 speech_sink,
@@ -1408,10 +1400,7 @@ impl AudioStreams {
             ));
 
             Ok(Self {
-                runtime: AudioStreamRuntime::Device {
-                    _stream: stream,
-                    _stream_handle: stream_handle,
-                },
+                runtime: AudioStreamRuntime::Device { _stream: stream },
                 control,
             })
         }
@@ -1578,20 +1567,17 @@ impl Drop for AudioStreams {
 
 /// Audio output device for single-shot playback via rodio.
 pub struct AudioOutput {
-    _stream: OutputStream,
-    stream_handle: OutputStreamHandle,
+    stream: MixerDeviceSink,
 }
 
 impl AudioOutput {
     /// Create a new AudioOutput using the default output device.
     pub fn new() -> Result<Self, AudioError> {
-        let (stream, stream_handle) = OutputStream::try_default()
+        let mut stream = DeviceSinkBuilder::open_default_sink()
             .map_err(|e| AudioError::DeviceNotFound(format!("default device: {}", e)))?;
+        stream.log_on_drop(false);
 
-        Ok(Self {
-            _stream: stream,
-            stream_handle,
-        })
+        Ok(Self { stream })
     }
 
     /// Play an AudioBuffer to completion (blocking).
@@ -1600,8 +1586,7 @@ impl AudioOutput {
             return Ok(());
         }
 
-        let sink = crate::rodio_output::new_sink(&self.stream_handle)
-            .map_err(|e| AudioError::PlaybackError(format!("failed to create sink: {}", e)))?;
+        let sink = crate::rodio_output::new_sink(self.stream.mixer());
 
         let source = BufferSource::new(buffer.samples.clone());
         sink.append(source);
@@ -1615,14 +1600,11 @@ impl AudioOutput {
     pub fn play(&self, buffer: &AudioBuffer) -> Result<PlaybackHandle, AudioError> {
         if buffer.is_empty() {
             return Ok(PlaybackHandle {
-                sink: Arc::new(crate::rodio_output::new_sink(&self.stream_handle).map_err(
-                    |e| AudioError::PlaybackError(format!("failed to create sink: {}", e)),
-                )?),
+                sink: Arc::new(crate::rodio_output::new_sink(self.stream.mixer())),
             });
         }
 
-        let sink = crate::rodio_output::new_sink(&self.stream_handle)
-            .map_err(|e| AudioError::PlaybackError(format!("failed to create sink: {}", e)))?;
+        let sink = crate::rodio_output::new_sink(self.stream.mixer());
 
         let source = BufferSource::new(buffer.samples.clone());
         sink.append(source);
@@ -1635,7 +1617,7 @@ impl AudioOutput {
 
 /// Handle to a playing audio buffer. Can be used to stop playback.
 pub struct PlaybackHandle {
-    sink: Arc<Sink>,
+    sink: Arc<Player>,
 }
 
 impl PlaybackHandle {
@@ -1690,16 +1672,16 @@ impl Iterator for BufferSource {
 }
 
 impl Source for BufferSource {
-    fn current_frame_len(&self) -> Option<usize> {
+    fn current_span_len(&self) -> Option<usize> {
         Some(self.samples.len() - self.position)
     }
 
-    fn channels(&self) -> u16 {
-        CHANNELS
+    fn channels(&self) -> ChannelCount {
+        ChannelCount::new(CHANNELS).unwrap()
     }
 
-    fn sample_rate(&self) -> u32 {
-        SAMPLE_RATE
+    fn sample_rate(&self) -> SampleRate {
+        SampleRate::new(SAMPLE_RATE).unwrap()
     }
 
     fn total_duration(&self) -> Option<Duration> {
@@ -1856,17 +1838,17 @@ impl Iterator for SmoothStopBufferSource {
 }
 
 impl Source for SmoothStopBufferSource {
-    fn current_frame_len(&self) -> Option<usize> {
-        self.inner.current_frame_len().map(|remaining| {
+    fn current_span_len(&self) -> Option<usize> {
+        self.inner.current_span_len().map(|remaining| {
             remaining.min(self.cancellation.remaining_samples(self.inner.position))
         })
     }
 
-    fn channels(&self) -> u16 {
+    fn channels(&self) -> ChannelCount {
         self.inner.channels()
     }
 
-    fn sample_rate(&self) -> u32 {
+    fn sample_rate(&self) -> SampleRate {
         self.inner.sample_rate()
     }
 
@@ -2081,17 +2063,17 @@ fn prepare_playback_cues(
 }
 
 impl Source for TrackedBufferSource {
-    fn current_frame_len(&self) -> Option<usize> {
-        self.inner.current_frame_len().map(|remaining| {
+    fn current_span_len(&self) -> Option<usize> {
+        self.inner.current_span_len().map(|remaining| {
             remaining.min(self.cancellation.remaining_samples(self.inner.position))
         })
     }
 
-    fn channels(&self) -> u16 {
+    fn channels(&self) -> ChannelCount {
         self.inner.channels()
     }
 
-    fn sample_rate(&self) -> u32 {
+    fn sample_rate(&self) -> SampleRate {
         self.inner.sample_rate()
     }
 
@@ -2251,16 +2233,16 @@ impl Iterator for ProgressivePlaybackSource {
 }
 
 impl Source for ProgressivePlaybackSource {
-    fn current_frame_len(&self) -> Option<usize> {
+    fn current_span_len(&self) -> Option<usize> {
         None
     }
 
-    fn channels(&self) -> u16 {
-        CHANNELS
+    fn channels(&self) -> ChannelCount {
+        ChannelCount::new(CHANNELS).unwrap()
     }
 
-    fn sample_rate(&self) -> u32 {
-        SAMPLE_RATE
+    fn sample_rate(&self) -> SampleRate {
+        SampleRate::new(SAMPLE_RATE).unwrap()
     }
 
     fn total_duration(&self) -> Option<Duration> {
@@ -2693,10 +2675,10 @@ mod tests {
 
     #[test]
     fn progressive_control_attaches_only_after_three_audio_windows() {
-        let (speech_sink, _speech_output) = Sink::new_idle();
+        let (speech_sink, _speech_output) = Player::new();
         let speech_sink = Arc::new(speech_sink);
-        let (tone_sink, _tone_output) = Sink::new_idle();
-        let (sound_sink, _sound_output) = Sink::new_idle();
+        let (tone_sink, _tone_output) = Player::new();
+        let (sound_sink, _sound_output) = Player::new();
         let control = AudioControl::new(
             ManagedSink::Device(speech_sink.clone()),
             ManagedSink::Device(Arc::new(tone_sink)),
@@ -2728,10 +2710,10 @@ mod tests {
 
     #[test]
     fn progressive_control_attaches_a_short_stream_at_completion() {
-        let (speech_sink, _speech_output) = Sink::new_idle();
+        let (speech_sink, _speech_output) = Player::new();
         let speech_sink = Arc::new(speech_sink);
-        let (tone_sink, _tone_output) = Sink::new_idle();
-        let (sound_sink, _sound_output) = Sink::new_idle();
+        let (tone_sink, _tone_output) = Player::new();
+        let (sound_sink, _sound_output) = Player::new();
         let control = AudioControl::new(
             ManagedSink::Device(speech_sink.clone()),
             ManagedSink::Device(Arc::new(tone_sink)),
@@ -2760,10 +2742,10 @@ mod tests {
 
     #[test]
     fn progressive_control_does_not_attach_after_stop_during_priming() {
-        let (speech_sink, _speech_output) = Sink::new_idle();
+        let (speech_sink, _speech_output) = Player::new();
         let speech_sink = Arc::new(speech_sink);
-        let (tone_sink, _tone_output) = Sink::new_idle();
-        let (sound_sink, _sound_output) = Sink::new_idle();
+        let (tone_sink, _tone_output) = Player::new();
+        let (sound_sink, _sound_output) = Player::new();
         let control = AudioControl::new(
             ManagedSink::Device(speech_sink.clone()),
             ManagedSink::Device(Arc::new(tone_sink)),
@@ -2873,9 +2855,9 @@ mod tests {
 
     #[test]
     fn speech_stop_rotates_the_stream_cancellation_generation() {
-        let (speech_sink, _speech_output) = Sink::new_idle();
-        let (tone_sink, _tone_output) = Sink::new_idle();
-        let (sound_sink, _sound_output) = Sink::new_idle();
+        let (speech_sink, _speech_output) = Player::new();
+        let (tone_sink, _tone_output) = Player::new();
+        let (sound_sink, _sound_output) = Player::new();
         let control = AudioControl::new(
             ManagedSink::Device(Arc::new(speech_sink)),
             ManagedSink::Device(Arc::new(tone_sink)),
@@ -2905,9 +2887,9 @@ mod tests {
 
     #[test]
     fn tone_stop_rotates_the_stream_cancellation_generation() {
-        let (speech_sink, _speech_output) = Sink::new_idle();
-        let (tone_sink, _tone_output) = Sink::new_idle();
-        let (sound_sink, _sound_output) = Sink::new_idle();
+        let (speech_sink, _speech_output) = Player::new();
+        let (tone_sink, _tone_output) = Player::new();
+        let (sound_sink, _sound_output) = Player::new();
         let control = AudioControl::new(
             ManagedSink::Device(Arc::new(speech_sink)),
             ManagedSink::Device(Arc::new(tone_sink)),
@@ -2952,9 +2934,9 @@ mod tests {
     fn tone_stop_fades_the_active_sink_source_to_zero() {
         let channels = CHANNELS as usize;
         let fade_samples = TONE_STOP_FADE_FRAMES * channels;
-        let (speech_sink, _speech_output) = Sink::new_idle();
-        let (tone_sink, mut tone_output) = Sink::new_idle();
-        let (sound_sink, _sound_output) = Sink::new_idle();
+        let (speech_sink, _speech_output) = Player::new();
+        let (tone_sink, mut tone_output) = Player::new();
+        let (sound_sink, _sound_output) = Player::new();
         let control = AudioControl::new(
             ManagedSink::Device(Arc::new(speech_sink)),
             ManagedSink::Device(Arc::new(tone_sink)),
@@ -3068,7 +3050,7 @@ mod tests {
         cancellation.cancel();
 
         assert_eq!(source.size_hint(), (0, Some(0)));
-        assert_eq!(source.current_frame_len(), Some(0));
+        assert_eq!(source.current_span_len(), Some(0));
         assert_eq!(source.next(), None);
         assert_eq!(ticket.wait(), PlaybackStatus::Cancelled);
     }
@@ -3088,7 +3070,7 @@ mod tests {
         cancellation.cancel();
 
         assert_eq!(source.size_hint(), (0, Some(fade_samples)));
-        assert_eq!(source.current_frame_len(), Some(fade_samples));
+        assert_eq!(source.current_span_len(), Some(fade_samples));
         let tail = source.by_ref().collect::<Vec<_>>();
         assert_eq!(tail.len(), fade_samples);
         assert!(tail

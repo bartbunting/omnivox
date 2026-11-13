@@ -17,6 +17,7 @@ acceptance on every platform.
 
 | Concern | Retained comparison / reproduction source | Measurement boundary |
 | --- | --- | --- |
+| Rodio/CPAL upgrade | [Rodio 0.23 migration](2026-11-13-rodio-upgrade.md) | Locked workspace/audio regressions, native Windows audio/zero-sample reconnection and explicit fixture correction; no deployment or acoustic claim. |
 | Early selected speech | [Optional discovery prototype](2026-11-10-early-speech.md), [automatic client observation](2026-11-10-early-speech-refresh.md) | Controlled delayed-helper availability, fallback, active cancellation, native retirement, compiled client late selection and matched warm startup. |
 | Speech during discovery acknowledgement | [Native early-start correction](2026-11-13-native-early-start.md) | Reproduced generation mismatch, source and native delayed-reply regressions, four-engine lifecycle checks, Windows personal profile and WSL checks; no acoustic timing claim. |
 | Native desktop launch delay | [Personal launcher timing](2026-11-13-native-startup-latency.md) | Matched first-source timing after removing two launch-time Emacs validation processes; Eloquence and DECtalk checks, unchanged package loading and explicit build audit. |

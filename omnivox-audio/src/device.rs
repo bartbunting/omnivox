@@ -9,7 +9,7 @@ use crate::output::AudioControl;
 use crate::rodio_output::CanonicalQueue;
 use crate::{AudioError, CancellationToken};
 use rodio::queue::SourcesQueueInput;
-use rodio::Source;
+use rodio::{ChannelCount, SampleRate, Source};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{mpsc, Arc, Condvar, Mutex};
 use std::thread::JoinHandle;
@@ -94,13 +94,13 @@ impl Iterator for CountedSource {
 }
 
 impl Source for CountedSource {
-    fn current_frame_len(&self) -> Option<usize> {
-        self.inner.current_frame_len()
+    fn current_span_len(&self) -> Option<usize> {
+        self.inner.current_span_len()
     }
-    fn channels(&self) -> u16 {
+    fn channels(&self) -> ChannelCount {
         self.inner.channels()
     }
-    fn sample_rate(&self) -> u32 {
+    fn sample_rate(&self) -> SampleRate {
         self.inner.sample_rate()
     }
     fn total_duration(&self) -> Option<Duration> {
@@ -111,10 +111,7 @@ impl Source for CountedSource {
 impl Drop for CountedSource {
     fn drop(&mut self) {
         // Source Drop publishes its playback ticket before drain is released.
-        let source = std::mem::replace(
-            &mut self.inner,
-            Box::new(rodio::source::Empty::<f32>::new()),
-        );
+        let source = std::mem::replace(&mut self.inner, Box::new(rodio::source::Empty::new()));
         drop(source);
         let mut count = self.pending.count.lock().unwrap();
         *count -= 1;
@@ -123,7 +120,7 @@ impl Drop for CountedSource {
 }
 
 struct QueueConnection {
-    input: Arc<SourcesQueueInput<f32>>,
+    input: Arc<SourcesQueueInput>,
     generation: Arc<AtomicU64>,
     closed: CancellationToken,
     pending: Arc<Pending>,

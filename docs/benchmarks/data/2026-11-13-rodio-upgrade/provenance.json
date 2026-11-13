@@ -1,0 +1,39 @@
+{
+  "base_commit": "b34f1034015a296ef8075eb36d8a81471075d612",
+  "source_patch_sha256": "3a33e5a6abdda63d1a4f9de2bc46a0feccc78d3f3e347e663df8e784eb83d33a",
+  "cargo_lock_sha256": "21d75514916014de447b2143b85b0e9b5b9fc7393314bfa3b7a3a2f324de0201",
+  "toolchain": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+  "rodio": "0.23.0",
+  "cpal": "0.18.2",
+  "features": [
+    "playback",
+    "lewton",
+    "hound"
+  ],
+  "cargo_target_dir": "/home/bart/.cache/ov-device",
+  "native_fixture_followup": {
+    "log": "native-vorbis.log.gz",
+    "exit": 0,
+    "reason": "Cross-compiled CARGO_MANIFEST_DIR fixture path is not a Windows path. Staged only complete.ogg at the matching C:/home/bart/src/.worktrees/omnivox/audio-device-selection/test-sounds path, then removed all files and directories created for the follow-up."
+  },
+  "inputs": {
+    "OMNIVOX_FLITE_SOURCE_DIR": "/home/bart/src/omnivox-lightweight-reload/target/flite-inputs/2.2/source",
+    "OMNIVOX_RUTTS_SOURCE_DIR": "/home/bart/src/omnivox-lightweight-reload/target/rutts-inputs/6.3.3/source",
+    "OMNIVOX_TGSPEECHBOX_SOURCE_DIR": "/home/bart/src/omnivox-lightweight-reload/target/tgspeechbox-inputs/v-310@25b0e1a/source",
+    "OMNIVOX_PIPER_INPUTS_DIR": "/home/bart/src/omnivox/target/piper-inputs/1.7.0/x86_64-unknown-linux-gnu"
+  },
+  "commands": [
+    "make fmt-check",
+    "cargo +1.97.1 test --locked -p omnivox-audio",
+    "cargo +1.97.1 test --locked --workspace",
+    "cargo +1.97.1 clippy --locked --workspace --all-targets -- -D warnings",
+    "cargo +1.97.1 check --locked -p omnivox-audio --all-targets --target x86_64-pc-windows-gnu",
+    "cargo +1.97.1 clippy --locked -p omnivox-audio --all-targets --target x86_64-pc-windows-gnu -- -D warnings",
+    "cargo +1.97.1 test --locked -p omnivox-audio --target x86_64-pc-windows-gnu --no-run",
+    "native test binaries --test-threads=4",
+    "native unit binary device::windows::tests::native_output_reopens_and_retires_old_audio --exact --ignored --nocapture",
+    "native unit binary loader::tests::remote_loader_requires_icons_and_preserves_cached_pcm --exact",
+    "make docs-check",
+    "make docs-check-paired EMACSVOX_SOURCE_DIRECTORY=/home/bart/src/.worktrees/emacsvox/audio-device-selection"
+  ]
+}
