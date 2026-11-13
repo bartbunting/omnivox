@@ -123,6 +123,51 @@ publication job writes this outstanding step to its Actions summary; it does
 not update another repository automatically. Audible Emacs use and a real
 upgrade from the previous upstream version remain separate acceptance checks.
 
+## Prereleases
+
+[ADR 0021](../docs/adr/0021-prerelease-distribution.md) defines the opt-in testing
+channel. Use `vMAJOR.MINOR.PATCH-pre.N`, for example `v1.19.0-pre.1`, with the
+same version in Cargo and the changelog. The full asset set, source verification
+and native gates still apply. GitHub drafts and published releases are marked
+prerelease and excluded from Latest; resuming a draft preserves that identity.
+Tags and published assets must not be replaced: corrections use the next number.
+Debian translates `-pre.N` to `~pre.N` in the package version and filename so the
+stable release sorts later. Binary and source-archive versions remain SemVer.
+
+After GitHub publication, use the separate Homebrew updater path:
+
+```sh
+python3 tools/update_formula.py 1.19.0-pre.1 --prerelease
+python3 -m unittest discover -s tests -v
+```
+
+Review `Formula/omnivox-pre.rb`, wait for both native Mac checks on the final
+pull-request commit, merge, and verify merged `main` with the exact version:
+
+```sh
+python3 tools/update_formula.py 1.19.0-pre.1 --prerelease --check
+```
+
+Record the release, tap commit, pull request and check links in the release
+report. A pending tap update means Homebrew publication is still incomplete.
+The stable formula remains on its published stable release. Once the prerelease
+formula is published, testers explicitly install and select it:
+
+```sh
+brew tap bartbunting/omnivox
+brew update
+brew install bartbunting/omnivox/omnivox-pre
+export OMNIVOX_PROGRAM="$(brew --prefix omnivox-pre)/bin/omnivox"
+"$OMNIVOX_PROGRAM" --version
+```
+
+The formula is keg-only; do not force-link it over stable `omnivox`. Use the
+explicit path in the testing Emacs session and restart that session after an
+upgrade. `brew uninstall omnivox-pre` removes the candidate independently.
+The [Mac device test guide](../docs/guides/macos-audio-devices.md) identifies the
+paired client and physical listening checks; successful release CI does not
+replace those checks.
+
 ## What CI validates
 
 Windows ARM64 jobs explicitly use the `windows-11-vs2026-arm` runner image

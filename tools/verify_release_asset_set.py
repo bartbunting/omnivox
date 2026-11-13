@@ -8,6 +8,8 @@ from pathlib import Path
 import re
 import sys
 
+from release_version import parse_version
+
 
 class AssetSetError(RuntimeError):
     """The candidate release contains a missing or unexpected asset."""
@@ -52,7 +54,7 @@ def expected_asset_names(version: str) -> set[str]:
         for target, extension in PORTABLE_COMPANION_TARGETS.items()
     )
     names.add(f"omnivox-{version}-tgspeechbox-source.tar.gz")
-    names.add(f"omnivox_{version}-1_amd64.deb")
+    names.add(parse_version(version).deb_asset)
     names.add("sha256sums.txt")
     return names
 
@@ -130,7 +132,7 @@ def main() -> int:
             verify_directory(arguments.directory, arguments.version)
         else:
             verify_names_file(arguments.names_file, arguments.version)
-    except (AssetSetError, OSError) as error:
+    except (AssetSetError, ValueError, OSError) as error:
         print(f"FAIL: {error}", file=sys.stderr)
         return 1
     print(f"PASS: exact Omnivox {arguments.version} release asset set")

@@ -25,6 +25,12 @@ class ReleaseTreeTests(unittest.TestCase):
         self.assertEqual(git.call_args_list[1].args,
                          ("git", "rev-parse", "refs/tags/v1.8.0^{commit}"))
 
+    def test_accepts_clean_matching_prerelease_tag(self) -> None:
+        with patch.object(package, "output", side_effect=["", "abc", "abc"]) as git:
+            package.require_release_tree("1.19.0-pre.1")
+        self.assertEqual(git.call_args_list[1].args,
+                         ("git", "rev-parse", "refs/tags/v1.19.0-pre.1^{commit}"))
+
     def test_rejects_tracked_and_untracked_changes_before_tag_lookup(self) -> None:
         for status in (" M Cargo.toml", "?? new-source.rs"):
             with self.subTest(status=status), patch.object(package, "output", return_value=status) as git:
@@ -54,8 +60,8 @@ class ReleaseTreeTests(unittest.TestCase):
             with patch.object(package, "output", side_effect=["", "abc", "abc"]):
                 package.require_release_tree("1.8.0")
 
-    def test_rejects_nonstable_version(self) -> None:
-        with self.assertRaisesRegex(RuntimeError, "stable"):
+    def test_rejects_unsupported_prerelease_version(self) -> None:
+        with self.assertRaisesRegex(RuntimeError, "MAJOR"):
             package.require_release_tree("1.8.0-rc1")
 
 
@@ -72,6 +78,16 @@ class PackageIdentityTests(unittest.TestCase):
         self.assertEqual(package.debian_version("1.8.0", self.source, True, None), "1.8.0-1")
         with self.assertRaisesRegex(RuntimeError, "revision 1"):
             package.debian_version("1.8.0", self.source, True, "0local1")
+
+    def test_prerelease_identity_and_debian_order(self) -> None:
+        version = "1.19.0-pre.1"
+        deb_version = package.debian_version(version, self.source, True, None)
+        self.assertEqual(deb_version, "1.19.0~pre.1-1")
+        info = {**self.release, "package_version": deb_version,
+                "corresponding_source": f"omnivox-{version}-piper-source.tar.gz"}
+        check_release_identity(info, version, version, "a" * 40)
+        subprocess.run(["dpkg", "--compare-versions", deb_version, "lt", "1.19.0-1"], check=True)
+        subprocess.run(["dpkg", "--compare-versions", deb_version, "lt", "1.19.0~pre.2-1"], check=True)
 
     def test_development_version_retains_source_identity(self) -> None:
         with patch.object(package, "output", return_value="2026-09-06"):

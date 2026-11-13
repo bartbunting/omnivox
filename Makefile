@@ -107,6 +107,7 @@ piper-release-test:
 		$(PYTHON) -W error::ResourceWarning tools/test_verify_piper_release.py
 
 release-asset-test:
+	PYTHONDONTWRITEBYTECODE=1 $(PYTHON) tools/test_release_version.py
 	PYTHONDONTWRITEBYTECODE=1 \
 		$(PYTHON) -W error::ResourceWarning tools/test_verify_release_asset_set.py
 

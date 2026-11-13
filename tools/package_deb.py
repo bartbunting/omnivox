@@ -16,6 +16,8 @@ import sys
 import tempfile
 import tomllib
 
+from release_version import parse_version
+
 
 REPOSITORY = Path(__file__).resolve().parent.parent
 MAINTAINER = "Bart Bunting <bartbunting@users.noreply.github.com>"
@@ -27,8 +29,10 @@ def output(*command: str, cwd: Path = REPOSITORY) -> str:
 
 
 def require_release_tree(version: str) -> None:
-    if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version):
-        raise RuntimeError("release packaging requires a stable MAJOR.MINOR.PATCH version")
+    try:
+        parse_version(version)
+    except ValueError as error:
+        raise RuntimeError(str(error)) from error
     if output("git", "status", "--porcelain", "--untracked-files=all"):
         raise RuntimeError("release packaging requires a clean source tree")
     tag = f"v{version}"
@@ -42,6 +46,7 @@ def require_release_tree(version: str) -> None:
 
 def debian_version(version: str, identity: dict[str, str], release: bool,
                    revision: str | None) -> str:
+    version = parse_version(version).debian_version
     revision = revision or ("1" if release else "0local1")
     if not re.fullmatch(r"[0-9][A-Za-z0-9.+~]*", revision):
         raise RuntimeError("invalid Debian revision")

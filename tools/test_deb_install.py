@@ -12,6 +12,7 @@ import sys
 import tarfile
 import tempfile
 
+from release_version import parse_version
 from verify_release import require, verify_checksum, verify_execution
 
 
@@ -69,7 +70,7 @@ def check_release_identity(info: dict, binary_version: str,
                            version: str | None, commit: str | None) -> None:
     if version is not None:
         require(binary_version == version, "binary does not match requested release")
-        require(info["package_version"] == f"{version}-1", "wrong release Debian version")
+        require(info["package_version"] == f"{parse_version(version).debian_version}-1", "wrong release Debian version")
         require(info["distribution"] == "tagged release candidate", "development package in release")
         require(info["corresponding_source"] == f"omnivox-{version}-piper-source.tar.gz",
                 "wrong corresponding-source identity")
@@ -150,7 +151,7 @@ def main() -> None:
     check_archive(archive)
     expected = []
     if arguments.version is not None:
-        require(archive.name == f"omnivox_{arguments.version}-1_amd64.deb",
+        require(archive.name == parse_version(arguments.version).deb_asset,
                 "unexpected release package filename")
         expected.extend(["--version", arguments.version])
     if arguments.commit is not None:

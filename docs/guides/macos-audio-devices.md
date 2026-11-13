@@ -6,6 +6,19 @@ speech engines, and a disconnected explicit device never falls back to speakers.
 Native Intel/Apple Silicon execution and physical listening are pending. A passing
 cross-target check is not a native build or listening result.
 
+## Install the testing release
+
+The prepared server candidate is `v1.19.0-pre.1`, paired with Emacsvox commit
+[`a751af1506b73b8a37a37085eb7a356a318da8ca`](https://github.com/bartbunting/emacsvox/commit/a751af1506b73b8a37a37085eb7a356a318da8ca).
+Use this client commit for the physical device menus. It is a testing checkout,
+not a separately versioned Emacsvox release.
+
+Once the prerelease and tap update are published, follow the
+[prerelease installation instructions](../../.github/DEPLOYMENT.md#prereleases).
+Set `OMNIVOX_PROGRAM` to `$(brew --prefix omnivox-pre)/bin/omnivox` in the isolated
+session below instead of the source-build path. The source build and ignored
+hardware smoke test remain optional additional checks for binary testers.
+
 ## Prepare the candidate
 
 Use the paired reviewed Omnivox and Emacsvox candidate checkouts. This feature is

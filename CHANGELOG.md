@@ -6,6 +6,8 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+## [1.19.0-pre.1] - 2026-11-14
+
 ### Added
 
 - macOS CoreAudio device discovery and live output switching, with host UUID
