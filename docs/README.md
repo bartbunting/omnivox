@@ -34,6 +34,7 @@ later extensions and remaining platform qualification.
 | Use workstation speech remotely | [Preview setup, SSH and recovery](guides/remote-speech.md) |
 | Install/build Debian packages | [Debian packages](guides/debian-packages.md) |
 | Compare Windows/Linux speech under WSLg | [Development comparison workflow](guides/wsl-audio-comparison.md) |
+| Test macOS output switching | [Candidate setup and listening checklist](guides/macos-audio-devices.md) |
 | Build, verify or release payloads | [Deployment](../.github/DEPLOYMENT.md), [workflow reference](../.github/workflows/README.md), [developer tools](../tools/README.md) |
 
 Published history remains in the [changelog](../CHANGELOG.md).

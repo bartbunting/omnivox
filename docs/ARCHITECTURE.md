@@ -581,8 +581,8 @@ device. Rodio queues advertise a constant canonical stereo format through idle
 and source transitions, so the mixer's format conversion cannot interpret the
 first stereo samples as mono when playback resumes.
 
-On Windows, one owned output thread observes endpoint notifications and opens,
-replaces and closes the device connection. Follow-default mode uses the
+On Windows and macOS, one owned output thread observes device notifications and opens,
+replaces and closes the device connection. Windows follow-default mode uses the
 default-render/console endpoint under
 [ADR 0010](adr/0010-windows-default-output-recovery.md); explicit selection uses
 only the chosen backend-qualified ID under
@@ -593,9 +593,13 @@ fresh queues; sources waiting for progressive PCM also observe connection
 cancellation. Engine instances remain alive and interrupted speech is never
 replayed. Native open/close operations run outside admission and stop locks.
 Initial connection failure remains a startup error. Later failure leaves the
-worker alive but rejects fresh audio until a bounded retry, endpoint event or
+worker alive but rejects fresh audio until a bounded retry, device event or
 new request recovers output. Duplicate defaults and unrelated endpoint events
-retain a healthy connection.
+retain a healthy connection. macOS uses CoreAudio default/device-list listeners
+and CPAL stream invalidation, with exact UID lookup and pinned HAL outputs.
+Follow-default replaces queues through the same owner instead of permitting
+CoreAudio to move an in-flight stream automatically. macOS implementation is
+awaiting native execution and listening qualification.
 
 Negotiated [device selection](protocols/audio-devices.md) enumerates bounded
 native identities and changes one worker's physical destination. The owner

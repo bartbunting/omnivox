@@ -9,6 +9,10 @@ Cross-engine suite inputs live under `plans/`; unmodified measurements and logs
 live under `data/`. A missing raw artifact or measurement is a coverage gap,
 not an implied successful result.
 
+The [macOS audio-device implementation checks](2026-11-13-macos-audio-devices.md)
+record local shared/cross-target verification; native Mac execution and listening
+remain pending.
+
 ## Performance comparisons and baselines
 
 Choose a baseline matching the path being changed. The following are retained

@@ -6,22 +6,23 @@ tracked separately in the [delivery plan](../plans/audio-device-selection.md).
 
 ## Scope and startup
 
-`audio_device_selection_v1` is advertised by ordinary local Windows workers using
-the `device` backend. It is absent for remote workers, emergency workers, null,
-native PulseAudio and other platforms. Negotiate it separately on each worker;
+`audio_device_selection_v1` is advertised by ordinary local Windows and macOS
+workers using the `device` backend. macOS native qualification is pending. It is
+absent for remote workers, emergency workers, null, native PulseAudio and other
+platforms. Negotiate it separately on each worker;
 unsupported peers reject the operations without changing output.
 
 `--list-audio-devices` emits one JSON catalogue without constructing speech
 engines or reading engine configuration. Unsupported platforms return
-`supported: false` and an empty list. It enumerates the Windows device backend,
-not the devices behind a Linux WSLg virtual output.
+`supported: false` and an empty list. It enumerates WASAPI on Windows and CoreAudio
+on macOS; a Linux WSLg virtual output does not expose the Windows physical devices.
 
 `--audio-device default` follows the system default. Otherwise the value is an
 opaque backend-qualified ID returned by discovery. The CLI overrides
 `OMNIVOX_AUDIO_DEVICE`, then the matching saved client choice below; omission
 preserves follow-default behavior.
-Explicit IDs require Windows `device` output and never select a fallback device.
-The same selection applies to server output, `--check` and file playback.
+Explicit IDs require Windows or macOS `device` output and never select a fallback
+device. The same selection applies to server output, `--check` and file playback.
 Device IDs are not new members of configuration version 2's `audio` object.
 Clients save host-scoped lane choices and supply their launch override explicitly.
 
@@ -62,8 +63,12 @@ contains at most 64 outputs; labels are shortened on a UTF-8 boundary to at most
 fail or become stale while a device changes; refresh explicitly to retry.
 
 Windows `host_scope` is `windows:wasapi:` followed by its lowercase physical DNS
-host name. Scope saved choices to that host/backend, not a launcher path or
-Omnivox build. A renamed host has a new scope. The scope is configuration
+host name. macOS uses `macos:coreaudio:` followed by the 32 lowercase hexadecimal
+digits of `gethostuuid(2)`; a host rename retains that scope. Failure to obtain a
+nonzero UUID is an error, never a shared generic Mac scope. CoreAudio device IDs
+use CPAL's `coreaudio:` prefix and the native device UID, not the transient
+AudioObjectID. Scope saved choices to that host/backend, not a launcher path or
+Omnivox build. A renamed Windows host has a new scope. The scope is configuration
 namespacing, not authentication or an assertion that names are globally unique.
 
 `audio_device_status_v1` returns `incarnation`, `host_scope` and `state`. The
@@ -117,6 +122,25 @@ Discovery has one working request and one queued request. Replies use a bounded
 Stop in these handlers. It must query the existing operation rather than infer an
 outcome or retry it with a new sequence. Existing synchronous operations have
 their own limits; this does not change every control-response path.
+
+## macOS output lifecycle
+
+CoreAudio listeners watch the system's default-output and device-list properties.
+CPAL stream errors report disconnect and format invalidation. Notifications wake
+one owned output thread through the existing bounded queue; underrun and real-time
+scheduling warnings do not rebuild output. Omnivox's system-listener registration,
+output open, replacement and teardown happen on that owner thread. CPAL manages
+its own stream listeners. Callback cookies use a weak registry,
+are never reused and become inert before native unregister, including on failure.
+
+Both selection modes open an enumerated device by UID. CPAL's enumerated-device
+path pins a HAL output; its default-device path can reroute automatically and is
+not used to open streams. Follow-default resolves the current system output to a
+UID and performs the same generation-retiring replacement as explicit Apply.
+Rodio may try alternative formats on that device, but never another device.
+There is no idle polling; device events and bounded retries drive recovery.
+The [native test checklist](../guides/macos-audio-devices.md) separates source
+checks, native execution and listening acceptance.
 
 ## Retained recovery
 

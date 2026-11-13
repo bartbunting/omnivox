@@ -10,7 +10,10 @@
   main/notification device switching and Left/Right listening are
   [accepted](../benchmarks/2026-11-13-audio-device-listening.md); physical disconnect
   and broader hardware/platform qualification remain open. The feature is not a
-  published release.
+  published release. macOS CoreAudio discovery and switching are implemented;
+  [local implementation checks](../benchmarks/2026-11-13-macos-audio-devices.md) pass;
+  native execution and listening are pending under the
+  [Mac test checklist](../guides/macos-audio-devices.md).
 - Scope: Local independent main/notification destinations, explicit Apply/Save,
   and recovery that preserves the intended output.
 - Entry: [Roadmap](../ROADMAP.md#feature-backlog).

@@ -1,0 +1,16 @@
+{
+  "base": "3ed4e8d7561fe6ae7943fd8159fab18e602fd971",
+  "implementation_patch_sha256": "02645d08f7c62bc6dca6586dfcf798af9b0e05f957dea912b4bd38386da90faa",
+  "toolchain": "rustc 1.97.1 (8bab26f4f 2026-07-14)",
+  "host": "Linux 6.18.58.1-microsoft-standard-WSL2 x86_64",
+  "target_directory": "/tmp/ovx-mac-qc00elv7",
+  "native_macos_executed": false,
+  "commands": [
+    "CMAKE_BUILD_PARALLEL_LEVEL=4 CARGO_TARGET_DIR=<target_directory> cargo +1.97.1 test --locked --workspace",
+    "CMAKE_BUILD_PARALLEL_LEVEL=4 CARGO_TARGET_DIR=<target_directory> cargo +1.97.1 clippy --locked --workspace --all-targets -- -D warnings",
+    "cargo +1.97.1 clippy --locked -p omnivox-audio --all-targets --target <aarch64-apple-darwin|x86_64-apple-darwin|x86_64-pc-windows-gnu> -- -D warnings",
+    "make fmt-check",
+    "make docs-check docs-check-paired EMACSVOX_SOURCE_DIRECTORY=/home/bart/src/.worktrees/emacsvox/macos-audio-devices",
+    "git diff --check"
+  ]
+}

@@ -6,7 +6,7 @@
 
 pub mod buffer;
 pub mod cancellation;
-#[cfg(any(windows, test))]
+#[cfg(any(windows, target_os = "macos", test))]
 mod device;
 mod device_catalogue;
 pub mod effects;

@@ -1,6 +1,10 @@
-//! Replaceable Windows device output. Native calls stay on one owned thread;
+//! Replaceable Windows and macOS device output. Native calls stay on one owned thread;
 //! admission uses short queue locks and never waits for a device to consume PCM.
 
+#[cfg(target_os = "macos")]
+mod macos;
+#[cfg(any(target_os = "macos", test))]
+mod notifications;
 mod selection;
 #[cfg(windows)]
 mod windows;
@@ -191,7 +195,7 @@ impl DeviceSink {
         else {
             self.signals.retry();
             return Err(AudioError::PlaybackError(
-                "selected Windows output is unavailable; this audio was discarded".into(),
+                "selected output is unavailable; this audio was discarded".into(),
             ));
         };
         let lifetime = queue.lifetime();
@@ -280,7 +284,7 @@ impl<B: Backend> Owner<B> {
         }
         self.retire();
         let target = target?.ok_or_else(|| {
-            AudioError::DeviceNotFound("selected Windows playback endpoint is unavailable".into())
+            AudioError::DeviceNotFound("selected playback endpoint is unavailable".into())
         })?;
         let (connection, queues) = self.backend.open(&target)?;
         if self.signals.closed.load(Ordering::Acquire)
@@ -313,7 +317,7 @@ impl<B: Backend> Owner<B> {
         self.device = Some(target);
         self.signals.routing.lock().unwrap().connected = self.device.clone();
         tracing::info!(lifecycle_stage = "output_device_ready", device_id = ?self.device,
-            "Selected Windows audio output ready");
+            "Selected audio output ready");
         Ok(true)
     }
 
@@ -390,6 +394,14 @@ pub(crate) struct DeviceRuntime {
 }
 
 impl DeviceRuntime {
+    #[cfg(target_os = "macos")]
+    pub(crate) fn new(
+        depths: [usize; 3],
+        selection: DeviceSelection,
+    ) -> Result<(Self, Arc<AudioControl>), AudioError> {
+        Self::start_with_selection(depths, selection, macos::MacBackend::new)
+    }
+
     #[cfg(windows)]
     pub(crate) fn new(
         depths: [usize; 3],

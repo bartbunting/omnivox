@@ -25,7 +25,7 @@ Outstanding items are listed without a priority ranking:
 - **Voice selection and installation assistance:** extend native and fresh-client
   acceptance, interrupted-operation recovery and operating-system voice setup.
 - **Audio-device selection and recovery:** extend physical-device qualification
-  and implement selection/follow-default recovery on other platforms.
+  and qualify macOS selection/follow-default recovery; implement Linux selection.
   Windows discovery, exact-ID selection and independent live Apply are implemented
   under [ADR 0020](adr/0020-audio-output-device-selection.md), with a paired
   Emacsvox editor, separate Save and retained worker recovery.
@@ -33,6 +33,8 @@ Outstanding items are listed without a priority ranking:
   the full development payload. Windows device switching and Left/Right
   [listening are accepted](benchmarks/2026-11-13-audio-device-listening.md);
   physical unplugging and broader hardware/platform coverage remain open.
+  The macOS CoreAudio implementation awaits native Intel/Apple Silicon execution
+  and a [Mac user test](guides/macos-audio-devices.md).
   Windows follow-default recovery is implemented under
   [ADR 0010](adr/0010-windows-default-output-recovery.md), with a successful
   [physical headphone-switching check](benchmarks/2026-09-28-1.14-candidate.md#manual-headphone-follow-up).

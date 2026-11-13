@@ -5,7 +5,7 @@ use omnivox_core::audio_device::DeviceCatalogue;
 
 /// Enumerate supported physical device choices on this speech host.
 pub fn output_devices() -> Result<DeviceCatalogue, AudioError> {
-    #[cfg(windows)]
+    #[cfg(any(windows, target_os = "macos"))]
     {
         use omnivox_core::audio_device::{
             DeviceSelection, OutputDevice, MAX_DEVICES, MAX_DEVICE_NAME_BYTES,
@@ -54,7 +54,7 @@ pub fn output_devices() -> Result<DeviceCatalogue, AudioError> {
             truncated,
         })
     }
-    #[cfg(not(windows))]
+    #[cfg(not(any(windows, target_os = "macos")))]
     {
         Ok(DeviceCatalogue {
             host_scope: std::env::consts::OS.into(),
@@ -68,7 +68,11 @@ pub fn output_devices() -> Result<DeviceCatalogue, AudioError> {
 }
 
 pub fn output_device_host_scope() -> Result<String, AudioError> {
-    #[cfg(not(windows))]
+    #[cfg(target_os = "macos")]
+    {
+        macos_host_scope()
+    }
+    #[cfg(not(any(windows, target_os = "macos")))]
     {
         Ok(std::env::consts::OS.into())
     }
@@ -96,4 +100,35 @@ fn windows_host_scope() -> Result<String, AudioError> {
     let name = String::from_utf16(&buffer[..size as usize])
         .map_err(|_| AudioError::InvalidFormat("invalid speech host name".into()))?;
     Ok(format!("windows:wasapi:{}", name.to_lowercase()))
+}
+
+#[cfg(target_os = "macos")]
+fn macos_host_scope() -> Result<String, AudioError> {
+    // Hardware identity survives host renames and does not depend on DNS or
+    // the logged-in user. Failure must not collapse every Mac into one scope.
+    static SCOPE: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    if let Some(scope) = SCOPE.get() {
+        return Ok(scope.clone());
+    }
+    let mut id = [0_u8; 16];
+    let timeout = libc::timespec {
+        tv_sec: 1,
+        tv_nsec: 0,
+    };
+    // SAFETY: gethostuuid writes a 16-byte UUID; both pointers live for this call.
+    if unsafe { libc::gethostuuid(id.as_mut_ptr(), &timeout) } != 0 {
+        return Err(AudioError::DeviceNotFound(format!(
+            "speech host identity: {}",
+            std::io::Error::last_os_error()
+        )));
+    }
+    if id == [0; 16] {
+        return Err(AudioError::DeviceNotFound(
+            "empty speech host identity".into(),
+        ));
+    }
+    let hex: String = id.iter().map(|byte| format!("{byte:02x}")).collect();
+    let scope = format!("macos:coreaudio:{hex}");
+    let _ = SCOPE.set(scope.clone());
+    Ok(scope)
 }

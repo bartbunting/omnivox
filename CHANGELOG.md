@@ -8,6 +8,10 @@ Versioning for published releases.
 
 ### Added
 
+- macOS CoreAudio device discovery and live output switching, with host UUID
+  scoping and explicit-device recovery without fallback. Native build and
+  listening qualification remain pending.
+
 - Live local channel selection for speech, tones and sounds together, without
   restarting workers or changing their physical output device.
 - Local Windows output-device discovery and independent live selection by stable

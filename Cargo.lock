@@ -768,6 +768,7 @@ dependencies = [
  "anyhow",
  "libc",
  "libloading",
+ "objc2-core-audio",
  "omnivox-core",
  "rodio",
  "rubato",

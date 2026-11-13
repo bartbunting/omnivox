@@ -465,9 +465,9 @@ impl NullSink {
 
 #[derive(Clone)]
 enum ManagedSink {
-    #[cfg(any(not(windows), test))]
+    #[cfg(any(not(any(windows, target_os = "macos")), test))]
     Device(Arc<Player>),
-    #[cfg(any(windows, test))]
+    #[cfg(any(windows, target_os = "macos", test))]
     FollowingDevice(Arc<crate::device::DeviceSink>),
     #[cfg(target_os = "linux")]
     Pulse(Arc<crate::pulse::PulseSink>),
@@ -480,9 +480,9 @@ impl ManagedSink {
         S: Source<Item = f32> + Send + 'static,
     {
         match self {
-            #[cfg(any(not(windows), test))]
+            #[cfg(any(not(any(windows, target_os = "macos")), test))]
             Self::Device(sink) => sink.append(source),
-            #[cfg(any(windows, test))]
+            #[cfg(any(windows, target_os = "macos", test))]
             Self::FollowingDevice(sink) => return sink.append(source),
             Self::Null(sink) => sink.append(source),
             #[cfg(target_os = "linux")]
@@ -492,7 +492,7 @@ impl ManagedSink {
     }
 
     fn append_progressive(&self, mut source: ProgressivePlaybackSource) -> Result<(), AudioError> {
-        #[cfg(any(windows, test))]
+        #[cfg(any(windows, target_os = "macos", test))]
         if let Self::FollowingDevice(sink) = self {
             return sink.append_with(move |lifetime| {
                 source.output_lifetime = Some(lifetime);
@@ -510,9 +510,9 @@ impl ManagedSink {
 
     fn clear(&self) {
         match self {
-            #[cfg(any(not(windows), test))]
+            #[cfg(any(not(any(windows, target_os = "macos")), test))]
             Self::Device(sink) => sink.clear(),
-            #[cfg(any(windows, test))]
+            #[cfg(any(windows, target_os = "macos", test))]
             Self::FollowingDevice(sink) => sink.clear(),
             Self::Null(sink) => sink.clear(),
             #[cfg(target_os = "linux")]
@@ -521,7 +521,7 @@ impl ManagedSink {
     }
 
     fn play(&self) {
-        #[cfg(any(not(windows), test))]
+        #[cfg(any(not(any(windows, target_os = "macos")), test))]
         if let Self::Device(sink) = self {
             sink.play();
         }
@@ -533,9 +533,9 @@ impl ManagedSink {
 
     fn len(&self) -> usize {
         match self {
-            #[cfg(any(not(windows), test))]
+            #[cfg(any(not(any(windows, target_os = "macos")), test))]
             Self::Device(sink) => sink.len(),
-            #[cfg(any(windows, test))]
+            #[cfg(any(windows, target_os = "macos", test))]
             Self::FollowingDevice(sink) => sink.len(),
             Self::Null(sink) => sink.pending.len(),
             #[cfg(target_os = "linux")]
@@ -545,9 +545,9 @@ impl ManagedSink {
 
     fn sleep_until_end(&self) {
         match self {
-            #[cfg(any(not(windows), test))]
+            #[cfg(any(not(any(windows, target_os = "macos")), test))]
             Self::Device(sink) => sink.sleep_until_end(),
-            #[cfg(any(windows, test))]
+            #[cfg(any(windows, target_os = "macos", test))]
             Self::FollowingDevice(sink) => sink.drain(),
             Self::Null(sink) => sink.pending.wait(),
             #[cfg(target_os = "linux")]
@@ -658,7 +658,7 @@ impl AudioControl {
         *self.output_generation.lock().unwrap() = Some(generation);
     }
 
-    #[cfg(any(windows, test))]
+    #[cfg(any(windows, target_os = "macos", test))]
     pub(crate) fn following_device(
         sinks: [Arc<crate::device::DeviceSink>; 3],
         depths: [usize; 3],
@@ -676,12 +676,12 @@ impl AudioControl {
 
     /// Publish/retire queues atomically against all append, stop and overlay
     /// gates. REPLACE only changes local queues; native work happens outside.
-    #[cfg(any(windows, test))]
+    #[cfg(any(windows, target_os = "macos", test))]
     pub(crate) fn interrupt_output(&self, replace: impl FnOnce()) {
         self.interrupt_output_if(|| true, replace);
     }
 
-    #[cfg(any(windows, test))]
+    #[cfg(any(windows, target_os = "macos", test))]
     pub(crate) fn interrupt_output_if(
         &self,
         ready: impl FnOnce() -> bool,
@@ -708,7 +708,7 @@ impl AudioControl {
 
     /// Snapshot of the selected route; no native calls or speech-engine work.
     pub fn audio_device_state(&self) -> Option<DeviceState> {
-        #[cfg(any(windows, test))]
+        #[cfg(any(windows, target_os = "macos", test))]
         if let ManagedSink::FollowingDevice(sink) = &self.speech_sink {
             return Some(sink.device_state());
         }
@@ -717,7 +717,7 @@ impl AudioControl {
 
     /// Begin a bounded, asynchronous output-only change on the native owner.
     pub fn begin_audio_device_change(&self, change: DeviceChange) -> Option<DeviceOutcome> {
-        #[cfg(any(windows, test))]
+        #[cfg(any(windows, target_os = "macos", test))]
         if let ManagedSink::FollowingDevice(sink) = &self.speech_sink {
             return Some(sink.begin_device_change(change));
         }
@@ -726,7 +726,7 @@ impl AudioControl {
     }
 
     pub fn cancel_audio_device_change(&self, sequence: u64) -> Option<DeviceOutcome> {
-        #[cfg(any(windows, test))]
+        #[cfg(any(windows, target_os = "macos", test))]
         if let ManagedSink::FollowingDevice(sink) = &self.speech_sink {
             return Some(sink.cancel_device_change(sequence));
         }
@@ -1333,9 +1333,9 @@ enum AudioStreamRuntime {
     Pulse {
         sinks: [Arc<crate::pulse::PulseSink>; 3],
     },
-    #[cfg(not(windows))]
+    #[cfg(not(any(windows, target_os = "macos")))]
     Device { _stream: MixerDeviceSink },
-    #[cfg(windows)]
+    #[cfg(any(windows, target_os = "macos"))]
     FollowingDevice {
         _runtime: crate::device::DeviceRuntime,
     },
@@ -1399,7 +1399,7 @@ impl AudioStreams {
     }
 
     /// Select a physical output independently of channel routing. Explicit IDs
-    /// currently require the Windows device backend; unsupported choices fail.
+    /// require the Windows or macOS device backend; unsupported choices fail.
     pub fn new_with_output_options(
         speech_max_depth: usize,
         tone_max_depth: usize,
@@ -1412,10 +1412,10 @@ impl AudioStreams {
             .validate()
             .map_err(|error| AudioError::InvalidFormat(error.into()))?;
         if selection != DeviceSelection::SystemDefault
-            && (!cfg!(windows) || backend != AudioBackend::Device)
+            && (!cfg!(any(windows, target_os = "macos")) || backend != AudioBackend::Device)
         {
             return Err(AudioError::InvalidFormat(
-                "explicit audio devices require the Windows device backend".into(),
+                "explicit audio devices require the Windows or macOS device backend".into(),
             ));
         }
         match backend {
@@ -1438,7 +1438,7 @@ impl AudioStreams {
         sound_max_depth: usize,
         selection: DeviceSelection,
     ) -> Result<Self, AudioError> {
-        #[cfg(windows)]
+        #[cfg(any(windows, target_os = "macos"))]
         {
             let (runtime, control) = crate::device::DeviceRuntime::new(
                 [speech_max_depth, tone_max_depth, sound_max_depth],
@@ -1449,7 +1449,7 @@ impl AudioStreams {
                 control,
             })
         }
-        #[cfg(not(windows))]
+        #[cfg(not(any(windows, target_os = "macos")))]
         {
             debug_assert_eq!(selection, DeviceSelection::SystemDefault);
             let mut stream = DeviceSinkBuilder::open_default_sink()
