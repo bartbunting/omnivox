@@ -8,7 +8,7 @@ cross-target check is not a native build or listening result.
 
 ## Install the testing release
 
-The prepared server candidate is `v1.19.0-pre.1`, paired with Emacsvox commit
+The prepared server candidate is `v1.19.0-pre.2`, paired with Emacsvox commit
 [`a751af1506b73b8a37a37085eb7a356a318da8ca`](https://github.com/bartbunting/emacsvox/commit/a751af1506b73b8a37a37085eb7a356a318da8ca).
 Use this client commit for the physical device menus. It is a testing checkout,
 not a separately versioned Emacsvox release.

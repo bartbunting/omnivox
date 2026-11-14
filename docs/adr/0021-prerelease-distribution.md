@@ -18,8 +18,8 @@ Use `vMAJOR.MINOR.PATCH-pre.N` tags, starting at positive integer `N = 1`,
 with the corresponding SemVer in the workspace, binaries and archive names.
 Each published tag and its assets are immutable; corrections use a new number.
 Published changelog sections remain frozen. Debian substitutes `~pre.N` for
-`-pre.N` in its package version and filename, so the eventual stable version
-sorts after every prerelease.
+`-pre.N` in its package version, so the eventual stable version sorts after every
+prerelease. Asset filenames retain SemVer: GitHub normalizes `~` during upload.
 
 Retain the complete stable release asset set, checksums, corresponding source,
 licensing and native verification gates. A prerelease is first uploaded as a

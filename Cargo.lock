@@ -763,7 +763,7 @@ dependencies = [
 
 [[package]]
 name = "omnivox-audio"
-version = "1.19.0-pre.1"
+version = "1.19.0-pre.2"
 dependencies = [
  "anyhow",
  "libc",
@@ -780,7 +780,7 @@ dependencies = [
 
 [[package]]
 name = "omnivox-cli"
-version = "1.19.0-pre.1"
+version = "1.19.0-pre.2"
 dependencies = [
  "anyhow",
  "libc",
@@ -799,7 +799,7 @@ dependencies = [
 
 [[package]]
 name = "omnivox-core"
-version = "1.19.0-pre.1"
+version = "1.19.0-pre.2"
 dependencies = [
  "once_cell",
  "regex",
@@ -811,7 +811,7 @@ dependencies = [
 
 [[package]]
 name = "omnivox-flite-helper"
-version = "1.19.0-pre.1"
+version = "1.19.0-pre.2"
 dependencies = [
  "omnivox-audio",
  "omnivox-flite-sys",
@@ -822,14 +822,14 @@ dependencies = [
 
 [[package]]
 name = "omnivox-flite-sys"
-version = "1.19.0-pre.1"
+version = "1.19.0-pre.2"
 dependencies = [
  "cc",
 ]
 
 [[package]]
 name = "omnivox-helper-host"
-version = "1.19.0-pre.1"
+version = "1.19.0-pre.2"
 dependencies = [
  "omnivox-tts",
  "thiserror 1.0.69",
@@ -837,7 +837,7 @@ dependencies = [
 
 [[package]]
 name = "omnivox-linux-helpers"
-version = "1.19.0-pre.1"
+version = "1.19.0-pre.2"
 dependencies = [
  "libloading",
  "omnivox-audio",
@@ -847,7 +847,7 @@ dependencies = [
 
 [[package]]
 name = "omnivox-mbrola-helper"
-version = "1.19.0-pre.1"
+version = "1.19.0-pre.2"
 dependencies = [
  "omnivox-helper-host",
  "omnivox-tts",
@@ -858,7 +858,7 @@ dependencies = [
 
 [[package]]
 name = "omnivox-piper-helper"
-version = "1.19.0-pre.1"
+version = "1.19.0-pre.2"
 dependencies = [
  "omnivox-helper-host",
  "omnivox-piper-sys",
@@ -867,14 +867,14 @@ dependencies = [
 
 [[package]]
 name = "omnivox-piper-sys"
-version = "1.19.0-pre.1"
+version = "1.19.0-pre.2"
 dependencies = [
  "bindgen",
 ]
 
 [[package]]
 name = "omnivox-rhvoice-helper"
-version = "1.19.0-pre.1"
+version = "1.19.0-pre.2"
 dependencies = [
  "libloading",
  "omnivox-audio",
@@ -885,7 +885,7 @@ dependencies = [
 
 [[package]]
 name = "omnivox-rutts-helper"
-version = "1.19.0-pre.1"
+version = "1.19.0-pre.2"
 dependencies = [
  "omnivox-audio",
  "omnivox-helper-host",
@@ -895,14 +895,14 @@ dependencies = [
 
 [[package]]
 name = "omnivox-rutts-sys"
-version = "1.19.0-pre.1"
+version = "1.19.0-pre.2"
 dependencies = [
  "cc",
 ]
 
 [[package]]
 name = "omnivox-tgspeechbox-helper"
-version = "1.19.0-pre.1"
+version = "1.19.0-pre.2"
 dependencies = [
  "espeak-rs-sys",
  "omnivox-helper-host",
@@ -912,14 +912,14 @@ dependencies = [
 
 [[package]]
 name = "omnivox-tgspeechbox-sys"
-version = "1.19.0-pre.1"
+version = "1.19.0-pre.2"
 dependencies = [
  "cc",
 ]
 
 [[package]]
 name = "omnivox-tts"
-version = "1.19.0-pre.1"
+version = "1.19.0-pre.2"
 dependencies = [
  "base64 0.22.1",
  "cc",

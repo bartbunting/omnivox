@@ -126,18 +126,20 @@ upgrade from the previous upstream version remain separate acceptance checks.
 ## Prereleases
 
 [ADR 0021](../docs/adr/0021-prerelease-distribution.md) defines the opt-in testing
-channel. Use `vMAJOR.MINOR.PATCH-pre.N`, for example `v1.19.0-pre.1`, with the
+channel. Use `vMAJOR.MINOR.PATCH-pre.N`, for example `v1.19.0-pre.2`, with the
 same version in Cargo and the changelog. The full asset set, source verification
 and native gates still apply. GitHub drafts and published releases are marked
 prerelease and excluded from Latest; resuming a draft preserves that identity.
 Tags and published assets must not be replaced: corrections use the next number.
-Debian translates `-pre.N` to `~pre.N` in the package version and filename so the
-stable release sorts later. Binary and source-archive versions remain SemVer.
+Debian translates `-pre.N` to `~pre.N` in the package's internal Version field so
+the stable release sorts later. Filenames retain SemVer because GitHub normalizes
+`~` during upload; for example, `omnivox_1.19.0-pre.2-1_amd64.deb` contains Debian
+version `1.19.0~pre.2-1`. Binary and source-archive versions also remain SemVer.
 
 After GitHub publication, use the separate Homebrew updater path:
 
 ```sh
-python3 tools/update_formula.py 1.19.0-pre.1 --prerelease
+python3 tools/update_formula.py 1.19.0-pre.2 --prerelease
 python3 -m unittest discover -s tests -v
 ```
 
@@ -145,7 +147,7 @@ Review `Formula/omnivox-pre.rb`, wait for both native Mac checks on the final
 pull-request commit, merge, and verify merged `main` with the exact version:
 
 ```sh
-python3 tools/update_formula.py 1.19.0-pre.1 --prerelease --check
+python3 tools/update_formula.py 1.19.0-pre.2 --prerelease --check
 ```
 
 Record the release, tap commit, pull request and check links in the release

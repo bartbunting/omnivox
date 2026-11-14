@@ -6,6 +6,17 @@ Versioning for published releases.
 
 ## [Unreleased]
 
+## [1.19.0-pre.2] - 2026-11-14
+
+This testing release includes the features listed for the `pre.1` candidate
+below. That tag remains intact, but its draft was never published: GitHub
+normalized the Debian filename and the exact-asset gate rejected it.
+
+### Fixed
+
+- Keep Debian download filenames compatible with GitHub while retaining
+  `~pre.N` in the package metadata for correct prerelease upgrade ordering.
+
 ## [1.19.0-pre.1] - 2026-11-14
 
 ### Added

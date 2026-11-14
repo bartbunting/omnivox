@@ -4,7 +4,9 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 import subprocess
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -88,6 +90,30 @@ class PackageIdentityTests(unittest.TestCase):
         check_release_identity(info, version, version, "a" * 40)
         subprocess.run(["dpkg", "--compare-versions", deb_version, "lt", "1.19.0-1"], check=True)
         subprocess.run(["dpkg", "--compare-versions", deb_version, "lt", "1.19.0~pre.2-1"], check=True)
+
+    def test_github_safe_filename_preserves_debian_package_version(self) -> None:
+        version = "1.19.0-pre.2"
+        deb_version = package.debian_version(version, self.source, True, None)
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary) / "root"
+            control = root / "DEBIAN/control"
+            control.parent.mkdir(parents=True)
+            control.parent.chmod(0o755)
+            control.write_text(
+                f"Package: omnivox\nVersion: {deb_version}\nArchitecture: amd64\n"
+                "Maintainer: Omnivox test <test@example.invalid>\n"
+                "Description: prerelease filename regression fixture\n"
+            )
+            archive = Path(temporary) / package.parse_version(version).deb_asset
+            built = subprocess.run(["dpkg-deb", "--build", "--root-owner-group", str(root),
+                                    str(archive)], capture_output=True, text=True)
+            self.assertEqual(built.returncode, 0, built.stdout + built.stderr)
+            actual = subprocess.check_output(
+                ["dpkg-deb", "--field", str(archive), "Version"], text=True,
+            ).strip()
+            self.assertEqual(archive.name, "omnivox_1.19.0-pre.2-1_amd64.deb")
+            self.assertEqual(actual, "1.19.0~pre.2-1")
+            subprocess.run(["dpkg", "--compare-versions", actual, "lt", "1.19.0-1"], check=True)
 
     def test_development_version_retains_source_identity(self) -> None:
         with patch.object(package, "output", return_value="2026-09-06"):

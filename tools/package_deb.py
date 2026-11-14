@@ -188,7 +188,8 @@ def package(arguments: argparse.Namespace) -> Path:
         raise RuntimeError("built binary version does not match Cargo.toml")
     destination = arguments.output_dir.resolve()
     destination.mkdir(parents=True, exist_ok=True)
-    archive = destination / f"omnivox_{package_version}_amd64.deb"
+    archive = destination / (parse_version(version).deb_asset if arguments.release
+                             else f"omnivox_{package_version}_amd64.deb")
     environment = os.environ.copy()
     environment["SOURCE_DATE_EPOCH"] = identity["commit_epoch"]
     with tempfile.TemporaryDirectory(prefix=".package-deb-", dir=destination) as temporary:

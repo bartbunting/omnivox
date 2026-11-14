@@ -14,7 +14,8 @@ class ReleaseVersionTests(unittest.TestCase):
         self.assertFalse(parse_version("1.19.0").prerelease)
         pre = parse_version("1.19.0-pre.12")
         self.assertTrue(pre.prerelease)
-        self.assertEqual(pre.deb_asset, "omnivox_1.19.0~pre.12-1_amd64.deb")
+        self.assertEqual(pre.debian_version, "1.19.0~pre.12")
+        self.assertEqual(pre.deb_asset, "omnivox_1.19.0-pre.12-1_amd64.deb")
         for value in ("v1.19.0", "1.19.0-pre.0", "1.19.0-pre.01", "01.19.0",
                       "1.19.0-rc.1", "1.19.0+dev", "1.19.0\n", "../1.19.0"):
             with self.subTest(value=value), self.assertRaises(ValueError):
@@ -24,13 +25,14 @@ class ReleaseVersionTests(unittest.TestCase):
         version = "1.19.0-pre.1"
         names = expected_asset_names(version)
         self.assertEqual(len(names), len(expected_asset_names("1.19.0")))
-        self.assertIn("omnivox_1.19.0~pre.1-1_amd64.deb", names)
+        self.assertIn("omnivox_1.19.0-pre.1-1_amd64.deb", names)
         self.assertIn("omnivox-1.19.0-pre.1-macos-arm64.tar.gz", names)
         require_exact_names(list(names), version)
-        names.remove("omnivox_1.19.0~pre.1-1_amd64.deb")
-        names.add("omnivox_1.19.0-pre.1-1_amd64.deb")
-        with self.assertRaises(AssetSetError):
-            require_exact_names(list(names), version)
+        names.remove("omnivox_1.19.0-pre.1-1_amd64.deb")
+        for incorrect in ("omnivox_1.19.0~pre.1-1_amd64.deb",
+                          "omnivox_1.19.0.pre.1-1_amd64.deb"):
+            with self.subTest(filename=incorrect), self.assertRaises(AssetSetError):
+                require_exact_names([*names, incorrect], version)
 
     def test_publication_keeps_prerelease_out_of_latest(self):
         for version, pre in (("1.19.0", False), ("1.19.0-pre.1", True)):

@@ -22,7 +22,9 @@ class ReleaseVersion:
 
     @property
     def deb_asset(self) -> str:
-        return f"omnivox_{self.debian_version}-1_amd64.deb"
+        # GitHub normalizes '~' in asset names; Debian ordering belongs to the
+        # control Version field, independently of the downloaded filename.
+        return f"omnivox_{self.version}-1_amd64.deb"
 
 
 def parse_version(version: str) -> ReleaseVersion:
