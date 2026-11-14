@@ -10,8 +10,10 @@ live under `data/`. A missing raw artifact or measurement is a coverage gap,
 not an implied successful result.
 
 The [macOS audio-device implementation checks](2026-11-13-macos-audio-devices.md)
-record local shared/cross-target verification; native Mac execution and listening
-remain pending.
+record local shared/cross-target verification. The
+[1.19 prerelease report](2026-11-14-1.19-prerelease-publication.md) records native
+Mac build, test and synthesis coverage; physical device use and listening remain
+pending.
 
 ## Performance comparisons and baselines
 
@@ -89,6 +91,13 @@ Earlier baselines remain available:
 - [2026-11-13 lightweight reload source integration](2026-11-13-lightweight-merge.md)
   records paired main/master merge checks, regenerated manuals, native Windows
   Eloquence/DECtalk coverage and reproduced pre-existing source-test failures.
+
+### Omnivox 1.19 testing prerelease
+
+The [publication report](2026-11-14-1.19-prerelease-publication.md) records
+`v1.19.0-pre.2`, all 74 release jobs, exact public asset verification and the
+separate Homebrew testing channel. It retains the unpublished first draft's
+filename failure and the native Mac listening limits.
 
 ### Omnivox 1.18.0 release evidence
 

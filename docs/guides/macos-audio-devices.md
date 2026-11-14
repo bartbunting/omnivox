@@ -3,17 +3,18 @@
 The development implementation follows [ADR 0020](../adr/0020-audio-output-device-selection.md):
 main speech and notifications can use separate physical outputs, Apply preserves
 speech engines, and a disconnected explicit device never falls back to speakers.
-Native Intel/Apple Silicon execution and physical listening are pending. A passing
-cross-target check is not a native build or listening result.
+Native Intel/Apple Silicon builds, tests and WAV synthesis passed for the
+[testing release](../benchmarks/2026-11-14-1.19-prerelease-publication.md).
+Physical device switching, recovery and listening remain tester checks.
 
 ## Install the testing release
 
-The prepared server candidate is `v1.19.0-pre.2`, paired with Emacsvox commit
+The published testing server is `v1.19.0-pre.2`, paired with Emacsvox commit
 [`a751af1506b73b8a37a37085eb7a356a318da8ca`](https://github.com/bartbunting/emacsvox/commit/a751af1506b73b8a37a37085eb7a356a318da8ca).
 Use this client commit for the physical device menus. It is a testing checkout,
 not a separately versioned Emacsvox release.
 
-Once the prerelease and tap update are published, follow the
+Follow the
 [prerelease installation instructions](../../.github/DEPLOYMENT.md#prereleases).
 Set `OMNIVOX_PROGRAM` to `$(brew --prefix omnivox-pre)/bin/omnivox` in the isolated
 session below instead of the source-build path. The source build and ignored

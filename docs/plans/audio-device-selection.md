@@ -9,10 +9,12 @@
   records full development staging and native and WSL checks. Windows
   main/notification device switching and Left/Right listening are
   [accepted](../benchmarks/2026-11-13-audio-device-listening.md); physical disconnect
-  and broader hardware/platform qualification remain open. The feature is not a
-  published release. macOS CoreAudio discovery and switching are implemented;
-  [local implementation checks](../benchmarks/2026-11-13-macos-audio-devices.md) pass;
-  native execution and listening are pending under the
+  and broader hardware/platform qualification remain open. The feature ships in
+  the [1.19 testing prerelease](../benchmarks/2026-11-14-1.19-prerelease-publication.md).
+  macOS CoreAudio discovery and switching are implemented;
+  [local implementation checks](../benchmarks/2026-11-13-macos-audio-devices.md) and
+  native build/synthesis gates pass. Physical device operation and listening
+  remain pending under the
   [Mac test checklist](../guides/macos-audio-devices.md).
 - Scope: Local independent main/notification destinations, explicit Apply/Save,
   and recovery that preserves the intended output.

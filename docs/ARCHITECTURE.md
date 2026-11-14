@@ -598,8 +598,9 @@ new request recovers output. Duplicate defaults and unrelated endpoint events
 retain a healthy connection. macOS uses CoreAudio default/device-list listeners
 and CPAL stream invalidation, with exact UID lookup and pinned HAL outputs.
 Follow-default replaces queues through the same owner instead of permitting
-CoreAudio to move an in-flight stream automatically. macOS implementation is
-awaiting native execution and listening qualification.
+CoreAudio to move an in-flight stream automatically. Native Mac builds, tests
+and synthesis pass in the [testing release](benchmarks/2026-11-14-1.19-prerelease-publication.md);
+physical-device operation and listening still await qualification.
 
 Negotiated [device selection](protocols/audio-devices.md) enumerates bounded
 native identities and changes one worker's physical destination. The owner
